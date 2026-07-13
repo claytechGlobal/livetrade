@@ -1,13 +1,20 @@
 'use strict';
 const path = require('path');
+const os = require('os');
 const crypto = require('crypto');
 const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 
-const DB_PATH = process.env.DB_PATH
-  ? path.resolve(process.env.DB_PATH)
-  : path.join(__dirname, '..', 'data.sqlite');
+function resolveDbPath() {
+  if (process.env.DB_PATH) return path.resolve(process.env.DB_PATH);
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return path.join(os.tmpdir(), 'livetrades.sqlite');
+  }
+  return path.join(__dirname, '..', 'data.sqlite');
+}
 
+const DB_PATH = resolveDbPath();
+console.log('[db] path', DB_PATH);
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
