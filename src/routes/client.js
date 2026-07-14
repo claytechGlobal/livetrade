@@ -1,7 +1,7 @@
 'use strict';
 const express = require('express');
 const { requireClient } = require('../auth');
-const { getClientPortal, getClientRow, getSettings, composeClientApp } = require('../db');
+const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload } = require('../db');
 
 const router = express.Router();
 router.use(requireClient);
@@ -35,6 +35,20 @@ router.get('/app', (req, res) => {
   const data = composeClientApp(req.user.clientId);
   if (!data) return res.status(404).json({ error: 'Client not found' });
   res.json(data);
+});
+
+router.post('/daily-csv', (req, res) => {
+  const row = getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  const csv = String((req.body && req.body.csv) || '');
+  try {
+    const result = applyClientCsvUpload(req.user.clientId, csv);
+    const data = composeClientApp(req.user.clientId);
+    res.json({ ok: true, result, app: data });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'CSV import failed' });
+  }
 });
 
 module.exports = router;

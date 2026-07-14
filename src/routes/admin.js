@@ -5,7 +5,7 @@ const {
   composeBootstrap, replacePlays, replaceTrades, replaceAccounts, replaceClients,
   replaceDayPnl, replaceAffiliates,
   getSettings, patchSettings, setAdminPassword, setAdminCredentials,
-  buildDailyReport, etToday, markDailySent, applyClientCsvUpload, getClientRow, listActiveClients
+  buildDailyReport, etToday, markDailySent
 } = require('../db');
 const { sendDailyReport } = require('../email');
 const { runDailySend } = require('../scheduler');
@@ -38,37 +38,6 @@ router.post('/credentials', (req, res) => {
   if (password && password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
   setAdminCredentials({ username, password: password || undefined });
   res.json({ ok: true });
-});
-
-router.post('/clients/:id/daily-csv', (req, res) => {
-  const row = getClientRow(req.params.id);
-  if (!row) return res.status(404).json({ error: 'Client not found' });
-  const csv = String((req.body && req.body.csv) || '');
-  try {
-    const result = applyClientCsvUpload(req.params.id, csv);
-    res.json({ ok: true, result, bootstrap: composeBootstrap() });
-  } catch (e) {
-    res.status(400).json({ error: e.message || 'CSV import failed' });
-  }
-});
-
-router.post('/daily-csv', (req, res) => {
-  const csv = String((req.body && req.body.csv) || '');
-  const target = String((req.body && req.body.clientId) || 'all');
-  try {
-    const targets = target === 'all'
-      ? listActiveClients()
-      : [getClientRow(target)].filter(Boolean);
-    if (!targets.length) return res.status(400).json({ error: 'No clients to apply CSV to.' });
-    const results = targets.map(c => ({
-      clientId: c.id,
-      name: c.name,
-      result: applyClientCsvUpload(c.id, csv)
-    }));
-    res.json({ ok: true, results, bootstrap: composeBootstrap() });
-  } catch (e) {
-    res.status(400).json({ error: e.message || 'CSV import failed' });
-  }
 });
 
 router.post('/clients/:id/send', async (req, res) => {

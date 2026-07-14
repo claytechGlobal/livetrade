@@ -48,7 +48,8 @@ body::after{content:"";position:fixed;top:-25%;left:30%;width:55vw;height:55vh;z
 .nav-label{font-size:9px;letter-spacing:.24em;color:var(--text-3);text-transform:uppercase;padding:16px 10px 7px}
 body.client-mode .admin-only{display:none!important}
 body.client-mode .admin-write{display:none!important}
-body.client-mode .top-actions{display:none!important}
+body.client-mode .client-upload{display:flex!important}
+.client-upload{display:none;gap:10px;align-items:center}
 .nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;color:var(--text-2);cursor:pointer;
   font-weight:500;font-size:13.5px;transition:.15s;user-select:none}
 .nav-item svg{width:18px;height:18px;flex:none;opacity:.85}
@@ -299,6 +300,9 @@ tbody tr{transition:.12s}tbody tr:hover{background:var(--surface-2)}
       <div class="top-actions admin-write">
         <div class="iconbtn" onclick="openImport()" title="Import CSV"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg></div>
         <button class="btn primary" onclick="openTrade()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Trade</button>
+      </div>
+      <div class="top-actions client-upload">
+        <button class="btn primary" onclick="openClientCsvUpload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Upload trades CSV</button>
       </div>
     </div>
     <div class="content" id="content"></div>
@@ -680,6 +684,7 @@ function renderCalendar(){
     ${stat('Trading Days',td,'','this month')}
     ${stat('Green Days',td?pct(wd/td*100):'—','',`${wd} of ${td}`)}</div>
     <div class="admin-write" style="display:flex;justify-content:flex-end;margin-bottom:14px"><button class="btn sm" onclick="importDailyCsv()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Import daily P&L (CSV)</button></div>
+    <div class="client-upload" style="justify-content:flex-end;margin-bottom:14px"><button class="btn sm primary" onclick="openClientCsvUpload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Upload trades CSV</button></div>
         <div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>P&L Calendar</div>
       <div class="cal-nav"><div class="iconbtn" style="width:30px;height:30px" onclick="calStep(-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
       <div class="mo" id="calMo"></div>
@@ -694,6 +699,7 @@ function renderTrades(){
   const trades=state.trades.map(t=>({...t,c:calc(t)})).sort((a,b)=>b.date.localeCompare(a.date));
   let h=`<div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>${trades.length} Trades</div>
     <div style="display:flex;gap:10px"><button class="btn sm admin-write" onclick="openImport()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Import CSV</button>
+    <button class="btn sm primary client-upload" onclick="openClientCsvUpload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Upload trades CSV</button>
     <button class="btn sm primary admin-write" onclick="openTrade()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Trade</button></div></div>`;
   if(!trades.length){h+=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><div>No trades yet. Add one or import a CSV.</div></div></div>`;document.getElementById('content').innerHTML=h;return;}
   h+=`<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Symbol</th><th>Setup</th><th>Side</th><th>Mindset</th><th>Ticks</th><th>R</th><th style="text-align:right">P&L</th><th></th></tr></thead><tbody>`;
@@ -746,38 +752,32 @@ function openTrade(){
 }
 
 /* ===== CSV import ===== */
-function openAdminClientCsv(prefillId){
-  if(!(session&&session.role==='admin')){flash('Admin only');return;}
-  const opts=['<option value="all">All active clients</option>']
-    .concat(state.clients.map(c=>'<option value="'+c.id+'" '+(prefillId===c.id?'selected':'')+'>'+esc(c.name)+' ('+esc(c.package||'')+')</option>')).join('');
-  modal('Upload trades CSV → client P&L',`
-    <div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:12px">Broker export with TradeDay + PnL (e.g. trades_export.csv). Replaces that client's daily P&amp;L. 5:00 PM ET emails use this data.</div>
-    <div class="field"><label>Apply to</label><select id="acsv_client">${opts}</select></div>
-    <div class="field"><label>Choose file</label><input id="acsv_file" type="file" accept=".csv,text/csv"></div>
+function openClientCsvUpload(){
+  if(!(session&&session.role==='client')){flash('Client upload only');return;}
+  modal('Upload trades CSV',`
+    <div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:12px">Export from your platform (TradeDay + PnL). This updates your dashboard, calendar, and trade log. Re-upload anytime to refresh. 5:00 PM ET reports use this data.</div>
+    <div class="field"><label>Choose file</label><input id="ccsv_file" type="file" accept=".csv,text/csv"></div>
     <div class="field"><label>Or paste CSV</label>
-      <textarea id="acsv_in" style="min-height:140px;font-family:var(--mono);font-size:12px" placeholder="Id,ContractName,...,PnL,...,TradeDay,..."></textarea></div>`,
+      <textarea id="ccsv_in" style="min-height:140px;font-family:var(--mono);font-size:12px" placeholder="Id,ContractName,...,PnL,...,TradeDay,..."></textarea></div>`,
   async ()=>{
-    let text=val('acsv_in').trim();
-    const f=document.getElementById('acsv_file');
+    let text=val('ccsv_in').trim();
+    const f=document.getElementById('ccsv_file');
     if((!text)&&f&&f.files&&f.files[0]){text=await f.files[0].text();}
     if(!text){flash('Choose a CSV file or paste CSV text');return false;}
-    const clientId=val('acsv_client')||'all';
     try{
-      const r=await api('POST','/api/admin/daily-csv',{csv:text,clientId});
-      if(r.bootstrap){
-        state.settings=r.bootstrap.settings||state.settings;state.plays=r.bootstrap.plays||[];
-        state.accounts=r.bootstrap.accounts||[];state.trades=r.bootstrap.trades||[];
-        state.clients=r.bootstrap.clients||[];state.dayPnl=r.bootstrap.dayPnl||[];
-        state.affiliates=r.bootstrap.affiliates||[];
-      }
-      const n=(r.results||[]).length;
-      flash('CSV applied to '+n+' client'+(n!==1?'s':'')+' — feeds 5 PM ET reports');
-      if(view==='clients')renderClients();else go('clients');
+      const r=await api('POST','/api/client/daily-csv',{csv:text});
+      const d=r.app||{};
+      state.settings=Object.assign({},state.settings,d.settings||{});
+      state.plays=d.plays||state.plays;state.accounts=d.accounts||[];state.trades=d.trades||[];
+      state.dayPnl=d.dayPnl||[];state.clients=d.client?[d.client]:state.clients;
+      const res=r.result||{};
+      flash('CSV applied — '+(res.trades||0)+' trades · '+(res.days||0)+' days');
+      go(view||'dashboard');
     }catch(e){flash(e.message||'Upload failed');return false;}
   },'Upload & apply');
-  document.getElementById('acsv_file').addEventListener('change',async e=>{
+  document.getElementById('ccsv_file').addEventListener('change',async e=>{
     const f=e.target.files&&e.target.files[0];if(!f)return;
-    document.getElementById('acsv_in').value=await f.text();
+    document.getElementById('ccsv_in').value=await f.text();
   });
 }
 function openImport(){
@@ -943,7 +943,7 @@ function renderClients(){
     </div>`;}).join('');
   h+=`<div class="card" style="margin-bottom:16px;border:1px solid var(--accent)">
     <div class="card-h"><div class="card-t"><span class="tick"></span>Central Upload</div>
-      <span class="hint" style="font-family:var(--ui)">Upload broker CSV (TradeDay + PnL) to fill client daily P&amp;L, or enter amount and copy to all. 5:00 PM ET emails use that data.</span><button class="btn sm primary" onclick="openAdminClientCsv()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Upload trades CSV</button></div>
+      <span class="hint" style="font-family:var(--ui)">Set accounts per client, enter the day's P&L and share — copies to all at once. Clients upload their own broker CSV from their portal.</span></div>
     <div class="f3">
       <div class="field"><label>Trading date</label><input id="cu_date" type="date" value="${dayISO(0)}"></div>
       <div class="field"><label>P&L per account (USD)</label><input id="cu_amt" class="num" type="number" step="any" placeholder="e.g. 420 or -150" oninput="cuPreview()"></div>
@@ -1013,7 +1013,7 @@ function renderClients(){
       if(dpl.length>6)h+=`<div class="hint" style="font-family:var(--ui);padding:6px 0">+${dpl.length-6} more — visible in the client portal</div>`;
       h+=`</div>`;
     }else{h+=`<div class="hint" style="font-family:var(--ui);padding:2px 0 10px">No daily P&L uploaded yet.</div>`;}
-    h+=`<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm primary" onclick="uploadDaily('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Upload Daily P&L</button><button class="btn sm" onclick="openAdminClientCsv('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Upload trades CSV</button></div>
+    h+=`<div style="margin-bottom:12px"><button class="btn sm primary" onclick="uploadDaily('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Upload Daily P&L</button></div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--surface)">
       <span class="hint" style="font-family:var(--ui);color:var(--text-2)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Daily report auto-sends at <b style="color:var(--text)">5:00 PM ET</b></span>
       <button class="btn sm" onclick="sendNow('${c.id}')">Send now</button>
