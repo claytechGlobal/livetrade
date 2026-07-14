@@ -502,15 +502,14 @@ function seedDemo() {
   play('Failed Breakdown', '#34d399', 'Trap below prior-day low, reclaim and run.');
   const tp = play('Trend Pullback', '#f5b942', 'Buy first pullback to 9 EMA on a trend day.');
 
-  const mkClient = (name, email, pkg, status, split, code) => {
-    const id = uid();
+  const mkClient = (id, name, email, pkg, status, split, code) => {
     db.prepare(`INSERT INTO clients(id,name,email,package,status,split,access_code,joined) VALUES(?,?,?,?,?,?,?,?)`)
       .run(id, name, email, pkg, status, split, code, today());
     return id;
   };
-  const cm = mkClient('Marcus Bell', 'marcus.bell@email.com', 'pro', 'active', 20, 'MARC-7788');
-  const cd = mkClient('Dana Cole', 'dana.cole@email.com', 'starter', 'active', 25, 'DANA-2255');
-  mkClient('Priya Nair', 'priya.n@email.com', 'elite', 'pending', 15, 'PRIY-3030');
+  const cm = mkClient('seed-marcus', 'Marcus Bell', 'marcus.bell@email.com', 'pro', 'active', 20, 'MARC-7788');
+  const cd = mkClient('seed-dana', 'Dana Cole', 'dana.cole@email.com', 'starter', 'active', 25, 'DANA-2255');
+  mkClient('seed-priya', 'Priya Nair', 'priya.n@email.com', 'elite', 'pending', 15, 'PRIY-3030');
 
   const mkAcc = (clientId, firm, label, status) => { const id = uid(); db.prepare('INSERT INTO accounts(id,client_id,firm,label,status) VALUES(?,?,?,?,?)').run(id, clientId, firm, label, status); return id; };
   const a1 = mkAcc(cm, 'Apex Trader Funding', '50K Eval #1', 'funded');

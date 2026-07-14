@@ -351,7 +351,13 @@ async function api(method,url,body){
   if(body!==undefined){opt.headers['Content-Type']='application/json';opt.body=JSON.stringify(body);}
   const r=await fetch(url,opt);
   if(r.status===401&&!url.startsWith('/api/auth/')){session=null;showScreen('login');renderLogin();throw new Error('Your session expired — please log in again.');}
-  if(!r.ok){let m='';try{m=(await r.json()).error;}catch(_){}throw new Error(m||('Request failed ('+r.status+')'));}
+  if(!r.ok){let m='';try{m=(await r.json()).error;}catch(_){}
+    if(r.status===404&&/Client not found/i.test(m||'')&&url.startsWith('/api/client/')){
+      session=null;try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}catch(_){}
+      showScreen('login');renderLogin();
+      throw new Error('Session reset — sign in again with your access code, then re-upload.');
+    }
+    throw new Error(m||('Request failed ('+r.status+')'));}
   const ct=r.headers.get('content-type')||'';return ct.includes('json')?r.json():null;
 }
 async function save(k){if(session&&session.role==='client'){flash('Read-only — contact your manager to change data');return;}

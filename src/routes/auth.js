@@ -33,8 +33,8 @@ router.post('/login', loginLimiter, (req, res) => {
           code: 'SUBSCRIPTION_REQUIRED'
         });
       }
-      setCookie(res, sign({ role: 'client', clientId: client.id }));
-      return res.json({ role: 'client', clientId: client.id, name: client.name });
+      setCookie(res, sign({ role: 'client', clientId: client.id, accessCode: client.access_code }));
+      return res.json({ role: 'client', clientId: client.id, name: client.name, accessCode: client.access_code });
     }
     return res.status(401).json({ error: 'Invalid access code.' });
   }
