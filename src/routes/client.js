@@ -1,7 +1,7 @@
 'use strict';
 const express = require('express');
 const { requireClient } = require('../auth');
-const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload, saveClientTrades, saveClientAccounts } = require('../db');
+const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload, saveClientTrades, saveClientAccounts, saveClientPlays } = require('../db');
 
 const router = express.Router();
 router.use(requireClient);
@@ -73,6 +73,19 @@ router.put('/accounts', (req, res) => {
     res.json({ ok: true, app });
   } catch (e) {
     res.status(400).json({ error: e.message || 'Could not save accounts' });
+  }
+});
+
+router.put('/plays', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found. Log out and sign in again with your access code.' });
+  if (!assertSubscribed(row, res)) return;
+  try {
+    saveClientPlays(Array.isArray(req.body) ? req.body : []);
+    const app = composeClientApp(row.id);
+    res.json({ ok: true, app });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Could not save plays' });
   }
 });
 

@@ -103,10 +103,56 @@ function initDb() {
     }));
   }
 
+  const accCols = db.prepare('PRAGMA table_info(accounts)').all().map(c => c.name);
+  if (!accCols.includes('account_size')) db.exec('ALTER TABLE accounts ADD COLUMN account_size TEXT');
+  if (!accCols.includes('parent_account_id')) db.exec('ALTER TABLE accounts ADD COLUMN parent_account_id TEXT');
+  ensureClientTradesTable();
+  const tradeCols = db.prepare('PRAGMA table_info(trades)').all().map(c => c.name);
+  if (!tradeCols.includes('play_name')) db.exec('ALTER TABLE trades ADD COLUMN play_name TEXT');
+  migrateAccountLineage();
+
   if (process.env.SEED_DEMO === 'true' && !db.prepare('SELECT id FROM clients LIMIT 1').get()) {
     seedDemo();
     console.log('[db] Loaded demo data (SEED_DEMO=true).');
   }
+}
+function mapAccountRow(a) {
+  return {
+    id: a.id, firm: a.firm, label: a.label, status: a.status, clientId: a.client_id,
+    accountSize: a.account_size || '', parentAccountId: a.parent_account_id || null,
+    expenses: db.prepare('SELECT * FROM account_expenses WHERE account_id=?').all(a.id)
+      .map(e => ({ id: e.id, type: e.type, amount: e.amount, date: e.date })),
+    payouts: db.prepare('SELECT * FROM account_payouts WHERE account_id=?').all(a.id)
+      .map(p => ({ id: p.id, amount: p.amount, date: p.date }))
+  };
+}
+function insertAccountRow(a) {
+  const st = String(a.status || 'evaluation').toLowerCase();
+  const status = ['evaluation', 'funded', 'payout', 'failed'].includes(st) ? st : 'evaluation';
+  const size = a.accountSize || parseAcctSizeFromLabel(a.label) || '';
+  db.prepare('INSERT INTO accounts(id,client_id,firm,label,status,account_size,parent_account_id) VALUES(?,?,?,?,?,?,?)')
+    .run(a.id || uid(), a.clientId || null, a.firm || '', a.label || 'Account', status, size, a.parentAccountId || null);
+}
+function parseAcctSizeFromLabel(label) {
+  const m = String(label || '').match(/(\d+)\s*K/i);
+  return m ? `${m[1]}K` : '';
+}
+function migrateAccountLineage() {
+  const accs = db.prepare('SELECT * FROM accounts').all();
+  accs.forEach(a => {
+    const size = a.account_size || parseAcctSizeFromLabel(a.label);
+    if (size && !a.account_size) db.prepare('UPDATE accounts SET account_size=? WHERE id=?').run(size, a.id);
+    if (/eval/i.test(a.label) && a.status === 'funded') db.prepare('UPDATE accounts SET status=? WHERE id=?').run('evaluation', a.id);
+  });
+  const rows = db.prepare('SELECT * FROM accounts').all();
+  rows.forEach(ev => {
+    if (!/eval/i.test(ev.label) && ev.status !== 'evaluation') return;
+    const sz = ev.account_size || parseAcctSizeFromLabel(ev.label);
+    const funded = rows.find(f => f.id !== ev.id && f.client_id === ev.client_id && f.firm === ev.firm
+      && (f.account_size || parseAcctSizeFromLabel(f.label)) === sz
+      && (f.status === 'funded' || f.status === 'payout') && !f.parent_account_id);
+    if (funded) db.prepare('UPDATE accounts SET parent_account_id=? WHERE id=?').run(ev.id, funded.id);
+  });
 }
 
 /* ---------- settings ---------- */
@@ -168,15 +214,10 @@ function clientOut(c) {
 function composeBootstrap() {
   const plays = db.prepare('SELECT * FROM plays').all()
     .map(p => ({ id: p.id, name: p.name, color: p.color, desc: p.description }));
-  const accounts = db.prepare('SELECT * FROM accounts').all().map(a => ({
-    id: a.id, firm: a.firm, label: a.label, status: a.status, clientId: a.client_id,
-    expenses: db.prepare('SELECT * FROM account_expenses WHERE account_id=?').all(a.id)
-      .map(e => ({ id: e.id, type: e.type, amount: e.amount, date: e.date })),
-    payouts: db.prepare('SELECT * FROM account_payouts WHERE account_id=?').all(a.id)
-      .map(p => ({ id: p.id, amount: p.amount, date: p.date }))
-  }));
+  const accounts = db.prepare('SELECT * FROM accounts').all().map(mapAccountRow);
   const trades = db.prepare('SELECT * FROM trades').all().map(t => ({
-    id: t.id, accountId: t.account_id, playId: t.play_id, symbol: t.symbol, date: t.date,
+    id: t.id, accountId: t.account_id, playId: t.play_id, playName: t.play_name || '',
+    symbol: t.symbol, date: t.date,
     direction: t.direction, entry: t.entry, exit: t.exit, stop: t.stop, contracts: t.contracts,
     emotion: t.emotion, plan: !!t.plan, notes: t.notes
   }));
@@ -199,7 +240,10 @@ function getClientPortal(id) {
   if (!c) return null;
   const out = clientOut(c);
   out.accounts = db.prepare('SELECT * FROM accounts WHERE client_id=?').all(id)
-    .map(a => ({ id: a.id, firm: a.firm, label: a.label, status: a.status, clientId: a.client_id }));
+    .map(a => ({
+      id: a.id, firm: a.firm, label: a.label, status: a.status, clientId: a.client_id,
+      accountSize: a.account_size || '', parentAccountId: a.parent_account_id || null
+    }));
   return out;
 }
 function ensureClientTradesTable() {
@@ -214,11 +258,13 @@ function ensureClientTradesTable() {
   if (!cols.includes('account_id')) db.exec('ALTER TABLE client_trades ADD COLUMN account_id TEXT');
   if (!cols.includes('emotion')) db.exec('ALTER TABLE client_trades ADD COLUMN emotion TEXT');
   if (!cols.includes('plan')) db.exec('ALTER TABLE client_trades ADD COLUMN plan INTEGER');
+  if (!cols.includes('play_name')) db.exec('ALTER TABLE client_trades ADD COLUMN play_name TEXT');
 }
 function listClientTrades(clientId) {
   ensureClientTradesTable();
   return db.prepare('SELECT * FROM client_trades WHERE client_id=? ORDER BY date DESC').all(clientId).map(t => ({
-    id: t.id, accountId: t.account_id || null, playId: t.play_id || null, symbol: t.symbol, date: t.date,
+    id: t.id, accountId: t.account_id || null, playId: t.play_id || null, playName: t.play_name || '',
+    symbol: t.symbol, date: t.date,
     direction: t.direction, entry: t.entry, exit: t.exit, stop: t.stop,
     contracts: t.contracts, emotion: t.emotion || null, plan: t.plan !== 0, notes: t.notes || '',
     csvPnl: t.pnl
@@ -233,15 +279,16 @@ const replaceClientTrades = db.transaction((clientId, trades) => {
   ensureClientTradesTable();
   db.prepare('DELETE FROM client_trades WHERE client_id=?').run(clientId);
   const ins = db.prepare(`INSERT INTO client_trades
-    (id,client_id,symbol,date,direction,entry,exit,stop,contracts,pnl,notes,play_id,account_id,emotion,plan)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (id,client_id,symbol,date,direction,entry,exit,stop,contracts,pnl,notes,play_id,account_id,emotion,plan,play_name)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   (trades || []).forEach(t => {
     const pnl = t.csvPnl != null && t.csvPnl !== '' ? nullableNum(t.csvPnl) : nullableNum(t.pnl);
     ins.run(
       t.id || uid(), clientId, t.symbol || '', t.date || today(),
       t.direction || 'Long', num(t.entry), num(t.exit), nullableNum(t.stop),
       num(t.contracts) || 1, pnl, t.notes || '',
-      t.playId || null, t.accountId || null, t.emotion || null, t.plan === false ? 0 : 1
+      t.playId || null, t.accountId || null, t.emotion || null, t.plan === false ? 0 : 1,
+      t.playName || null
     );
   });
 });
@@ -252,18 +299,18 @@ const replaceClientAccounts = db.transaction((clientId, accounts) => {
     db.prepare('DELETE FROM account_payouts WHERE account_id=?').run(r.id);
   });
   db.prepare('DELETE FROM accounts WHERE client_id=?').run(clientId);
-  const ia = db.prepare('INSERT INTO accounts(id,client_id,firm,label,status) VALUES(?,?,?,?,?)');
   const ie = db.prepare('INSERT INTO account_expenses(id,account_id,type,amount,date) VALUES(?,?,?,?,?)');
   const ip = db.prepare('INSERT INTO account_payouts(id,account_id,amount,date) VALUES(?,?,?,?)');
   (accounts || []).forEach(a => {
     const aid = a.id || uid();
-    const st = String(a.status || 'evaluation').toLowerCase();
-    const status = ['evaluation', 'funded', 'payout', 'failed'].includes(st) ? st : 'evaluation';
-    ia.run(aid, clientId, a.firm || '', a.label || 'Account', status);
+    insertAccountRow({ ...a, id: aid, clientId });
     (a.expenses || []).forEach(e => ie.run(e.id || uid(), aid, e.type || 'Fee', num(e.amount), e.date || today()));
     (a.payouts || []).forEach(p => ip.run(p.id || uid(), aid, num(p.amount), p.date || today()));
   });
 });
+function saveClientPlays(plays) {
+  replacePlays(plays);
+}
 function saveClientTrades(clientId, trades) {
   replaceClientTrades(clientId, trades);
   const byDay = {};
@@ -377,13 +424,7 @@ function composeClientApp(clientId) {
   const full = composeBootstrap();
   const client = getClientPortal(clientId);
   if (!client) return null;
-  const mine = db.prepare('SELECT * FROM accounts WHERE client_id=?').all(clientId).map(a => ({
-    id: a.id, firm: a.firm, label: a.label, status: a.status, clientId: a.client_id,
-    expenses: db.prepare('SELECT * FROM account_expenses WHERE account_id=?').all(a.id)
-      .map(e => ({ id: e.id, type: e.type, amount: e.amount, date: e.date })),
-    payouts: db.prepare('SELECT * FROM account_payouts WHERE account_id=?').all(a.id)
-      .map(p => ({ id: p.id, amount: p.amount, date: p.date }))
-  }));
+  const mine = db.prepare('SELECT * FROM accounts WHERE client_id=?').all(clientId).map(mapAccountRow);
   return {
     settings: {
       appName: full.settings.appName,
@@ -408,23 +449,22 @@ const replacePlays = db.transaction(arr => {
 const replaceTrades = db.transaction(arr => {
   db.prepare('DELETE FROM trades').run();
   const ins = db.prepare(`INSERT INTO trades
-    (id,account_id,play_id,symbol,date,direction,entry,exit,stop,contracts,emotion,plan,notes)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (id,account_id,play_id,symbol,date,direction,entry,exit,stop,contracts,emotion,plan,notes,play_name)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   (arr || []).forEach(t => ins.run(
     t.id || uid(), t.accountId || null, t.playId || null, t.symbol || '', t.date || today(),
     t.direction || 'Long', num(t.entry), num(t.exit), nullableNum(t.stop), num(t.contracts) || 1,
-    t.emotion || null, t.plan ? 1 : 0, t.notes || ''));
+    t.emotion || null, t.plan ? 1 : 0, t.notes || '', t.playName || null));
 });
 const replaceAccounts = db.transaction(arr => {
   db.prepare('DELETE FROM accounts').run();
   db.prepare('DELETE FROM account_expenses').run();
   db.prepare('DELETE FROM account_payouts').run();
-  const ia = db.prepare('INSERT INTO accounts(id,client_id,firm,label,status) VALUES(?,?,?,?,?)');
   const ie = db.prepare('INSERT INTO account_expenses(id,account_id,type,amount,date) VALUES(?,?,?,?,?)');
   const ip = db.prepare('INSERT INTO account_payouts(id,account_id,amount,date) VALUES(?,?,?,?)');
   (arr || []).forEach(a => {
     const aid = a.id || uid();
-    ia.run(aid, a.clientId || null, a.firm || '', a.label || 'Account', a.status || 'evaluation');
+    insertAccountRow({ ...a, id: aid });
     (a.expenses || []).forEach(e => ie.run(e.id || uid(), aid, e.type || 'Fee', num(e.amount), e.date || today()));
     (a.payouts || []).forEach(p => ip.run(p.id || uid(), aid, num(p.amount), p.date || today()));
   });
@@ -558,15 +598,20 @@ function seedDemo() {
   const cd = mkClient('seed-dana', 'Dana Cole', 'dana.cole@email.com', 'starter', 'active', 25, 'DANA-2255');
   mkClient('seed-priya', 'Priya Nair', 'priya.n@email.com', 'elite', 'pending', 15, 'PRIY-3030');
 
-  const mkAcc = (clientId, firm, label, status) => { const id = uid(); db.prepare('INSERT INTO accounts(id,client_id,firm,label,status) VALUES(?,?,?,?,?)').run(id, clientId, firm, label, status); return id; };
-  const a1 = mkAcc(cm, 'Apex Trader Funding', '50K Eval #1', 'evaluation');
-  const a2 = mkAcc(cm, 'Topstep', '50K Combine', 'funded');
-  const a3 = mkAcc(cd, 'Apex Trader Funding', '50K Eval #2', 'evaluation');
-  const a4 = mkAcc(cd, 'MyFundedFutures', '100K Expert', 'failed');
+  const mkAcc = (id, clientId, firm, label, status, size, parentId) => {
+    db.prepare('INSERT INTO accounts(id,client_id,firm,label,status,account_size,parent_account_id) VALUES(?,?,?,?,?,?,?)')
+      .run(id, clientId, firm, label, status, size, parentId || null);
+    return id;
+  };
+  const a1 = mkAcc('seed-a1', cm, 'Apex Trader Funding', 'Eval #1', 'evaluation', '50K', null);
+  const a1f = mkAcc('seed-a1f', cm, 'Apex Trader Funding', 'Funded', 'funded', '50K', 'seed-a1');
+  const a2 = mkAcc('seed-a2', cm, 'Topstep', '50K Combine', 'funded', '50K', null);
+  const a3 = mkAcc('seed-a3', cd, 'Apex Trader Funding', 'Eval #2', 'evaluation', '50K', null);
+  const a4 = mkAcc('seed-a4', cd, 'MyFundedFutures', '100K Expert', 'failed', '100K', null);
 
   const ex = (acc, type, amt, d) => db.prepare('INSERT INTO account_expenses(id,account_id,type,amount,date) VALUES(?,?,?,?,?)').run(uid(), acc, type, amt, d);
   const pa = (acc, amt, d) => db.prepare('INSERT INTO account_payouts(id,account_id,amount,date) VALUES(?,?,?,?)').run(uid(), acc, amt, d);
-  ex(a1, 'Evaluation fee', 147, today()); pa(a1, 2400, today()); pa(a1, 1850, today());
+  ex(a1, 'Evaluation fee', 147, today()); pa(a1f, 2400, today()); pa(a1f, 1850, today());
   ex(a2, 'Evaluation fee', 165, today()); pa(a2, 3100, today());
   ex(a3, 'Evaluation fee', 147, today());
   ex(a4, 'Evaluation fee', 265, today());
@@ -588,7 +633,7 @@ module.exports = {
   db, initDb, uid, genCode,
   getSettings, patchSettings, setAdminPassword, setAdminCredentials, getAdminUsername, verifyAdmin,
   composeBootstrap, getClientPortal, composeClientApp, applyClientCsvUpload,
-  saveClientTrades, saveClientAccounts,
+  saveClientTrades, saveClientAccounts, saveClientPlays, parseAcctSizeFromLabel,
   replacePlays, replaceTrades, replaceAccounts, replaceClients, replaceDayPnl, replaceAffiliates,
   handleCheckout, isProcessed, markProcessed,
   findActiveClientByCode, getClientRow,

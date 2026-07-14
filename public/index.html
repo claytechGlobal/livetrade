@@ -51,6 +51,17 @@ body.client-mode .admin-write{display:none!important}
 body.client-mode .client-write{display:flex!important;align-items:center;gap:10px}
 body.client-mode .client-upload{display:flex!important;align-items:center;gap:10px}
 .client-write,.client-upload{display:none;gap:10px;align-items:center}
+.lineage-card{margin-bottom:16px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.lineage-head{font-family:var(--display);font-weight:700;font-size:14px;margin-bottom:12px;color:var(--text)}
+.lineage-stepper{display:flex;align-items:center;flex-wrap:wrap;gap:4px 0;margin-bottom:10px}
+.lineage-step{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:500}
+.lineage-step .dot{width:9px;height:9px;border-radius:50%;background:var(--text-3);flex:none}
+.lineage-step.done .dot{background:var(--green)}
+.lineage-step.live .dot{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.lineage-step.failed .dot{background:var(--red)}
+.lineage-step.failed{color:var(--red)}
+.lineage-arrow{color:var(--text-3);margin:0 10px;font-size:12px}
+.lineage-total{font-family:var(--mono);font-size:14px;font-weight:600}
 .client-upload .btn svg,.client-upload.btn svg{width:16px;height:16px;flex:none;vertical-align:-3px;margin-right:6px}
 .nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;color:var(--text-2);cursor:pointer;
   font-weight:500;font-size:13.5px;transition:.15s;user-select:none}
@@ -299,13 +310,10 @@ tbody tr{transition:.12s}tbody tr:hover{background:var(--surface-2)}
         <div class="hello" id="hello">Welcome back, <span>Trader</span></div>
         <div class="subline" id="subline">Here's where your edge stands today</div>
       </div>
-      <div class="top-actions admin-write">
-        <div class="iconbtn" onclick="openImport()" title="Import CSV"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg></div>
+      <div class="top-actions">
+        <div class="iconbtn admin-write" onclick="openImport()" title="Import CSV"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg></div>
         <button class="btn primary" onclick="openTrade()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Trade</button>
-      </div>
-      <div class="top-actions client-write">
-        <button class="btn primary" onclick="openTrade()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Trade</button>
-        <button class="btn" onclick="openClientCsvUpload()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M8 8l4-4 4 4"/><path d="M4 20h16"/></svg> Upload CSV</button>
+        <button class="btn client-write" onclick="openClientCsvUpload()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M8 8l4-4 4 4"/><path d="M4 20h16"/></svg> Upload CSV</button>
       </div>
     </div>
     <div class="content" id="content"></div>
@@ -364,7 +372,7 @@ async function api(method,url,body){
 }
 async function save(k){
   if(session&&session.role==='client'){
-    if(k!=='accounts'&&k!=='trades'){flash('That area is managed by your coach');return;}
+    if(k!=='accounts'&&k!=='trades'&&k!=='plays'){flash('That area is managed by your coach');return;}
     try{
       const r=await api('PUT','/api/client/'+k,state[k]||[]);
       const d=r&&r.app;if(d){
@@ -717,22 +725,18 @@ function renderCalendar(){
 /* ===== TRADES ===== */
 function renderTrades(){
   const trades=state.trades.map(t=>({...t,c:calc(t)})).sort((a,b)=>b.date.localeCompare(a.date));
-  let h=`<div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>${trades.length} Trades</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn sm admin-write" onclick="openImport()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Import CSV</button>
-    <button class="btn sm client-write" onclick="openClientCsvUpload()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M8 8l4-4 4 4"/><path d="M4 20h16"/></svg> Upload CSV</button>
-    <button class="btn sm primary admin-write" onclick="openTrade()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Trade</button>
-    <button class="btn sm primary client-write" onclick="openTrade()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Trade</button></div></div>`;
+  let h=`<div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>${trades.length} Trades</div></div>`;
   if(!trades.length){h+=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><div>No trades yet. Add one or import a CSV.</div></div></div>`;document.getElementById('content').innerHTML=h;return;}
   h+=`<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Symbol</th><th>Setup</th><th>Side</th><th>Mindset</th><th>Ticks</th><th>R</th><th style="text-align:right">P&L</th><th></th></tr></thead><tbody>`;
   trades.forEach(t=>{const pl=state.plays.find(p=>p.id===t.playId);const eg=EMOTIONS[t.emotion];
     h+=`<tr><td class="num muted">${t.date}</td><td class="num" style="font-weight:600">${esc(t.symbol)}</td>
-      <td>${pl?`<span style="display:inline-flex;align-items:center;gap:7px"><span class="dotc" style="background:${pl.color}"></span>${esc(pl.name)}</span>`:'<span class="muted">—</span>'}</td>
+      <td>${t.playName?esc(t.playName):(pl?`<span style="display:inline-flex;align-items:center;gap:7px"><span class="dotc" style="background:${pl.color}"></span>${esc(pl.name)}</span>`:'<span class="muted">—</span>')}</td>
       <td><span class="tag ${t.direction==='Short'?'dir-short':'dir-long'}">${t.direction}</span></td>
       <td>${t.emotion?`<span class="emo-tag ${eg||''}">${esc(t.emotion)}</span>`:'<span class="muted">—</span>'}</td>
       <td class="num ${cls(t.c.ticks)}">${t.c.ticks>0?'+':''}${t.c.ticks.toFixed(1)}</td>
       <td class="num ${t.c.r!=null?cls(t.c.r):'muted'}">${t.c.r!=null?(t.c.r>=0?'+':'')+t.c.r.toFixed(2)+'R':'—'}</td>
       <td class="num ${cls(t.c.pnl)}" style="text-align:right;font-weight:600">${fmt$c(t.c.pnl)}</td>
-      <td style="text-align:right"><span class="x admin-write" style="display:inline-grid" onclick="delTrade('${t.id}')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span><span class="x client-write" style="display:inline-grid" onclick="delTrade('${t.id}')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span></td></tr>`;});
+      <td style="text-align:right"><span class="x" style="display:inline-grid" onclick="delTrade('${t.id}')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span></td></tr>`;});
   h+=`</tbody></table></div></div>`;document.getElementById('content').innerHTML=h;
 }
 function delTrade(id){state.trades=state.trades.filter(t=>t.id!==id);save('trades');renderTrades();flash('Trade deleted');}
@@ -750,13 +754,17 @@ function openTrade(){
       <div class="field"><label>Exit</label><input id="f_exit" class="num" type="number" step="any"></div>
       <div class="field"><label>Stop <span style="text-transform:none;color:var(--text-3)">(opt)</span></label><input id="f_stop" class="num" type="number" step="any"></div></div>
     <div class="calc-preview" id="f_prev"><span class="muted">Enter prices to preview P&L…</span></div>
-    <div class="f2"><div class="field"><label>Setup / Play</label><select id="f_play"><option value="">— none —</option>${playOpts}</select></div>
+    <div class="f2"><div class="field"><label>Setup / Play</label><select id="f_play" onchange="toggleCustomPlay()"><option value="">— none —</option>${playOpts}<option value="__other__">Other…</option></select>
+      <input id="f_play_custom" style="display:none;margin-top:8px" placeholder="Type your setup name"></div>
       <div class="field"><label>Account</label><select id="f_acct"><option value="">— none —</option>${acctOpts}</select></div></div>
     <div class="f2"><div class="field"><label>Mindset / Emotion</label><select id="f_emo"><option value="">— none —</option>${emoOpts}</select></div>
       <div class="field"><label>Followed your plan?</label><div class="toggle" id="f_plan"><div class="opt on" data-v="1">Yes</div><div class="opt" data-v="0">No</div></div></div></div>
     <div class="field"><label>Notes</label><textarea id="f_notes" placeholder="Why you took it, how it felt, what you'd do differently…"></textarea></div>
-  `,()=>{const t={id:uid(),symbol:val('f_sym'),date:val('f_date'),direction:val('f_dir'),contracts:+val('f_qty')||1,
-      entry:+val('f_entry'),exit:+val('f_exit'),stop:val('f_stop')||null,playId:val('f_play')||null,accountId:val('f_acct')||null,
+  `,()=>{const playSel=val('f_play');let playId=null,playName='';
+    if(playSel==='__other__'){playName=val('f_play_custom').trim();if(!playName){flash('Enter a setup name');return false;}}
+    else if(playSel)playId=playSel;
+    const t={id:uid(),symbol:val('f_sym'),date:val('f_date'),direction:val('f_dir'),contracts:+val('f_qty')||1,
+      entry:+val('f_entry'),exit:+val('f_exit'),stop:val('f_stop')||null,playId,playName,accountId:val('f_acct')||null,
       emotion:val('f_emo')||null,plan:window.__plan!==0,notes:val('f_notes')};
     if(isNaN(t.entry)||isNaN(t.exit)){flash('Entry and exit are required');return false;}
     t.csvPnl=calc(t).pnl;
@@ -772,6 +780,7 @@ function openTrade(){
       <span>P&L <b class="${cls(c.pnl)}">${fmt$c(c.pnl)}</b></span>${c.r!=null?`<span>R <b class="${cls(c.r)}">${c.r>=0?'+':''}${c.r.toFixed(2)}R</b></span>`:''}`;};
   ['f_sym','f_dir','f_qty','f_entry','f_exit','f_stop'].forEach(id=>document.getElementById(id).addEventListener('input',upd));
 }
+function toggleCustomPlay(){const sel=document.getElementById('f_play');const box=document.getElementById('f_play_custom');if(!sel||!box)return;box.style.display=sel.value==='__other__'?'block':'none';}
 
 /* ===== CSV import ===== */
 function openClientCsvUpload(){
@@ -868,7 +877,7 @@ function renderPlaybook(){
     <td class="num muted">${s.n}</td><td class="num">${s.n?pct(s.winRate):'—'}</td>
     <td class="num ${s.avgR!=null?cls(s.avgR):''}">${s.avgR!=null?(s.avgR>=0?'+':'')+s.avgR.toFixed(2)+'R':'—'}</td>
     <td class="num ${cls(s.net)}" style="text-align:right;font-weight:600">${fmt$(s.net,true)}</td>
-    <td style="text-align:right"><span class="x admin-write" style="display:inline-grid" onclick="delPlay('${p.id}')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span></td></tr>`;});
+    <td style="text-align:right"><button class="btn sm ghost" onclick="editPlay('${p.id}')">Edit</button><span class="x admin-write" style="display:inline-grid" onclick="delPlay('${p.id}')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span></td></tr>`;});
   h+=`</tbody></table></div>`;
   if(ps[0]&&ps[0].s.n)h+=`<div class="card"><div class="card-t" style="margin-bottom:10px"><span class="tick"></span>Edge Insight</div>
     <div style="color:var(--text-2);font-size:13.5px;line-height:1.65">Your strongest setup is <b style="color:var(--text)">${esc(ps[0].p.name)}</b> — ${fmt$(ps[0].s.net,true)} net across ${ps[0].s.n} trades at ${pct(ps[0].s.winRate)} win rate${ps[0].s.avgR!=null?` and ${(ps[0].s.avgR>=0?'+':'')+ps[0].s.avgR.toFixed(2)}R average`:''}. ${ps[ps.length-1].s.net<0?`Your weakest, <b style="color:var(--text)">${esc(ps[ps.length-1].p.name)}</b>, is bleeding ${fmt$(ps[ps.length-1].s.net)} — consider cutting or refining it.`:''}</div></div>`;
@@ -876,6 +885,11 @@ function renderPlaybook(){
 }
 function delPlay(id){if(state.trades.some(t=>t.playId===id)){if(!confirm('Trades reference this play. Remove anyway?'))return;state.trades.forEach(t=>{if(t.playId===id)t.playId=null;});save('trades');}
   state.plays=state.plays.filter(p=>p.id!==id);save('plays');renderPlaybook();flash('Play removed');}
+function editPlay(id){const p=state.plays.find(x=>x.id===id);if(!p)return;
+  modal('Edit Setup',`<div class="field"><label>Name</label><input id="ep_name" value="${esc(p.name)}"></div>
+    <div class="field"><label>Description</label><textarea id="ep_desc">${esc(p.desc||'')}</textarea></div>`,
+  ()=>{const name=val('ep_name').trim();if(!name){flash('Name required');return false;}
+    p.name=name;p.desc=val('ep_desc').trim();save('plays');flash('Setup updated');renderPlaybook();},'Save');}
 function openPlay(){const colors=['#22b8ef','#3bd0c4','#34d399','#f5b942','#fb5e7e','#b06cf0','#ff8b4a','#9aa0a8'];
   modal('Add Play',`<div class="field"><label>Name</label><input id="p_name" placeholder="e.g. Opening Range Breakout"></div>
     <div class="field"><label>Description</label><textarea id="p_desc" placeholder="Entry trigger, conditions, invalidation…"></textarea></div>
@@ -886,6 +900,41 @@ function openPlay(){const colors=['#22b8ef','#3bd0c4','#34d399','#f5b942','#fb5e
 }
 
 /* ===== ACCOUNTS ===== */
+function acctSizeOf(a){if(a.accountSize)return a.accountSize;const m=String(a.label||'').match(/(\d+)\s*K/i);return m?m[1]+'K':'';}
+function acctStepLabel(a){const l=a.label||'';const em=l.match(/eval\s*#?\s*(\d+)/i);if(em)return 'Eval #'+em[1];if(/combine/i.test(l))return 'Combine';if(a.status==='funded')return 'Funded';if(a.status==='failed')return 'Failed';return l||'Account';}
+function acctStepSuffix(a,hasNext){if(a.status==='failed')return 'Failed';if(a.status==='evaluation')return hasNext?'Passed':'Eval';if(a.status==='funded')return 'Live';if(a.status==='payout')return 'Payout';return '';}
+function acctChainNet(accts){return accts.reduce((s,a)=>s+acctPay(a)-acctExp(a),0);}
+function buildAcctChains(accounts){
+  const list=accounts||[];const byId={};list.forEach(a=>{byId[a.id]=a;});
+  const childOf={};list.forEach(a=>{if(a.parentAccountId&&byId[a.parentAccountId]){(childOf[a.parentAccountId]=childOf[a.parentAccountId]||[]).push(a);}});
+  const roots=list.filter(a=>!a.parentAccountId||!byId[a.parentAccountId]);
+  const chains=[];const seen=new Set();
+  function walk(root){const chain=[root];let cur=root;while(childOf[cur.id]&&childOf[cur.id].length){cur=childOf[cur.id][0];chain.push(cur);}return chain;}
+  roots.forEach(r=>{if(seen.has(r.id))return;const chain=walk(r);chain.forEach(x=>seen.add(x.id));chains.push(chain);});
+  list.forEach(a=>{if(!seen.has(a.id))chains.push([a]);});
+  return chains;
+}
+function renderLineageStepper(chain,opts){
+  opts=opts||{};const firm=chain[0].firm;const size=acctSizeOf(chain[0])||'—';
+  let steps='';chain.forEach((a,i)=>{const hasNext=i<chain.length-1;const suf=acctStepSuffix(a,hasNext);
+    const stCls=a.status==='failed'?'failed':(a.status==='funded'||a.status==='payout'?'live':(hasNext?'done':''));
+    steps+=`<span class="lineage-step ${stCls}"><span class="dot"></span>${esc(acctStepLabel(a))}${suf?' ('+esc(suf)+')':''}</span>`;
+    if(hasNext)steps+=`<span class="lineage-arrow">→</span>`;});
+  const net=acctChainNet(chain);
+  let h=`<div class="lineage-card"><div class="lineage-head">[ ${esc(firm)} · ${esc(size)} ]</div><div class="lineage-stepper">${steps}</div><div class="lineage-total ${cls(net)}">${fmt$(net,true)} total</div>`;
+  if(opts.detail){
+    chain.forEach(a=>{const exp=acctExp(a),pay=acctPay(a);
+      h+=`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><div style="font-weight:600;font-size:13px">${esc(a.label)}</div><div class="hint" style="font-family:var(--ui)">${badge(a.status)}</div></div><div class="num ${cls(pay-exp)}" style="font-weight:600">${fmt$(pay-exp,true)}</div></div>`;
+      if(opts.showLedger){
+        const items=[...a.expenses.map(e=>({...e,kind:'exp'})),...a.payouts.map(p=>({...p,kind:'pay'}))].sort((x,y)=>y.date.localeCompare(x.date));
+        items.forEach(it=>{h+=`<div class="ledger-row"><span>${it.kind==='pay'?'<span class="pos">▲ Payout</span>':'<span class="muted">▼ '+esc(it.type)+'</span>'} <span class="hint" style="font-family:var(--ui)">${it.date}</span></span><span class="num ${it.kind==='pay'?'pos':'neg'}">${it.kind==='pay'?'+':'−'}${fmt$(it.amount)} <span class="x" style="display:inline-grid;vertical-align:middle" onclick="delLedger('${a.id}','${it.kind}','${it.id}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></span></span></div>`;});
+        if(!items.length)h+=`<div class="hint" style="font-family:var(--ui);padding:4px 0">No entries yet.</div>`;
+        h+=`<div class="mini-btns"><button class="btn sm" onclick="openLedger('${a.id}','exp')">+ Fee</button><button class="btn sm" onclick="openLedger('${a.id}','pay')">+ Payout</button><button class="btn sm" onclick="openStatus('${a.id}')">Status</button><button class="btn sm danger" onclick="delAcct('${a.id}')">Delete</button></div>`;
+      }
+      h+=`</div>`;});
+  }
+  h+=`</div>`;return h;
+}
 function renderAccounts(){
   const tE=state.accounts.reduce((s,a)=>s+acctExp(a),0),tP=state.accounts.reduce((s,a)=>s+acctPay(a),0),roi=tP-tE;
   let h=`<div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
@@ -894,29 +943,26 @@ function renderAccounts(){
       <button class="btn sm primary admin-write" onclick="openAcct()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Account</button>
       <button class="btn sm primary client-write" onclick="openAcct()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Account</button></div>`;
   if(!state.accounts.length){h+=`<div class="empty">No accounts yet.</div></div>`;document.getElementById('content').innerHTML=h;return;}
-  state.accounts.forEach(a=>{const exp=acctExp(a),pay=acctPay(a),net=pay-exp;
-    const items=[...a.expenses.map(e=>({...e,kind:'exp'})),...a.payouts.map(p=>({...p,kind:'pay'}))].sort((x,y)=>y.date.localeCompare(x.date));
-    const own=a.clientId?state.clients.find(x=>x.id===a.clientId):null;
-    h+=`<div class="acct-card"><div class="acct-top"><div><div class="acct-name">${esc(a.label)}</div><div class="acct-firm">${esc(a.firm)}${own?` · <span style="color:var(--accent)">${esc(own.name)}</span>`:''}</div></div>
-      <div style="text-align:right">${badge(a.status)}<div class="num ${cls(net)}" style="font-size:16px;font-weight:600;margin-top:7px">${fmt$(net,true)}</div></div></div>
-      <div style="display:flex;gap:20px;font-family:var(--mono);font-size:12px;margin-bottom:8px"><span class="muted">Payouts <b class="pos">${fmt$(pay)}</b></span><span class="muted">Fees <b class="neg">${fmt$(exp)}</b></span></div>`;
-    items.forEach(it=>{h+=`<div class="ledger-row"><span>${it.kind==='pay'?'<span class="pos">▲ Payout</span>':'<span class="muted">▼ '+esc(it.type)+'</span>'} <span class="hint" style="font-family:var(--ui)">${it.date}</span></span>
-      <span class="num ${it.kind==='pay'?'pos':'neg'}">${it.kind==='pay'?'+':'−'}${fmt$(it.amount)} <span class="x" style="display:inline-grid;vertical-align:middle" onclick="delLedger('${a.id}','${it.kind}','${it.id}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></span></span></div>`;});
-    if(!items.length)h+=`<div class="hint" style="font-family:var(--ui);padding:6px 0">No entries yet.</div>`;
-    h+=`<div class="mini-btns"><button class="btn sm" onclick="openLedger('${a.id}','exp')">+ Fee</button><button class="btn sm" onclick="openLedger('${a.id}','pay')">+ Payout</button>
-      <button class="btn sm" onclick="openStatus('${a.id}')">Status</button><button class="btn sm danger" onclick="delAcct('${a.id}')">Delete</button></div></div>`;});
+  buildAcctChains(state.accounts).forEach(chain=>{h+=renderLineageStepper(chain,{detail:true,showLedger:true});});
   h+=`</div>`;document.getElementById('content').innerHTML=h;
 }
 function delLedger(aid,k,id){const a=state.accounts.find(x=>x.id===aid);if(!a)return;if(k==='pay')a.payouts=a.payouts.filter(p=>p.id!==id);else a.expenses=a.expenses.filter(e=>e.id!==id);save('accounts');renderAccounts();}
 function delAcct(id){if(!confirm('Delete this account and its ledger?'))return;state.accounts=state.accounts.filter(a=>a.id!==id);save('accounts');renderAccounts();flash('Account deleted');}
-function openAcct(clientId){modal('Add Prop Account',`<div class="field"><label>Prop Firm</label><input id="a_firm" placeholder="e.g. Apex Trader Funding"></div>
-  <div class="field"><label>Account Label</label><input id="a_label" placeholder="e.g. 50K Eval #1 or 50K Combine"></div>
-  <div class="field"><label>Account type</label><select id="a_status"><option value="evaluation">Eval</option><option value="funded">Funded</option><option value="payout">Payout</option><option value="failed">Failed</option></select></div>
-  <div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-top:6px">Pick <b>Eval</b> or <b>Funded</b> for the badge — label is just the nickname (e.g. “50K Eval #1”).</div>`,
+function openAcct(clientId){const cid=clientId||(session&&session.role==='client'?session.clientId:null)||null;
+  const evalParents=state.accounts.filter(a=>(!cid||a.clientId===cid)&&a.status==='evaluation');
+  const parentOpts=evalParents.map(a=>`<option value="${a.id}">${esc(a.firm)} · ${esc(a.label)}</option>`).join('');
+  modal('Add Prop Account',`<div class="field"><label>Prop Firm</label><input id="a_firm" placeholder="e.g. Apex Trader Funding"></div>
+  <div class="field"><label>Account size</label><input id="a_size" placeholder="e.g. 50K"></div>
+  <div class="field"><label>Account Label</label><input id="a_label" placeholder="e.g. Eval #1 or Funded"></div>
+  <div class="field"><label>Phase</label><select id="a_status" onchange="toggleAcctParent()"><option value="evaluation">Eval</option><option value="funded">Funded</option><option value="payout">Payout</option><option value="failed">Failed</option></select></div>
+  <div class="field" id="a_parent_wrap" style="display:none"><label>Continues from (eval)</label><select id="a_parent"><option value="">— none —</option>${parentOpts}</select></div>`,
   ()=>{const firm=val('a_firm').trim();if(!firm){flash('Firm required');return false;}
-    const cid=clientId||(session&&session.role==='client'?session.clientId:null)||null;
-    state.accounts.push({id:uid(),firm,label:val('a_label').trim()||'Account',status:val('a_status'),expenses:[],payouts:[],clientId:cid});save('accounts');flash('Account added');
-    if(clientId)renderClients();else renderAccounts();},'Add Account');}
+    const label=val('a_label').trim()||'Account';const status=val('a_status');
+    const accountSize=val('a_size').trim()||acctSizeOf({label})||'';
+    const parentAccountId=status==='funded'||status==='payout'?(val('a_parent')||null):null;
+    state.accounts.push({id:uid(),firm,label,status,accountSize,parentAccountId,expenses:[],payouts:[],clientId:cid});save('accounts');flash('Account added');
+    if(clientId)renderClients();else renderAccounts();},'Add Account');
+  window.toggleAcctParent=function(){const w=document.getElementById('a_parent_wrap');const s=document.getElementById('a_status');if(w&&s)w.style.display=/funded|payout/.test(s.value)?'block':'none';};}
 function openLedger(aid,k){const pay=k==='pay';
   modal(pay?'Record Payout':'Record Fee',`${pay?'':`<div class="field"><label>Type</label><select id="l_type"><option>Evaluation fee</option><option>Reset fee</option><option>Activation fee</option><option>Monthly subscription</option><option>Other</option></select></div>`}
     <div class="field"><label>Amount (USD)</label><input id="l_amt" class="num" type="number" step="any" placeholder="0.00"></div>
@@ -998,7 +1044,7 @@ function renderClients(){
     document.getElementById('content').innerHTML=h;return;}
   state.clients.forEach(c=>{
     const p=pkg(c.package);const accts=clientAccts(c);const used=accts.length;
-    const gross=clientNet(c);const fee=managerFee(c);const pay=clientPayouts(c);
+    const gross=clientNet(c);const fee=managerFee(c);
     const dpl=(c.dailyPnl||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
     h+=`<div class="acct-card"><div class="acct-top">
       <div><div class="acct-name">${esc(c.name)}</div><div class="acct-firm">${esc(c.email||'')}</div>
@@ -1020,10 +1066,9 @@ function renderClients(){
       return;
     }
     /* active: management data */
-    h+=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:14px">
+    h+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:14px">
       <div class="stat" style="padding:12px"><div class="l">Managed P&L</div><div class="v ${cls(gross)}" style="font-size:17px">${fmt$(gross,true)}</div></div>
       <div class="stat" style="padding:12px"><div class="l">Your Fee (${c.split||0}%)</div><div class="v pos" style="font-size:17px">${fmt$(fee)}</div></div>
-      <div class="stat" style="padding:12px"><div class="l">Payouts</div><div class="v" style="font-size:17px">${fmt$(pay)}</div></div>
       <div class="stat" style="padding:12px"><div class="l">Daily Entries</div><div class="v" style="font-size:17px">${dpl.length}</div></div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
@@ -1047,9 +1092,7 @@ function renderClients(){
     </div>`;
     /* accounts (read context) */
     if(accts.length){h+=`<div style="margin-bottom:6px">`;
-      accts.forEach(a=>{const net=acctPay(a)-acctExp(a);
-        h+=`<div class="ledger-row"><span style="display:flex;align-items:center;gap:9px">${badge(a.status)} <b style="font-weight:600">${esc(a.label)}</b> <span class="hint" style="font-family:var(--ui)">${esc(a.firm)}</span></span>
-          <span class="num ${cls(net)}">${fmt$(net,true)} <span class="x" style="display:inline-grid;vertical-align:middle" onclick="unassign('${a.id}')" title="Unassign"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></span></span></div>`;});
+      buildAcctChains(accts).forEach(chain=>{h+=renderLineageStepper(chain);});
       h+=`</div>`;
     }else{h+=`<div class="hint" style="font-family:var(--ui);padding:4px 0 10px">No accounts assigned yet.</div>`;}
     const full=used>=p.max;
@@ -1129,20 +1172,33 @@ const GUIDE=[
   ['Candle Closure','Candle closes inside the level — unconfirmed, acting too early.','Candle closes outside the level — confirmed break, valid signal.']
 ];
 
-const PLAYBOOK_DECK_URL='https://1drv.ms/p/c/18099747cdf0ffbd/IQCgnG-YDtT9TpI8FLP-Wt-mASRChtVOFWgdLX5gsLlRPT0?e=708im1';
+const IMAGE_GUIDE=[
+  {title:'Fakeouts',images:['/images/fakeouts.png','/images/fakeouts2.png'],avoid:'Entering on weak fake breaks with no follow-through.',take:'Wait for a clean trap and rejection before taking the A+ entry.'},
+  {title:'Breakouts',images:['/images/breakouts.png','/images/breakouts2.png'],avoid:'Chasing extended breakouts far from support.',take:'Trade breakouts with room to run and a clean retest.'},
+  {title:'Breakeven',images:['/images/breakeven.png'],avoid:'Moving stops randomly without structure.',take:'Manage breakeven only after the level confirms.'},
+  {title:'Risk to Reward',images:['/images/risktoreward.png'],avoid:'Taking trades with poor R when structure is unclear.',take:'Only take setups where reward clearly outweighs risk.'},
+  {title:'How to Manage Trades',images:['/images/howtomanagetrades.png'],avoid:'Over-managing every tick and breaking your plan.',take:'Follow your management rules once the trade is live.'}
+];
 function renderGuide(){
-  let h=`<div class="card" style="margin-bottom:20px">
-    <div class="card-t" style="margin-bottom:8px"><span class="tick"></span>Playbook slides</div>
-    <div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:12px">Full chart / slide deck used in coaching sessions.</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-      <a class="btn primary" href="${PLAYBOOK_DECK_URL}" target="_blank" rel="noopener">Open slide deck</a>
-    </div>
-    <div style="position:relative;width:100%;padding-top:56.25%;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface-2);margin-bottom:12px">
-      <iframe title="Playbook slides" src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(PLAYBOOK_DECK_URL)}" style="position:absolute;inset:0;width:100%;height:100%;border:0" allowfullscreen></iframe>
-    </div>
-    <div class="hint" style="font-family:var(--ui);color:var(--text-3)">If the viewer is blank, the OneDrive share link is not public/embeddable yet — use Open slide deck, or send Embed HTML (see note below).</div>
-  </div>
-  <div class="card" style="margin-bottom:20px">
+  let h='';
+  IMAGE_GUIDE.forEach((g,i)=>{
+    h+=`<div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="font-family:var(--mono);font-size:12px;color:var(--text-3);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px 7px">${String(i+1).padStart(2,'0')}</span>
+        <div style="font-family:var(--display);font-weight:700;font-size:15px">${esc(g.title)}</div>
+      </div>`;
+    g.images.forEach(src=>{h+=`<div style="border-radius:10px;overflow:hidden;border:1px solid var(--line);margin-bottom:10px"><img src="${src}" alt="${esc(g.title)}" style="width:100%;display:block"></div>`;});
+    h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="padding:12px;background:var(--surface-2);border:1px solid #e0355033;border-radius:10px">
+          <div style="font-weight:700;font-size:11px;color:#e03550;letter-spacing:.06em;margin-bottom:6px">&#10005; AVOID</div>
+          <div style="font-size:13px;color:var(--text-2);line-height:1.55">${esc(g.avoid)}</div>
+        </div>
+        <div style="padding:12px;background:var(--surface-2);border:1px solid #26c05f33;border-radius:10px">
+          <div style="font-weight:700;font-size:11px;color:#26c05f;letter-spacing:.06em;margin-bottom:6px">&#10003; TAKE</div>
+          <div style="font-size:13px;color:var(--text);line-height:1.55">${esc(g.take)}</div>
+        </div>
+      </div></div>`;});
+  h+=`<div class="card" style="margin-bottom:20px;margin-top:20px">
     <div class="card-t" style="margin-bottom:8px"><span class="tick"></span>A+ Move Playbook</div>
     <div class="hint" style="font-family:var(--ui);color:var(--text-2)">Original charts from the playbook — 13 setups. Left panel shows what to avoid, right shows the A+ entry.</div></div>`;
   GUIDE.forEach((g,i)=>{
