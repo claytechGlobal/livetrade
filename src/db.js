@@ -238,12 +238,31 @@ const replaceClientTrades = db.transaction((clientId, trades) => {
 });
 function parseTradeDay(raw) {
   let d = String(raw || '').trim();
+  if (!d) return null;
+  if (/^(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|tues|wed|thu|thur|thu|fri|sat|sun)\b/i.test(d) && !/\d{4}/.test(d)) {
+    return null;
+  }
   const m = d.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (m) return `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
   if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.slice(0, 10);
   const t = Date.parse(d);
-  if (!isNaN(t)) return new Date(t).toISOString().slice(0, 10);
+  if (!isNaN(t)) {
+    const x = new Date(t);
+    if (!isNaN(x.getTime())) {
+      const y = x.getFullYear();
+      const mo = String(x.getMonth() + 1).padStart(2, '0');
+      const da = String(x.getDate()).padStart(2, '0');
+      return `${y}-${mo}-${da}`;
+    }
+  }
   return null;
+}
+function normalizeCsvSymbol(raw) {
+  let sym = String(raw || 'ES').toUpperCase().trim();
+  if (!sym) return 'ES';
+  if (/^[A-Z]{6,10}$/.test(sym)) return sym;
+  const root = sym.replace(/[A-Z]\d+$/, '').replace(/(\d+)$/, '').replace(/^([A-Z]{1,5}).*/, '$1');
+  return root || sym;
 }
 function applyClientCsvUpload(clientId, csvText) {
   const clean = String(csvText || '').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -260,38 +279,47 @@ function applyClientCsvUpload(clientId, csvText) {
     out.push(cur.trim());
     return out;
   }
-  const headers = parseLine(lines[0]).map(h => h.toLowerCase());
+  const headers = parseLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, ''));
   const idx = (re) => headers.findIndex(h => re.test(h));
   const iDay = idx(/tradeday|^date$/);
-  const iPnl = idx(/^pnl$|profit/);
-  const iSym = idx(/contractname|contract|symbol|ticker/);
-  const iDir = idx(/^type$|side|dir/);
+  const iEntered = idx(/enteredat|entrytime|opentime|openat/);
+  const iExited = idx(/exitedat|exittime|closetime|closeat/);
+  const iPnl = idx(/^pnl$|profit|netp/);
+  const iSym = idx(/contractname|contract|symbol|ticker|instrument/);
+  const iDir = idx(/^type$|side|dir|buysell/);
   const iEntry = idx(/entryprice|entry/);
   const iExit = idx(/exitprice|exit/);
-  const iSize = idx(/^size$|qty|contracts/);
-  if (iDay < 0 || iPnl < 0) throw new Error('CSV must include TradeDay and PnL columns.');
+  const iSize = idx(/^size$|qty|quantity|contracts|lots/);
+  if (iPnl < 0) throw new Error('CSV must include a PnL column.');
+  if (iDay < 0 && iEntered < 0 && iExited < 0) {
+    throw new Error('CSV must include TradeDay or EnteredAt (date) column.');
+  }
   const byDay = {};
   const trades = [];
   lines.slice(1).forEach(line => {
+    if (!line.trim()) return;
     const cols = parseLine(line);
-    const date = parseTradeDay(cols[iDay]);
-    const pnl = Number(cols[iPnl]);
+    let date = null;
+    if (iEntered >= 0) date = parseTradeDay(cols[iEntered]);
+    if (!date && iExited >= 0) date = parseTradeDay(cols[iExited]);
+    if (!date && iDay >= 0) date = parseTradeDay(cols[iDay]);
+    const pnl = Number(String(cols[iPnl] || '').replace(/[$,]/g, ''));
     if (!date || isNaN(pnl)) return;
     byDay[date] = (byDay[date] || 0) + pnl;
-    let sym = (iSym >= 0 ? cols[iSym] : 'ES') || 'ES';
-    sym = String(sym).toUpperCase().trim().replace(/[A-Z]\d+$/, '').replace(/(\d+)$/, '').replace(/^([A-Z]{1,5}).*/, '$1') || 'ES';
+    const sym = normalizeCsvSymbol(iSym >= 0 ? cols[iSym] : 'ES');
     const dirRaw = (iDir >= 0 ? cols[iDir] : '') || '';
     const direction = /sh|short|sell/i.test(dirRaw) ? 'Short' : 'Long';
+    const qty = iSize >= 0 ? num(cols[iSize]) : 1;
     trades.push({
       id: uid(), symbol: sym, date, direction,
       entry: iEntry >= 0 ? num(cols[iEntry]) : 0,
       exit: iExit >= 0 ? num(cols[iExit]) : 0,
-      contracts: iSize >= 0 ? (num(cols[iSize]) || 1) : 1,
+      contracts: qty > 0 ? qty : 1,
       stop: null, pnl, notes: 'CSV upload'
     });
   });
   const days = Object.keys(byDay).sort();
-  if (!days.length) throw new Error('No valid trades found in CSV.');
+  if (!days.length) throw new Error('No valid trades found in CSV. Need date (EnteredAt or TradeDay as YYYY-MM-DD) and PnL.');
   replaceClientDailyPnl(clientId, days.map(date => ({
     id: uid(), date, amount: byDay[date], note: 'CSV upload'
   })));

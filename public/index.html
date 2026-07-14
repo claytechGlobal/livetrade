@@ -48,8 +48,9 @@ body::after{content:"";position:fixed;top:-25%;left:30%;width:55vw;height:55vh;z
 .nav-label{font-size:9px;letter-spacing:.24em;color:var(--text-3);text-transform:uppercase;padding:16px 10px 7px}
 body.client-mode .admin-only{display:none!important}
 body.client-mode .admin-write{display:none!important}
-body.client-mode .client-upload{display:flex!important}
+body.client-mode .client-upload{display:flex!important;align-items:center;gap:10px}
 .client-upload{display:none;gap:10px;align-items:center}
+.client-upload .btn svg,.client-upload.btn svg{width:16px;height:16px;flex:none;vertical-align:-3px;margin-right:6px}
 .nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;color:var(--text-2);cursor:pointer;
   font-weight:500;font-size:13.5px;transition:.15s;user-select:none}
 .nav-item svg{width:18px;height:18px;flex:none;opacity:.85}
@@ -302,7 +303,7 @@ tbody tr{transition:.12s}tbody tr:hover{background:var(--surface-2)}
         <button class="btn primary" onclick="openTrade()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Trade</button>
       </div>
       <div class="top-actions client-upload">
-        <button class="btn primary" onclick="openClientCsvUpload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Upload trades CSV</button>
+        <button class="btn primary" onclick="openClientCsvUpload()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M8 8l4-4 4 4"/><path d="M4 20h16"/></svg> Upload trades CSV</button>
       </div>
     </div>
     <div class="content" id="content"></div>
@@ -508,7 +509,7 @@ function edgeScore(m){
   const emo=m.goodEmoPct;
   const score=Math.round(disc*.26+pf*.2+risk*.2+emo*.2+win*.14);
   return{score,parts:[['Discipline',Math.round(disc)],['Profit factor',Math.round(pf)],['Risk control',Math.round(risk)],['Emotional control',Math.round(emo)],['Win rate',Math.round(win)]]};}
-function pnlByDay(){const m={};state.trades.forEach(t=>{m[t.date]=(m[t.date]||0)+calc(t).pnl;});(state.dayPnl||[]).forEach(d=>{m[d.date]=(m[d.date]||0)+ +d.amount;});return m;}
+function pnlByDay(){const m={};const traded=new Set();state.trades.forEach(t=>{m[t.date]=(m[t.date]||0)+calc(t).pnl;traded.add(t.date);});(state.dayPnl||[]).forEach(d=>{if(traded.has(d.date))return;m[d.date]=(m[d.date]||0)+ +d.amount;});return m;}
 
 /* ===== format ===== */
 const fmt$=(n,s)=>{const v=Math.abs(n).toLocaleString('en-US',{maximumFractionDigits:0});return(n<0?'-$':(s&&n>0?'+$':'$'))+v;};
@@ -684,7 +685,7 @@ function renderCalendar(){
     ${stat('Trading Days',td,'','this month')}
     ${stat('Green Days',td?pct(wd/td*100):'—','',`${wd} of ${td}`)}</div>
     <div class="admin-write" style="display:flex;justify-content:flex-end;margin-bottom:14px"><button class="btn sm" onclick="importDailyCsv()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Import daily P&L (CSV)</button></div>
-    <div class="client-upload" style="justify-content:flex-end;margin-bottom:14px"><button class="btn sm primary" onclick="openClientCsvUpload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Upload trades CSV</button></div>
+    <div class="client-upload" style="justify-content:flex-end;margin-bottom:14px"><button class="btn sm primary" onclick="openClientCsvUpload()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M8 8l4-4 4 4"/><path d="M4 20h16"/></svg> Upload trades CSV</button></div>
         <div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>P&L Calendar</div>
       <div class="cal-nav"><div class="iconbtn" style="width:30px;height:30px" onclick="calStep(-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
       <div class="mo" id="calMo"></div>
@@ -699,7 +700,7 @@ function renderTrades(){
   const trades=state.trades.map(t=>({...t,c:calc(t)})).sort((a,b)=>b.date.localeCompare(a.date));
   let h=`<div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>${trades.length} Trades</div>
     <div style="display:flex;gap:10px"><button class="btn sm admin-write" onclick="openImport()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Import CSV</button>
-    <button class="btn sm primary client-upload" onclick="openClientCsvUpload()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Upload trades CSV</button>
+    <button class="btn sm primary client-upload" onclick="openClientCsvUpload()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M8 8l4-4 4 4"/><path d="M4 20h16"/></svg> Upload trades CSV</button>
     <button class="btn sm primary admin-write" onclick="openTrade()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Trade</button></div></div>`;
   if(!trades.length){h+=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><div>No trades yet. Add one or import a CSV.</div></div></div>`;document.getElementById('content').innerHTML=h;return;}
   h+=`<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Symbol</th><th>Setup</th><th>Side</th><th>Mindset</th><th>Ticks</th><th>R</th><th style="text-align:right">P&L</th><th></th></tr></thead><tbody>`;
@@ -755,7 +756,7 @@ function openTrade(){
 function openClientCsvUpload(){
   if(!(session&&session.role==='client')){flash('Client upload only');return;}
   modal('Upload trades CSV',`
-    <div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:12px">Export from your platform (TradeDay + PnL). This updates your dashboard, calendar, and trade log. Re-upload anytime to refresh. 5:00 PM ET reports use this data.</div>
+    <div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:12px">Needs a header + rows with PnL and a real date (EnteredAt / ExitedAt / TradeDay as YYYY-MM-DD). Weekday-only TradeDay is fine if EnteredAt has the date. Updates dashboard, calendar, and trade log.</div>
     <div class="field"><label>Choose file</label><input id="ccsv_file" type="file" accept=".csv,text/csv"></div>
     <div class="field"><label>Or paste CSV</label>
       <textarea id="ccsv_in" style="min-height:140px;font-family:var(--mono);font-size:12px" placeholder="Id,ContractName,...,PnL,...,TradeDay,..."></textarea></div>`,
