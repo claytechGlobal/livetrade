@@ -206,16 +206,21 @@ function ensureClientTradesTable() {
   db.exec(`CREATE TABLE IF NOT EXISTS client_trades (
     id TEXT PRIMARY KEY, client_id TEXT, symbol TEXT, date TEXT,
     direction TEXT, entry REAL, exit REAL, stop REAL, contracts REAL,
-    pnl REAL, notes TEXT
+    pnl REAL, notes TEXT, play_id TEXT, account_id TEXT, emotion TEXT, plan INTEGER
   )`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_client_trades ON client_trades(client_id)`);
+  const cols = db.prepare('PRAGMA table_info(client_trades)').all().map(c => c.name);
+  if (!cols.includes('play_id')) db.exec('ALTER TABLE client_trades ADD COLUMN play_id TEXT');
+  if (!cols.includes('account_id')) db.exec('ALTER TABLE client_trades ADD COLUMN account_id TEXT');
+  if (!cols.includes('emotion')) db.exec('ALTER TABLE client_trades ADD COLUMN emotion TEXT');
+  if (!cols.includes('plan')) db.exec('ALTER TABLE client_trades ADD COLUMN plan INTEGER');
 }
 function listClientTrades(clientId) {
   ensureClientTradesTable();
   return db.prepare('SELECT * FROM client_trades WHERE client_id=? ORDER BY date DESC').all(clientId).map(t => ({
-    id: t.id, accountId: null, playId: null, symbol: t.symbol, date: t.date,
+    id: t.id, accountId: t.account_id || null, playId: t.play_id || null, symbol: t.symbol, date: t.date,
     direction: t.direction, entry: t.entry, exit: t.exit, stop: t.stop,
-    contracts: t.contracts, emotion: null, plan: true, notes: t.notes || '',
+    contracts: t.contracts, emotion: t.emotion || null, plan: t.plan !== 0, notes: t.notes || '',
     csvPnl: t.pnl
   }));
 }
@@ -228,14 +233,56 @@ const replaceClientTrades = db.transaction((clientId, trades) => {
   ensureClientTradesTable();
   db.prepare('DELETE FROM client_trades WHERE client_id=?').run(clientId);
   const ins = db.prepare(`INSERT INTO client_trades
-    (id,client_id,symbol,date,direction,entry,exit,stop,contracts,pnl,notes)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
-  (trades || []).forEach(t => ins.run(
-    t.id || uid(), clientId, t.symbol || '', t.date || today(),
-    t.direction || 'Long', num(t.entry), num(t.exit), nullableNum(t.stop),
-    num(t.contracts) || 1, nullableNum(t.pnl), t.notes || ''
-  ));
+    (id,client_id,symbol,date,direction,entry,exit,stop,contracts,pnl,notes,play_id,account_id,emotion,plan)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  (trades || []).forEach(t => {
+    const pnl = t.csvPnl != null && t.csvPnl !== '' ? nullableNum(t.csvPnl) : nullableNum(t.pnl);
+    ins.run(
+      t.id || uid(), clientId, t.symbol || '', t.date || today(),
+      t.direction || 'Long', num(t.entry), num(t.exit), nullableNum(t.stop),
+      num(t.contracts) || 1, pnl, t.notes || '',
+      t.playId || null, t.accountId || null, t.emotion || null, t.plan === false ? 0 : 1
+    );
+  });
 });
+const replaceClientAccounts = db.transaction((clientId, accounts) => {
+  const old = db.prepare('SELECT id FROM accounts WHERE client_id=?').all(clientId);
+  old.forEach(r => {
+    db.prepare('DELETE FROM account_expenses WHERE account_id=?').run(r.id);
+    db.prepare('DELETE FROM account_payouts WHERE account_id=?').run(r.id);
+  });
+  db.prepare('DELETE FROM accounts WHERE client_id=?').run(clientId);
+  const ia = db.prepare('INSERT INTO accounts(id,client_id,firm,label,status) VALUES(?,?,?,?,?)');
+  const ie = db.prepare('INSERT INTO account_expenses(id,account_id,type,amount,date) VALUES(?,?,?,?,?)');
+  const ip = db.prepare('INSERT INTO account_payouts(id,account_id,amount,date) VALUES(?,?,?,?)');
+  (accounts || []).forEach(a => {
+    const aid = a.id || uid();
+    const st = String(a.status || 'evaluation').toLowerCase();
+    const status = ['evaluation', 'funded', 'payout', 'failed'].includes(st) ? st : 'evaluation';
+    ia.run(aid, clientId, a.firm || '', a.label || 'Account', status);
+    (a.expenses || []).forEach(e => ie.run(e.id || uid(), aid, e.type || 'Fee', num(e.amount), e.date || today()));
+    (a.payouts || []).forEach(p => ip.run(p.id || uid(), aid, num(p.amount), p.date || today()));
+  });
+});
+function saveClientTrades(clientId, trades) {
+  replaceClientTrades(clientId, trades);
+  const byDay = {};
+  (trades || []).forEach(t => {
+    const date = t.date || today();
+    let pnl = t.csvPnl != null && t.csvPnl !== '' ? Number(t.csvPnl) : Number(t.pnl);
+    if (isNaN(pnl)) pnl = 0;
+    byDay[date] = (byDay[date] || 0) + pnl;
+  });
+  const days = Object.keys(byDay).sort();
+  replaceClientDailyPnl(clientId, days.map(date => ({
+    id: uid(), date, amount: byDay[date], note: 'Client trades'
+  })));
+  return composeClientApp(clientId);
+}
+function saveClientAccounts(clientId, accounts) {
+  replaceClientAccounts(clientId, accounts);
+  return composeClientApp(clientId);
+}
 function parseTradeDay(raw) {
   let d = String(raw || '').trim();
   if (!d) return null;
@@ -512,8 +559,8 @@ function seedDemo() {
   mkClient('seed-priya', 'Priya Nair', 'priya.n@email.com', 'elite', 'pending', 15, 'PRIY-3030');
 
   const mkAcc = (clientId, firm, label, status) => { const id = uid(); db.prepare('INSERT INTO accounts(id,client_id,firm,label,status) VALUES(?,?,?,?,?)').run(id, clientId, firm, label, status); return id; };
-  const a1 = mkAcc(cm, 'Apex Trader Funding', '50K Eval #1', 'funded');
-  const a2 = mkAcc(cm, 'Topstep', '50K Combine', 'payout');
+  const a1 = mkAcc(cm, 'Apex Trader Funding', '50K Eval #1', 'evaluation');
+  const a2 = mkAcc(cm, 'Topstep', '50K Combine', 'funded');
   const a3 = mkAcc(cd, 'Apex Trader Funding', '50K Eval #2', 'evaluation');
   const a4 = mkAcc(cd, 'MyFundedFutures', '100K Expert', 'failed');
 
@@ -541,6 +588,7 @@ module.exports = {
   db, initDb, uid, genCode,
   getSettings, patchSettings, setAdminPassword, setAdminCredentials, getAdminUsername, verifyAdmin,
   composeBootstrap, getClientPortal, composeClientApp, applyClientCsvUpload,
+  saveClientTrades, saveClientAccounts,
   replacePlays, replaceTrades, replaceAccounts, replaceClients, replaceDayPnl, replaceAffiliates,
   handleCheckout, isProcessed, markProcessed,
   findActiveClientByCode, getClientRow,

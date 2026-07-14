@@ -1,7 +1,7 @@
 'use strict';
 const express = require('express');
 const { requireClient } = require('../auth');
-const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload } = require('../db');
+const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload, saveClientTrades, saveClientAccounts } = require('../db');
 
 const router = express.Router();
 router.use(requireClient);
@@ -49,6 +49,30 @@ router.post('/daily-csv', (req, res) => {
     res.json({ ok: true, result, app: data });
   } catch (e) {
     res.status(400).json({ error: e.message || 'CSV import failed' });
+  }
+});
+
+router.put('/trades', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found. Log out and sign in again with your access code.' });
+  if (!assertSubscribed(row, res)) return;
+  try {
+    const app = saveClientTrades(row.id, Array.isArray(req.body) ? req.body : []);
+    res.json({ ok: true, app });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Could not save trades' });
+  }
+});
+
+router.put('/accounts', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found. Log out and sign in again with your access code.' });
+  if (!assertSubscribed(row, res)) return;
+  try {
+    const app = saveClientAccounts(row.id, Array.isArray(req.body) ? req.body : []);
+    res.json({ ok: true, app });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Could not save accounts' });
   }
 });
 
