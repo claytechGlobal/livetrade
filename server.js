@@ -33,8 +33,16 @@ app.get('/api/health', (req, res) => {
 app.get('/api/cron/daily', async (req, res) => {
   const secret = process.env.CRON_SECRET || '';
   const auth = req.headers.authorization || '';
-  if (!secret || auth !== 'Bearer ' + secret) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  const vercelCron = req.headers['x-vercel-cron'] === '1';
+  if (secret) {
+    if (auth !== 'Bearer ' + secret && !vercelCron) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+  } else if (!vercelCron && process.env.NODE_ENV === 'production') {
+    return res.status(401).json({ error: 'Set CRON_SECRET or use Vercel Cron' });
+  }
+  if (process.env.DAILY_SEND_ENABLED === 'false') {
+    return res.json({ skipped: true, reason: 'DAILY_SEND_ENABLED=false' });
   }
   try {
     const result = await runDailySend({ force: false });

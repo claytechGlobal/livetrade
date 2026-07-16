@@ -1,8 +1,14 @@
 'use strict';
+const { Resend } = require('resend');
 const nodemailer = require('nodemailer');
+const { getSettings } = require('./db');
 
+let resend = null;
 let transport = null;
-if (process.env.SMTP_HOST) {
+
+if (process.env.RESEND_API_KEY) {
+  resend = new Resend(process.env.RESEND_API_KEY);
+} else if (process.env.SMTP_HOST) {
   transport = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT || 587),
@@ -11,9 +17,149 @@ if (process.env.SMTP_HOST) {
   });
 }
 
+function mailFrom() {
+  return process.env.MAIL_FROM || 'LIVE TRADES <noreply@planthetrade.co>';
+}
+
+function emailEnabled() {
+  return !!(resend || transport);
+}
+
+async function sendMail({ to, subject, text, html }) {
+  if (!to) return;
+  if (resend) {
+    const { error } = await resend.emails.send({ from: mailFrom(), to, subject, text, html });
+    if (error) throw new Error(error.message || JSON.stringify(error));
+    return;
+  }
+  if (transport) {
+    await transport.sendMail({ from: mailFrom(), to, subject, text, html });
+    return;
+  }
+  console.log(`[email disabled] ${to}: ${subject}`);
+}
+
+function money(n) {
+  const v = Math.abs(Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n < 0 ? '-$' : '$') + v;
+}
+function moneyPlain(n) {
+  const v = Math.abs(Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n < 0 ? '-' : '+') + '$' + v;
+}
+function pnlColor(n) {
+  if (n > 0) return '#059669';
+  if (n < 0) return '#dc2626';
+  return '#6b7280';
+}
+function pnlBg(n) {
+  if (n > 0) return '#ecfdf5';
+  if (n < 0) return '#fef2f2';
+  return '#f9fafb';
+}
+function pkgLabel(k) {
+  const m = { starter: 'Starter', pro: 'Pro', elite: 'Elite', prime: 'Prime' };
+  return m[k] || String(k || 'Starter');
+}
+
+function weekCalendarText(week) {
+  if (!week || !week.days) return '';
+  return '\nThis week (Mon–Fri ET):\n' + week.days.map(d => {
+    if (d.isFuture) return `  ${d.label}: —`;
+    if (!d.hasData) return `  ${d.label}: no data`;
+    return `  ${d.label}: ${money(d.amount)}`;
+  }).join('\n') + `\n  Week total: ${money(week.weekTotal)} · ${week.greenDays} green / ${week.redDays} red`;
+}
+
+function weekCalendarHtml(week, todayPnl) {
+  if (!week || !week.days) return '';
+  const maxAbs = Math.max(1, ...week.days.filter(d => d.hasData).map(d => Math.abs(d.amount)));
+  const cells = week.days.map(d => {
+    let inner;
+    if (d.isFuture) {
+      inner = `<div style="font-size:11px;color:#9ca3af;margin-top:6px">—</div>`;
+    } else if (!d.hasData) {
+      inner = `<div style="font-size:11px;color:#9ca3af;margin-top:6px">—</div>`;
+    } else {
+      const h = Math.max(8, Math.round(Math.abs(d.amount) / maxAbs * 48));
+      const barColor = d.amount > 0 ? '#34d399' : d.amount < 0 ? '#fb7185' : '#d1d5db';
+      inner = `<div style="height:52px;display:flex;align-items:flex-end;justify-content:center;margin:8px 0 4px">
+        <div style="width:18px;height:${h}px;background:${barColor};border-radius:4px 4px 0 0"></div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:${pnlColor(d.amount)}">${money(d.amount)}</div>`;
+    }
+    const todayRing = d.isToday ? 'border:2px solid #22b8ef;' : 'border:1px solid #e5e7eb;';
+    const bg = d.hasData && !d.isFuture ? pnlBg(d.amount) : '#fff';
+    return `<td style="width:20%;padding:4px;vertical-align:top">
+      <div style="background:${bg};${todayRing}border-radius:10px;padding:10px 6px;text-align:center;min-height:108px">
+        <div style="font-size:11px;font-weight:700;color:#6b7280;letter-spacing:.04em">${d.weekday}</div>
+        ${inner}
+      </div>
+    </td>`;
+  }).join('');
+  return `<div style="margin:22px 0 8px">
+    <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">This week · Mon–Fri (ET)</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${cells}</table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:14px;border-collapse:separate;border-spacing:8px 0">
+      <tr>
+        <td style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;width:25%">
+          <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em">Week P&amp;L</div>
+          <div style="font-size:16px;font-weight:700;color:${pnlColor(week.weekTotal)};margin-top:4px">${money(week.weekTotal)}</div>
+        </td>
+        <td style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;width:25%">
+          <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em">Green days</div>
+          <div style="font-size:16px;font-weight:700;color:#059669;margin-top:4px">${week.greenDays}<span style="font-size:12px;color:#9ca3af;font-weight:500"> / ${week.tradingDays}</span></div>
+        </td>
+        <td style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;width:25%">
+          <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em">Win rate</div>
+          <div style="font-size:16px;font-weight:700;color:#111827;margin-top:4px">${week.winRate}%</div>
+        </td>
+        <td style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;width:25%">
+          <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em">Today</div>
+          <div style="font-size:16px;font-weight:700;color:${pnlColor(todayPnl)};margin-top:4px">${money(todayPnl)}</div>
+        </td>
+      </tr>
+    </table>
+  </div>`;
+}
+
+function streakLine(streak) {
+  if (!streak || !streak.count) return { text: '', html: '' };
+  const label = streak.type === 'win' ? 'winning' : streak.type === 'loss' ? 'losing' : '';
+  if (!label) return { text: '', html: '' };
+  const text = `\nStreak: ${streak.count} ${label} day${streak.count > 1 ? 's' : ''} in a row`;
+  const color = streak.type === 'win' ? '#059669' : '#dc2626';
+  const html = `<p style="margin:14px 0 0;font-size:13px;color:${color};font-weight:600">${streak.count} ${label} day${streak.count > 1 ? 's' : ''} in a row</p>`;
+  return { text, html };
+}
+
+function liveSessionBlock(html) {
+  const s = getSettings();
+  const url = (s.liveSessionUrl || '').trim();
+  const on = s.liveSessionEnabled !== false;
+  if (!on) return { text: '', html: '' };
+  const lines = [
+    'Live coaching schedule (ET):',
+    '  Morning — Mon–Fri 9:00 AM – 10:30 AM',
+    '  Evening — Mon & Wed 9:00 PM'
+  ];
+  if (url && /^https?:\/\//i.test(url)) lines.push('  Join: ' + url);
+  const text = '\n\n' + lines.join('\n');
+  const link = url && /^https?:\/\//i.test(url)
+    ? `<p style="margin-top:12px"><a href="${url}" style="color:#22b8ef">Join live session</a></p>`
+    : '';
+  const htmlBlock = `<div style="margin-top:20px;padding:14px;background:#f4f6f8;border-radius:8px;font-size:14px">
+    <b>Live coaching (ET)</b>
+    <p style="margin:8px 0 0;color:#555">Mon–Fri · 9:00 AM – 10:30 AM<br>Mon &amp; Wed · 9:00 PM</p>
+    ${link}
+  </div>`;
+  return { text, html: htmlBlock };
+}
+
 async function sendAccessCode(client) {
   if (!client || !client.access_code) return;
-  const url = process.env.APP_URL || '';
+  const url = process.env.APP_URL || 'https://planthetrade.co';
+  const live = liveSessionBlock(false);
   const text =
 `Your client portal is ready.
 
@@ -21,66 +167,102 @@ Access code: ${client.access_code}
 Log in: ${url}
 
 Enter this code on the login screen to view your daily P&L and account performance.
-Keep this code private — it is your key to the portal.`;
+Keep this code private — it is your key to the portal.${live.text}`;
 
-  if (!transport) {
-    console.log(`[email disabled] Access code for ${client.email || client.name}: ${client.access_code}`);
-    return;
-  }
-  await transport.sendMail({
-    from: process.env.MAIL_FROM || 'noreply@example.com',
+  const html =
+`<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#15181d">
+  <h2 style="font-weight:600">Your portal is ready</h2>
+  <p>Hi ${client.name || 'there'},</p>
+  <p>Your access code:</p>
+  <p style="font-size:22px;font-weight:700;letter-spacing:.08em">${client.access_code}</p>
+  <p><a href="${url}" style="background:#22b8ef;color:#04121a;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">Open client portal</a></p>
+  <p style="color:#666;font-size:13px">Keep this code private.</p>
+  ${live.html}
+</div>`;
+
+  await sendMail({
     to: client.email,
-    subject: 'Your client portal access code',
-    text
+    subject: 'Your LIVE TRADES portal access code',
+    text,
+    html
   });
 }
 
-function money(n) {
-  const v = Math.abs(Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return (n < 0 ? '-$' : '$') + v;
-}
-
-// r is the object returned by db.buildDailyReport(...)
 async function sendDailyReport(r) {
   if (!r || !r.email) {
     console.log(`[daily report] skipped — no email for ${r && r.name}`);
     return;
   }
-  const subject = `Your trading update — ${r.date}`;
+  const live = liveSessionBlock(false);
+  const streak = streakLine(r.streak);
+  const week = r.week || { days: [], weekTotal: 0, greenDays: 0, redDays: 0, tradingDays: 0, winRate: 0 };
+  const month = r.month || { tradingDays: 0, greenDays: 0, winRate: 0, net: r.mtd };
+  const dateLabel = r.dateLabel || r.date;
+  const subject = `${dateLabel.split(',')[0]} — ${moneyPlain(r.todayPnl)} · Week ${moneyPlain(week.weekTotal)}`;
   const text =
 `Hi ${r.name || 'there'},
 
-Your managed account update for ${r.date} (ET):
+${dateLabel} (ET)
+Today's P&L: ${money(r.todayPnl)}
+${weekCalendarText(week)}
+Month-to-date: ${money(r.mtd)} (${month.greenDays} green days · ${month.winRate}% win rate)
+Total to date: ${money(r.total)}
+Net to you (after ${r.split}% fee): ${money(r.net)}${streak.text}
 
-  Today's P&L:                 ${money(r.todayPnl)}
-  Month-to-date:               ${money(r.mtd)}
-  Total to date:               ${money(r.total)}
-  Net to you (after ${r.split}% fee): ${money(r.net)}
-
-View your dashboard: ${r.appUrl || ''}
-${r.accessCode ? 'Access code: ' + r.accessCode : ''}
+View your dashboard: ${r.appUrl || process.env.APP_URL || ''}${live.text}
 
 Sent automatically at 5:00 PM ET.`;
 
   const html =
-`<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#15181d">
-  <h2 style="font-weight:600">Your trading update</h2>
-  <p style="color:#555">${r.date} (ET)</p>
-  <table style="width:100%;border-collapse:collapse;font-size:15px">
-    <tr><td style="padding:8px 0;color:#555">Today's P&amp;L</td><td style="padding:8px 0;text-align:right;font-weight:600">${money(r.todayPnl)}</td></tr>
-    <tr><td style="padding:8px 0;color:#555">Month-to-date</td><td style="padding:8px 0;text-align:right">${money(r.mtd)}</td></tr>
-    <tr><td style="padding:8px 0;color:#555">Total to date</td><td style="padding:8px 0;text-align:right">${money(r.total)}</td></tr>
-    <tr><td style="padding:8px 0;color:#555">Net to you (after ${r.split}% fee)</td><td style="padding:8px 0;text-align:right;font-weight:600">${money(r.net)}</td></tr>
-  </table>
-  ${r.appUrl ? `<p style="margin-top:18px"><a href="${r.appUrl}" style="background:#22b8ef;color:#04121a;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">View your dashboard</a></p>` : ''}
-  <p style="color:#999;font-size:12px;margin-top:18px">Sent automatically at 5:00 PM ET.</p>
-</div>`;
+`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#eef1f4;font-family:Arial,Helvetica,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef1f4;padding:24px 12px">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+  <tr><td style="background:#0b1220;padding:22px 24px">
+    <div style="font-size:11px;font-weight:700;color:#22b8ef;letter-spacing:.12em;text-transform:uppercase">LIVE TRADES</div>
+    <div style="font-size:18px;font-weight:700;color:#ffffff;margin-top:6px">Daily Performance Report</div>
+    <div style="font-size:13px;color:#94a3b8;margin-top:4px">${dateLabel}</div>
+  </td></tr>
+  <tr><td style="padding:24px">
+    <p style="margin:0 0 16px;color:#4b5563;font-size:15px">Hi ${r.name || 'there'},</p>
+    <div style="background:${pnlBg(r.todayPnl)};border:1px solid ${r.todayPnl >= 0 ? '#a7f3d0' : '#fecaca'};border-radius:12px;padding:18px 20px;text-align:center">
+      <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.08em">Today's P&amp;L</div>
+      <div style="font-size:36px;font-weight:800;color:${pnlColor(r.todayPnl)};margin-top:6px;line-height:1.1">${money(r.todayPnl)}</div>
+      <div style="font-size:12px;color:#9ca3af;margin-top:8px">${pkgLabel(r.package)} plan · ${r.accountCount || 0} account${(r.accountCount || 0) !== 1 ? 's' : ''} · ${r.split}% split</div>
+    </div>
+    ${weekCalendarHtml(week, r.todayPnl)}
+    ${streak.html}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;border-top:1px solid #e5e7eb">
+      <tr>
+        <td style="padding:14px 0;border-bottom:1px solid #f3f4f6"><span style="color:#6b7280;font-size:14px">Month-to-date</span></td>
+        <td style="padding:14px 0;border-bottom:1px solid #f3f4f6;text-align:right;font-size:15px;font-weight:600;color:${pnlColor(r.mtd)}">${money(r.mtd)}</td>
+      </tr>
+      <tr>
+        <td style="padding:14px 0;border-bottom:1px solid #f3f4f6"><span style="color:#6b7280;font-size:14px">Month win rate</span></td>
+        <td style="padding:14px 0;border-bottom:1px solid #f3f4f6;text-align:right;font-size:15px;font-weight:600;color:#111827">${month.winRate}% <span style="color:#9ca3af;font-weight:400">(${month.greenDays}/${month.tradingDays} days)</span></td>
+      </tr>
+      <tr>
+        <td style="padding:14px 0;border-bottom:1px solid #f3f4f6"><span style="color:#6b7280;font-size:14px">Total to date</span></td>
+        <td style="padding:14px 0;border-bottom:1px solid #f3f4f6;text-align:right;font-size:15px;font-weight:600;color:${pnlColor(r.total)}">${money(r.total)}</td>
+      </tr>
+      <tr>
+        <td style="padding:14px 0"><span style="color:#6b7280;font-size:14px">Net to you <span style="font-size:12px">(after ${r.split}% fee)</span></span></td>
+        <td style="padding:14px 0;text-align:right;font-size:16px;font-weight:700;color:#059669">${money(r.net)}</td>
+      </tr>
+    </table>
+    ${r.appUrl ? `<div style="text-align:center;margin-top:22px">
+      <a href="${r.appUrl}" style="display:inline-block;background:#22b8ef;color:#04121a;text-decoration:none;padding:12px 28px;border-radius:9px;font-weight:700;font-size:14px">View full dashboard</a>
+    </div>` : ''}
+    ${live.html}
+    <p style="color:#9ca3af;font-size:11px;text-align:center;margin:20px 0 0;line-height:1.5">Sent at 5:00 PM ET · planthetrade.co<br>Performance figures reflect reported daily P&amp;L in your portal.</p>
+  </td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
 
-  if (!transport) {
-    console.log(`[daily report — email disabled] ${r.email}: today ${money(r.todayPnl)} · total ${money(r.total)}`);
-    return;
-  }
-  await transport.sendMail({ from: process.env.MAIL_FROM || 'noreply@example.com', to: r.email, subject, text, html });
+  await sendMail({ to: r.email, subject, text, html });
 }
 
-module.exports = { sendAccessCode, sendDailyReport };
+module.exports = { sendAccessCode, sendDailyReport, emailEnabled, mailFrom };

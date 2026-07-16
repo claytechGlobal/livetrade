@@ -3,9 +3,31 @@ const cron = require('node-cron');
 const { listActiveClients, buildDailyReport, etToday, isDailySent, markDailySent } = require('./db');
 const { sendDailyReport } = require('./email');
 
-// Sends today's report to every active client. Skips clients already sent today,
-// and (by default) clients with no P&L uploaded for today.
+function etNowParts() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: process.env.DAILY_SEND_TZ || 'America/New_York',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false
+  }).formatToParts(new Date());
+  const pick = t => {
+    const p = parts.find(x => x.type === t);
+    return p ? p.value : '';
+  };
+  return { hour: Number(pick('hour')), minute: Number(pick('minute')) };
+}
+
+function isDailySendHour() {
+  const target = Number(process.env.DAILY_SEND_HOUR || 17);
+  const { hour, minute } = etNowParts();
+  return hour === target && minute < 15;
+}
+
 async function runDailySend({ force = false } = {}) {
+  if (!force && !isDailySendHour()) {
+    const { hour, minute } = etNowParts();
+    return { date: etToday(), sent: 0, skipped: true, reason: 'not 5 PM ET window', etHour: hour, etMinute: minute };
+  }
   const date = etToday();
   const onlyWithData = process.env.DAILY_SEND_ONLY_WITH_DATA !== 'false';
   const clients = listActiveClients();

@@ -557,6 +557,40 @@ function go(v){
   document.querySelector('.main').scrollTo(0,0);}
 document.querySelectorAll('.nav-item').forEach(n=>n.onclick=()=>go(n.dataset.view));
 
+function isLiveSessionNow(){
+  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'short',hour:'numeric',minute:'numeric',hour12:false}).formatToParts(new Date());
+  const wd=parts.find(x=>x.type==='weekday').value;
+  const hr=+parts.find(x=>x.type==='hour').value;
+  const mn=+parts.find(x=>x.type==='minute').value;
+  const mins=hr*60+mn;
+  const monFri=wd==='Mon'||wd==='Tue'||wd==='Wed'||wd==='Thu'||wd==='Fri';
+  const morning=monFri&&mins>=9*60&&mins<10*60+30;
+  const evening=(wd==='Mon'||wd==='Wed')&&mins>=21*60&&mins<22*60;
+  return morning||evening;
+}
+function renderLiveSessionCard(){
+  const s=state.settings||{};
+  const url=(s.liveSessionUrl||'').trim();
+  const on=s.liveSessionEnabled!==false;
+  const live=isLiveSessionNow();
+  const slots=[
+    {t:'Morning session',w:'Mon–Fri · 9:00 AM – 10:30 AM ET'},
+    {t:'Evening session',w:'Mon & Wed · 9:00 PM ET'}
+  ];
+  let h=`<div class="card" style="margin-bottom:16px;border:1px solid ${live?'var(--accent)':'var(--line)'}">
+    <div class="card-h"><div class="card-t"><span class="tick"></span>Live coaching</div>
+      ${live?'<span class="badge b-funded">Live now</span>':'<span class="badge b-eval">Scheduled</span>'}
+    </div>
+    <div style="display:grid;gap:8px;margin-bottom:14px">${slots.map(x=>`<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><b>${esc(x.t)}</b><span class="hint" style="font-family:var(--ui)">${esc(x.w)}</span></div>`).join('')}</div>`;
+  if(on&&url&&/^https?:\/\//i.test(url)){
+    h+=`<a class="btn primary" href="${url.replace(/"/g,'&quot;')}" target="_blank" rel="noopener" style="width:100%;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 6h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/></svg>Join live session</a>`;
+    if(!live)h+=`<div class="hint" style="font-family:var(--ui);margin-top:10px;color:var(--text-3)">Join during the times above when your coach is live.</div>`;
+  }else{
+    h+=`<div class="hint" style="font-family:var(--ui);color:var(--text-2)">Your coach will post the meeting link before the next session.</div>`;
+  }
+  return h+`</div>`;
+}
+
 /* ===== DASHBOARD ===== */
 function renderDash(){
   const m=metrics();const e=edgeScore(m);
@@ -590,6 +624,7 @@ function renderDash(){
     ${stat('Best Day',fmt$(bestDay(),true),cls(bestDay()),'single session')}
     ${stat('Avg / Trade',fmt$(m.n?m.net/m.n:0,true),cls(m.net),'per position')}
   </div>`;
+  if(session&&session.role==='client')h+=renderLiveSessionCard();
   /* calendar + mindset */
   h+=`<div class="dash-mid">
     <div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>P&L Calendar</div>
@@ -1450,6 +1485,11 @@ function renderPortal(cid){
 function renderSettings(){
   const accents=['#22b8ef','#3bd0c4','#34d399','#f5b942','#fb5e7e','#b06cf0','#ff8b4a'];
   let h=`<div class="dash-mid"><div>
+    <div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:16px"><span class="tick"></span>Live coaching (Zoom)</div>
+      <div class="field"><label><input id="set_live_on" type="checkbox" ${state.settings.liveSessionEnabled!==false?'checked':''} style="width:auto;margin-right:8px">Show join button on client dashboard</label></div>
+      <div class="field"><label>Zoom / meeting link</label><input id="set_live_url" placeholder="https://zoom.us/j/..." value="${esc(state.settings.liveSessionUrl||'')}"></div>
+      <div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:12px">Schedule shown to clients:<br>· Morning — Mon–Fri 9:00 AM – 10:30 AM ET<br>· Evening — Mon & Wed 9:00 PM ET</div>
+      <button class="btn primary" onclick="saveLiveSession()">Save live session</button></div>
     <div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:16px"><span class="tick"></span>Branding</div>
       <div class="field"><label>App / Software Name</label><input id="set_name" value="${esc(state.settings.appName||'LIVE TRADES')}"></div>
       <div class="field"><label>Your Name (greeting)</label><input id="set_trader" value="${esc(state.settings.trader||'Trader')}"></div>
@@ -1471,9 +1511,10 @@ function renderSettings(){
       <div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-top:8px">Stored hashed on the server; passwords never round-trip in plain text.</div>
       <div class="card-t" style="margin:22px 0 14px"><span class="tick"></span>Package Pricing <span class="hint" style="font-family:var(--ui);font-weight:400">(shown on the public login screen)</span></div>
       <div class="f3">
-        <div class="field"><label>Starter</label><input id="set_p_starter" value="${esc((state.settings.prices||{}).starter||'')}" placeholder="$99/mo"></div>
-        <div class="field"><label>Pro</label><input id="set_p_pro" value="${esc((state.settings.prices||{}).pro||'')}" placeholder="$179/mo"></div>
-        <div class="field"><label>Elite</label><input id="set_p_elite" value="${esc((state.settings.prices||{}).elite||'')}" placeholder="$299/mo"></div>
+        <div class="field"><label>Starter</label><input id="set_p_starter" value="${esc((state.settings.prices||{}).starter||'')}" placeholder="$500/mo"></div>
+        <div class="field"><label>Pro</label><input id="set_p_pro" value="${esc((state.settings.prices||{}).pro||'')}" placeholder="$1000/mo"></div>
+        <div class="field"><label>Elite</label><input id="set_p_elite" value="${esc((state.settings.prices||{}).elite||'')}" placeholder="$1500/mo"></div>
+        <div class="field"><label>Prime</label><input id="set_p_prime" value="${esc((state.settings.prices||{}).prime||'')}" placeholder="$2500/mo"></div>
       </div>
       <div class="hint" style="font-family:var(--ui);color:var(--text-2)">Set these to match the prices in your Stripe checkout links.</div>
       </div></div>`;
@@ -1490,9 +1531,12 @@ function updateCredentials(){const u=val('set_user').trim();const p=val('set_pas
   api('POST','/api/admin/credentials',{username:u,password:p||undefined}).then(()=>{
     state.settings.adminUser=u;flash('Credentials updated');const el=document.getElementById('set_pass');if(el)el.value='';
   }).catch(e=>flash(e.message||'Could not update'));}
+function saveLiveSession(){state.settings.liveSessionUrl=val('set_live_url').trim();
+  state.settings.liveSessionEnabled=!!document.getElementById('set_live_on').checked;
+  save('settings');flash('Live session saved');}
 function saveBranding(){state.settings.appName=val('set_name').trim()||'LIVE TRADES';state.settings.trader=val('set_trader').trim()||'Trader';
   state.settings.accent=window.__ac||state.settings.accent||'#22b8ef';
-  state.settings.prices={starter:val('set_p_starter').trim()||'$—',pro:val('set_p_pro').trim()||'$—',elite:val('set_p_elite').trim()||'$—'};
+  state.settings.prices={starter:val('set_p_starter').trim()||'$—',pro:val('set_p_pro').trim()||'$—',elite:val('set_p_elite').trim()||'$—',prime:val('set_p_prime').trim()||'$—'};
   save('settings');applyBranding();flash('Settings saved');}
 function applyBranding(){const s=state.settings;document.getElementById('brandName').textContent=(s.appName||'LIVE TRADES').toUpperCase();
   document.title=(s.appName||'LIVE TRADES')+' — Dashboard';

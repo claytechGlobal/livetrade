@@ -97,11 +97,20 @@ function initDb() {
     setSetting('accent', '#22b8ef');
     setSetting('trader', 'Trader');
     setSetting('prices', JSON.stringify({
-      starter: process.env.PRICE_STARTER_LABEL || '$99/mo',
-      pro: process.env.PRICE_PRO_LABEL || '$179/mo',
-      elite: process.env.PRICE_ELITE_LABEL || '$299/mo'
+      starter: process.env.PRICE_STARTER_LABEL || '$500/mo',
+      pro: process.env.PRICE_PRO_LABEL || '$1000/mo',
+      elite: process.env.PRICE_ELITE_LABEL || '$1500/mo',
+      prime: process.env.PRICE_PRIME_LABEL || '$2500/mo'
     }));
+    setSetting('liveSessionUrl', process.env.LIVE_SESSION_URL || '');
+    setSetting('liveSessionEnabled', process.env.LIVE_SESSION_ENABLED !== 'false' ? 'true' : 'false');
   }
+
+  migratePackagePrices();
+  if (getSetting('liveSessionEnabled') === null || getSetting('liveSessionEnabled') === undefined) {
+    setSetting('liveSessionEnabled', 'true');
+  }
+  if (!getSetting('liveSessionUrl')) setSetting('liveSessionUrl', process.env.LIVE_SESSION_URL || '');
 
   const accCols = db.prepare('PRAGMA table_info(accounts)').all().map(c => c.name);
   if (!accCols.includes('account_size')) db.exec('ALTER TABLE accounts ADD COLUMN account_size TEXT');
@@ -137,6 +146,30 @@ function parseAcctSizeFromLabel(label) {
   const m = String(label || '').match(/(\d+)\s*K/i);
   return m ? `${m[1]}K` : '';
 }
+function migratePackagePrices() {
+  let p = {};
+  try { p = JSON.parse(getSetting('prices') || '{}'); } catch (_) { p = {}; }
+  const next = {
+    starter: '$500/mo',
+    pro: '$1000/mo',
+    elite: '$1500/mo',
+    prime: '$2500/mo'
+  };
+  const old = {
+    starter: ['$99/mo', '$99'],
+    pro: ['$179/mo', '$179'],
+    elite: ['$299/mo', '$299'],
+    prime: ['$—', '']
+  };
+  let changed = false;
+  Object.keys(next).forEach(k => {
+    if (!p[k] || (old[k] && old[k].includes(p[k]))) {
+      p[k] = process.env['PRICE_' + k.toUpperCase() + '_LABEL'] || next[k];
+      changed = true;
+    }
+  });
+  if (changed) setSetting('prices', JSON.stringify(p));
+}
 function migrateAccountLineage() {
   const accs = db.prepare('SELECT * FROM accounts').all();
   accs.forEach(a => {
@@ -168,6 +201,8 @@ function getSettings() {
   db.prepare('SELECT * FROM settings').all().forEach(r => { o[r.key] = r.value; });
   if (o.prices) { try { o.prices = JSON.parse(o.prices); } catch (_) { o.prices = {}; } }
   else o.prices = {};
+  o.liveSessionUrl = o.liveSessionUrl || '';
+  o.liveSessionEnabled = o.liveSessionEnabled !== 'false';
   return o;
 }
 function patchSettings(obj) {
@@ -430,7 +465,9 @@ function composeClientApp(clientId) {
       appName: full.settings.appName,
       accent: full.settings.accent,
       trader: client.name || full.settings.trader,
-      prices: full.settings.prices
+      prices: full.settings.prices,
+      liveSessionUrl: full.settings.liveSessionUrl || '',
+      liveSessionEnabled: full.settings.liveSessionEnabled !== false
     },
     plays: full.plays,
     trades: listClientTrades(clientId),
@@ -548,8 +585,84 @@ function getClientRow(id) {
 }
 
 /* ---------- daily report (scheduled 5 PM ET send) ---------- */
+const REPORT_TZ = () => process.env.DAILY_SEND_TZ || 'America/New_York';
+const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+const WEEK_FULL = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday' };
+
+function isoAtNoon(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+}
+function addDaysIso(iso, n) {
+  const dt = isoAtNoon(iso);
+  dt.setUTCDate(dt.getUTCDate() + n);
+  return dt.toISOString().slice(0, 10);
+}
+function weekdayIdx(iso) {
+  const wd = new Intl.DateTimeFormat('en-US', { timeZone: REPORT_TZ(), weekday: 'short' }).format(isoAtNoon(iso));
+  return { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[wd] ?? 0;
+}
+function mondayOfWeek(iso) {
+  const idx = weekdayIdx(iso);
+  return addDaysIso(iso, idx === 0 ? -6 : 1 - idx);
+}
+function formatReportDate(iso) {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: REPORT_TZ(), weekday: 'long', month: 'short', day: 'numeric', year: 'numeric'
+  }).format(isoAtNoon(iso));
+}
+function dayMapFromRows(rows) {
+  const m = {};
+  rows.forEach(r => { m[r.date] = (m[r.date] || 0) + r.amount; });
+  return m;
+}
+function buildWeekCalendar(dayMap, anchorIso) {
+  const mon = mondayOfWeek(anchorIso);
+  const days = WEEK_LABELS.map((wd, i) => {
+    const date = addDaysIso(mon, i);
+    const hasData = dayMap[date] != null;
+    const amount = hasData ? dayMap[date] : null;
+    return {
+      date, weekday: wd, label: WEEK_FULL[wd], amount, hasData,
+      isToday: date === anchorIso, isFuture: date > anchorIso
+    };
+  });
+  const active = days.filter(d => d.hasData && !d.isFuture);
+  const weekTotal = active.reduce((s, d) => s + d.amount, 0);
+  const greenDays = active.filter(d => d.amount > 0).length;
+  const redDays = active.filter(d => d.amount < 0).length;
+  const tradingDays = active.length;
+  return {
+    days, weekTotal, greenDays, redDays, tradingDays,
+    winRate: tradingDays ? Math.round(greenDays / tradingDays * 100) : 0
+  };
+}
+function buildMonthStats(dayMap, anchorIso) {
+  const ym = anchorIso.slice(0, 7);
+  const entries = Object.entries(dayMap).filter(([d]) => d.slice(0, 7) === ym && d <= anchorIso);
+  const tradingDays = entries.length;
+  const greenDays = entries.filter(([, a]) => a > 0).length;
+  const redDays = entries.filter(([, a]) => a < 0).length;
+  const net = entries.reduce((s, [, a]) => s + a, 0);
+  return { tradingDays, greenDays, redDays, net, winRate: tradingDays ? Math.round(greenDays / tradingDays * 100) : 0 };
+}
+function buildStreak(dayMap, anchorIso) {
+  let streak = 0;
+  let type = null;
+  let d = anchorIso;
+  while (dayMap[d] != null) {
+    const sign = dayMap[d] > 0 ? 'win' : dayMap[d] < 0 ? 'loss' : 'flat';
+    if (!type) type = sign;
+    if (sign !== type || sign === 'flat') break;
+    streak++;
+    d = addDaysIso(d, -1);
+    while (weekdayIdx(d) === 0 || weekdayIdx(d) === 6) d = addDaysIso(d, -1);
+  }
+  return { type, count: streak };
+}
+
 function etToday() {
-  return new Date().toLocaleDateString('en-CA', { timeZone: process.env.DAILY_SEND_TZ || 'America/New_York' });
+  return new Date().toLocaleDateString('en-CA', { timeZone: REPORT_TZ() });
 }
 function latestEntryDate(id) {
   const r = db.prepare('SELECT date FROM daily_pnl WHERE client_id=? ORDER BY date DESC LIMIT 1').get(id);
@@ -566,14 +679,21 @@ function buildDailyReport(id, isoDate) {
   const dayRows = db.prepare('SELECT amount FROM daily_pnl WHERE client_id=? AND date=?').all(id, date);
   const todayPnl = dayRows.reduce((s, r) => s + r.amount, 0);
   const all = db.prepare('SELECT date, amount FROM daily_pnl WHERE client_id=?').all(id);
+  const dayMap = dayMapFromRows(all);
   const total = all.reduce((s, r) => s + r.amount, 0);
   const ym = date.slice(0, 7);
   const mtd = all.filter(r => r.date.slice(0, 7) === ym).reduce((s, r) => s + r.amount, 0);
   const split = c.split || 0;
   const fee = total > 0 ? total * split / 100 : 0;
+  const acctRow = db.prepare('SELECT COUNT(*) as n FROM accounts WHERE client_id=?').get(id);
+  const week = buildWeekCalendar(dayMap, date);
+  const month = buildMonthStats(dayMap, date);
+  const streak = buildStreak(dayMap, date);
   return {
-    clientId: c.id, name: c.name, email: c.email, accessCode: c.access_code,
-    date, todayPnl, hasToday: dayRows.length > 0, mtd, total, split, fee, net: total - fee,
+    clientId: c.id, name: c.name, email: c.email, accessCode: c.access_code, package: c.package || 'starter',
+    date, dateLabel: formatReportDate(date), todayPnl, hasToday: dayRows.length > 0,
+    mtd, total, split, fee, net: total - fee, accountCount: acctRow ? acctRow.n : 0,
+    week, month, streak,
     appUrl: process.env.APP_URL || ''
   };
 }
