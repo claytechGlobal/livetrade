@@ -1,8 +1,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
-<title>LIVE TRADES — Dashboard</title>
+<meta name="description" content="LIVE TRADES — managed futures journal with daily P&L, edge score, playbook, and live coaching.">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<title>LIVE TRADES</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -277,6 +281,65 @@ tbody tr{transition:.12s}tbody tr:hover{background:var(--surface-2)}
 .ro-pill{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-2);border:1px solid var(--line);border-radius:999px;padding:5px 12px}
 .code-box{font-family:var(--mono);font-size:13px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:6px 10px;display:inline-flex;align-items:center;gap:8px}
 @media(max-width:760px){.price-grid{grid-template-columns:1fr}.portal-wrap,.portal-top{padding-left:16px;padding-right:16px}}
+
+.home{width:100%;max-width:1120px;margin:0 auto;padding:0 20px 80px}
+.home-nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:16px 0;margin:0 -4px 8px;background:rgba(0,0,0,.82);backdrop-filter:blur(12px);border-bottom:1px solid transparent}
+.home-nav-links{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.home-nav a.hn{color:var(--text-2);text-decoration:none;font-size:13.5px;font-weight:600;padding:8px 10px}
+.home-nav a.hn:hover{color:var(--text)}
+.home-cta{background:linear-gradient(120deg,#34d399,#22b8ef)!important;color:#04121a!important;border:none!important;font-weight:700}
+.home-cta-ghost{background:#fff!important;color:#04121a!important;border:none!important;font-weight:700}
+.home-hero{text-align:center;padding:48px 0 28px;position:relative}
+.home-hero::before{content:"";position:absolute;left:50%;top:10%;transform:translateX(-50%);width:min(720px,90vw);height:280px;
+  background:radial-gradient(ellipse,rgba(52,211,153,.12),transparent 70%);pointer-events:none;z-index:0}
+.home-hero>*{position:relative;z-index:1}
+.home-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;border:1px solid rgba(52,211,153,.45);
+  background:rgba(52,211,153,.08);color:#6ee7b7;font-size:12.5px;font-weight:600;margin-bottom:22px}
+.home-h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,6vw,58px);line-height:1.08;letter-spacing:-.03em;margin-bottom:18px}
+.home-h1 .grad{background:linear-gradient(90deg,#22b8ef,#a78bfa,#f5b942);-webkit-background-clip:text;background-clip:text;color:transparent}
+.home-lead{max-width:640px;margin:0 auto 28px;color:var(--text-2);font-size:16px;line-height:1.65}
+.home-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:28px}
+.home-trust{display:flex;flex-wrap:wrap;gap:18px 28px;justify-content:center;color:var(--text-2);font-size:13px;margin-bottom:36px}
+.home-trust span{display:inline-flex;align-items:center;gap:8px}
+.home-trust svg{width:16px;height:16px;color:var(--green);flex:none}
+.home-sec{padding:40px 0 10px}
+.home-sec-h{font-family:var(--display);font-weight:700;font-size:clamp(22px,3.5vw,30px);text-align:center;margin-bottom:10px}
+.home-sec-p{text-align:center;color:var(--text-2);font-size:14.5px;max-width:560px;margin:0 auto 28px;line-height:1.55}
+.home-feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.home-feat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 18px;text-align:left}
+.home-feat .fi{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;margin-bottom:12px;background:rgba(52,211,153,.1);color:#34d399}
+.home-feat .fi svg{width:18px;height:18px}
+.home-feat h3{font-family:var(--display);font-weight:700;font-size:15px;margin-bottom:7px}
+.home-feat p{color:var(--text-2);font-size:13px;line-height:1.55}
+.home-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.home-step{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 18px}
+.home-step .n{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:800;font-size:13px;
+  background:rgba(34,184,239,.15);color:var(--accent);margin-bottom:12px}
+.home-step h3{font-family:var(--display);font-weight:700;font-size:16px;margin-bottom:8px}
+.home-step p{color:var(--text-2);font-size:13.5px;line-height:1.55}
+.home-edge{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;align-items:stretch}
+.home-edge-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px}
+.home-edge-card h3{font-family:var(--display);font-weight:700;font-size:16px;margin-bottom:10px}
+.home-edge-card p{color:var(--text-2);font-size:13.5px;line-height:1.6}
+.home-thermo{margin-top:18px}
+.home-thermo-bar{height:14px;border-radius:999px;background:linear-gradient(90deg,#fb5e7e 0%,#fb5e7e 30%,#f5b942 30%,#f5b942 70%,#34d399 70%,#34d399 100%);position:relative}
+.home-thermo-bar i{position:absolute;top:50%;left:78%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;
+  background:#fff;border:3px solid #34d399;box-shadow:0 0 0 4px rgba(52,211,153,.25)}
+.home-thermo-leg{display:flex;justify-content:space-between;gap:8px;margin-top:10px;font-size:11px;color:var(--text-3)}
+.home-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px}
+.home-cal .d{aspect-ratio:1;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;
+  font-family:var(--mono);font-size:11px;color:var(--text-3)}
+.home-cal .d.g{background:var(--green-soft);border-color:rgba(52,211,153,.35);color:var(--green)}
+.home-cal .d.r{background:var(--red-soft);border-color:rgba(251,94,126,.35);color:var(--red)}
+.home-foot{margin-top:48px;padding-top:24px;border-top:1px solid var(--line);text-align:center;color:var(--text-3);font-size:12px}
+@media(max-width:860px){
+  .home-feat-grid,.home-steps,.home-edge{grid-template-columns:1fr}
+  .home-nav{flex-wrap:wrap}
+}
+body.home-open{overflow:auto}
+body.home-open::after{opacity:.35}
+#loginRoot.home-mode{display:block;position:fixed;inset:0;z-index:40;overflow-y:auto;background:#000}
 </style>
 
 <div class="app" id="appRoot" style="display:none">
@@ -314,6 +377,7 @@ tbody tr{transition:.12s}tbody tr:hover{background:var(--surface-2)}
         <div class="iconbtn admin-write" onclick="openImport()" title="Import CSV"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg></div>
         <button class="btn primary" onclick="openTrade()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Trade</button>
         <button class="btn client-write" onclick="openClientCsvUpload()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M8 8l4-4 4 4"/><path d="M4 20h16"/></svg> Upload CSV</button>
+        <button class="btn sm client-write" id="installAppBtnTop" style="display:none" onclick="installApp()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Install App</button>
       </div>
     </div>
     <div class="content" id="content"></div>
@@ -404,16 +468,22 @@ async function init(){
     if(me&&me.role==='admin'){session=me;try{await loadAdmin();showScreen('admin');go('dashboard');return;}catch(e){}}
     showScreen('login');renderLogin();return;
   }
-  if(me&&me.role==='client'){session=me;try{await loadClientApp();showScreen('admin');go('dashboard');return;}catch(e){showScreen('login');renderLogin(true);return;}}
+  registerPwa();
+  if(me&&me.role==='client'){session=me;try{await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();return;}catch(e){showScreen('home');renderHome(true);return;}}
   const pc=new URLSearchParams(location.search).get('portal');
-  if(pc){try{const r2=await api('POST','/api/auth/login',{credential:pc});if(r2.role==='client'){session=r2;await loadClientApp();showScreen('admin');go('dashboard');return;}}catch(e){}}
-  showScreen('login');renderLogin();
+  if(pc){try{const r2=await api('POST','/api/auth/login',{credential:pc});if(r2.role==='client'){session=r2;await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();return;}}catch(e){}}
+  showScreen('home');renderHome();
 }
 
 /* ===== auth / sessions ===== */
-function showScreen(s){document.getElementById('appRoot').style.display=s==='admin'?'grid':'none';
+function showScreen(s){
+  document.body.classList.toggle('home-open',s==='home'||s==='login');
+  document.getElementById('appRoot').style.display=s==='admin'?'grid':'none';
   document.getElementById('portalRoot').style.display=s==='portal'?'block':'none';
-  document.getElementById('loginRoot').style.display=s==='login'?'flex':'none';}
+  const lr=document.getElementById('loginRoot');
+  lr.style.display=(s==='login'||s==='home')?'block':'none';
+  lr.classList.toggle('home-mode',s==='home'||s==='login');
+}
 function genCode(name){return (String(name||'').replace(/[^a-z]/gi,'').slice(0,4).toUpperCase()||'CLNT')+'-'+Math.floor(1000+Math.random()*9000);}
 function authTab(m){window.__authMode=m;
   document.querySelectorAll('.auth-tab').forEach(t=>t.classList.toggle('on',t.dataset.m===m));
@@ -447,11 +517,43 @@ async function logout(){try{await api('POST','/api/auth/logout');}catch(e){}
   if(isAdminRoute()){showScreen('login');renderLogin();}else{location.href='/';}
 }
 
+let deferredInstallPrompt=null;
+function syncInstallButtons(){
+  const show=!!deferredInstallPrompt?'inline-flex':'none';
+  ['installAppBtn','installAppBtnTop'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display=show;});
+}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;syncInstallButtons();});
+window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;syncInstallButtons();});
+function registerPwa(){
+  if(!('serviceWorker' in navigator)||isAdminRoute())return;
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+async function installApp(){
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    try{await deferredInstallPrompt.userChoice;}catch(e){}
+    deferredInstallPrompt=null;
+    syncInstallButtons();
+    return;
+  }
+  const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  flash(isiOS?'On iPhone: Share → Add to Home Screen':'Use your browser Install / Add to Home Screen option');
+}
+function homeGoPortal(){
+  const el=document.getElementById('home-portal');
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+  const input=document.getElementById('lg_code');if(input)setTimeout(()=>input.focus(),350);
+}
+function homeGoPricing(){
+  const el=document.getElementById('home-pricing');
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 function priceCards(forLogin){
-  const feats={starter:['2 managed prop accounts','Daily P&L reporting','Read-only client portal','Account status tracking'],
-    pro:['4 managed prop accounts','Daily P&L reporting','Read-only client portal','Priority management'],
-    elite:['6 managed prop accounts','Daily P&L reporting','Read-only client portal','Dedicated management'],
-    prime:['12 managed prop accounts','Daily P&L reporting','Read-only client portal','Dedicated management']};
+  const feats={starter:['2 managed prop accounts','Daily P&L reporting','Client portal access','Account status tracking'],
+    pro:['4 managed prop accounts','Daily P&L reporting','Client portal access','Priority management'],
+    elite:['6 managed prop accounts','Daily P&L reporting','Client portal access','Dedicated management'],
+    prime:['12 managed prop accounts','Daily P&L reporting','Client portal access','Dedicated management']};
   const pr=state.settings.prices||{};
   return Object.entries(PACKAGES).map(([k,p])=>`
     <div class="price-card ${k==='pro'?'feat':''}">${k==='pro'?'<div class="pop">Most popular</div>':''}
@@ -463,15 +565,145 @@ function priceCards(forLogin){
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h20v10H2zM2 11h20"/></svg>Purchase ${p.name}</button>
     </div>`).join('');
 }
-async function renderLogin(needSub){
+
+function homeFeat(icon,title,desc){
+  return `<div class="home-feat"><div class="fi">${icon}</div><h3>${title}</h3><p>${desc}</p></div>`;
+}
+function homeIcons(){
+  return {
+    dash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>`,
+    edge:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 1 7 7c0 4-3 6-7 13-4-7-7-9-7-13a7 7 0 0 1 7-7z"/></svg>`,
+    cal:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>`,
+    trades:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>`,
+    play:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 4v16"/></svg>`,
+    guide:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
+    acct:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg>`,
+    up:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4"/><path d="M8 8l4-4 4 4"/><path d="M4 20h16"/></svg>`,
+    live:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 10l4.5-2.5v9L15 14M5 6h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/></svg>`
+  };
+}
+
+async function loadPublicPricing(){
   try{const pr=await api('GET','/api/public/pricing');
     if(pr&&pr.packages){state.settings.prices=state.settings.prices||{};
       Object.entries(pr.packages).forEach(([k,v])=>{if(PACKAGES[k]){state.settings.prices[k]=v.label;if(v.link)PACKAGES[k].stripe=v.link;}});}
   }catch(e){}
+}
+
+async function renderHome(needSub){
+  await loadPublicPricing();
   const s=state.settings;
-  const adminSide=isAdminRoute();
-  if(adminSide){
-    document.getElementById('loginRoot').innerHTML=`<div class="auth" style="max-width:420px;margin:0 auto">
+  const name=esc((s.appName||'LIVE TRADES').toUpperCase());
+  const ic=homeIcons();
+  const installShown='none';
+  document.getElementById('loginRoot').innerHTML=`
+  <div class="home">
+    <nav class="home-nav">
+      <div class="auth-brand" style="margin:0">
+        <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l4-4 4 4 7-8"/><path d="M21 5v5h-5"/></svg></div>
+        <div><div class="auth-name" style="font-size:18px">${name}</div><div class="brand-sub">Mindset Journal</div></div>
+      </div>
+      <div class="home-nav-links">
+        <a class="hn" href="#home-pricing" onclick="homeGoPricing();return false">Pricing</a>
+        <button type="button" class="btn sm" id="installAppBtn" style="display:${installShown}" onclick="installApp()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Install App
+        </button>
+        <button type="button" class="btn sm home-cta" onclick="homeGoPortal()">Get Started →</button>
+      </div>
+    </nav>
+
+    <section class="home-hero">
+      <div class="home-badge"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 2 3 14h8l-1 8 10-12h-8l1-8z"/></svg> Professional trading journal</div>
+      <h1 class="home-h1">Master Your Trading<br><span class="grad">Edge.</span></h1>
+      <p class="home-lead">Not just another journal — your managed futures portal. Track daily P&amp;L, edge score, playbook setups, prop accounts, and live coaching in one place.</p>
+      <div class="home-actions">
+        <button type="button" class="btn primary home-cta" style="padding:12px 22px;font-size:14px" onclick="homeGoPortal()">Get Started →</button>
+        <button type="button" class="btn home-cta-ghost" style="padding:12px 22px;font-size:14px" onclick="homeGoPricing()">View Pricing</button>
+      </div>
+      <div class="home-trust">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Daily P&amp;L emailed at 5 PM ET</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Edge score updates with your trades</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Live coaching sessions included</span>
+      </div>
+    </section>
+
+    <section class="home-sec">
+      <h2 class="home-sec-h">Built for serious futures traders</h2>
+      <p class="home-sec-p">Everything in your portal after you sign in with your access code — no extra fluff.</p>
+      <div class="home-feat-grid">
+        ${homeFeat(ic.dash,'Dashboard','Net P&amp;L, win rate, and mindset overview the moment you open the portal.')}
+        ${homeFeat(ic.edge,'Edge Score','Behavioral gauge from your trade log — discipline and emotion in one score.')}
+        ${homeFeat(ic.cal,'P&amp;L Calendar','Day-by-day green and red performance, same view used in your daily email.')}
+        ${homeFeat(ic.trades,'Trade Log','Add trades, review ticks, R-multiples, and notes in one stream.')}
+        ${homeFeat(ic.play,'Playbook','Name and track the setups that actually make you money.')}
+        ${homeFeat(ic.guide,'Playbook Guide','Visual A+ move charts — fakeouts, breakouts, risk, and management.')}
+        ${homeFeat(ic.acct,'Prop Firms &amp; Expenses','Track eval/funded accounts, fees, payouts, and lineage steppers.')}
+        ${homeFeat(ic.up,'Upload Trades','Drop broker CSV exports — calendar, dashboard, and trade log update together.')}
+        ${homeFeat(ic.live,'Live Coaching','Join scheduled morning and evening sessions from your dashboard.')}
+      </div>
+    </section>
+
+    <section class="home-sec">
+      <h2 class="home-sec-h">How it works</h2>
+      <p class="home-sec-p">Three steps from package to daily performance reporting.</p>
+      <div class="home-steps">
+        <div class="home-step"><div class="n">1</div><h3>Choose a package</h3><p>Starter, Pro, Elite, or Prime — sized for how many prop accounts you need managed.</p></div>
+        <div class="home-step"><div class="n">2</div><h3>Open your portal</h3><p>After purchase you get an access code by email. Enter it below to reach your dashboard.</p></div>
+        <div class="home-step"><div class="n">3</div><h3>Track &amp; improve</h3><p>Log or upload trades, watch edge score and calendar, join live coaching, get the 5 PM ET report.</p></div>
+      </div>
+    </section>
+
+    <section class="home-sec">
+      <h2 class="home-sec-h">Edge Score in your dashboard</h2>
+      <p class="home-sec-p">Most traders lose because of emotions, not strategy. After you log trades, your portal scores discipline so you can see when you are in the green zone.</p>
+      <div class="home-edge" style="grid-template-columns:1fr;max-width:560px;margin:0 auto">
+        <div class="home-edge-card">
+          <h3>Behavioral Edge Score</h3>
+          <p>Updates from your trade log and mindset tags — the same gauge on your dashboard after Get Started.</p>
+          <div class="home-thermo">
+            <div class="home-thermo-bar"><i></i></div>
+            <div class="home-thermo-leg"><span>Pressure</span><span>Mixed</span><span>Green zone</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:22px">
+        <button type="button" class="btn primary home-cta" style="padding:12px 26px" onclick="homeGoPortal()">Get Started →</button>
+      </div>
+    </section>
+
+    <section class="home-sec" id="home-pricing">
+      <h2 class="home-sec-h">Packages</h2>
+      <p class="home-sec-p">Managed futures accounts, reported daily. Purchase a package, then sign in with your access code.</p>
+      ${needSub?`<div style="margin:0 auto 16px;max-width:640px;padding:12px 14px;border:1px solid var(--amber);border-radius:12px;background:var(--surface-2);color:var(--text-2);font-size:13px;line-height:1.5"><b style="color:var(--text)">Subscription required.</b> Purchase a package, then sign in with the access code emailed to you.</div>`:''}
+      <div class="price-grid">${priceCards(true)}</div>
+    </section>
+
+    <section class="home-sec" id="home-portal" style="display:flex;justify-content:center">
+      <div class="auth-login">
+        <h3>Enter your dashboard</h3>
+        <p>Use the access code emailed after purchase. Get Started opens your client dashboard.</p>
+        <div class="field" style="margin-bottom:0"><label>Access code</label><input id="lg_code" placeholder="ABCD-1234" autocomplete="one-time-code" onkeydown="if(event.key==='Enter')attemptLogin()"></div>
+        <div class="auth-err" id="lg_err"></div>
+        <button class="btn primary home-cta" style="width:100%;margin-top:14px" onclick="attemptLogin()">Get Started →</button>
+      </div>
+    </section>
+
+    <div class="home-foot">
+      <a href="#" onclick="showTermsModal();return false" style="color:var(--text-3);text-decoration:none">Terms &amp; Policy</a>
+      <span style="margin:0 10px">·</span>
+      <span>${name}</span>
+    </div>
+  </div>`;
+  window.__authMode='client';
+  registerPwa();
+  syncInstallButtons();
+}
+
+async function renderLogin(needSub){
+  if(isAdminRoute()){
+    await loadPublicPricing();
+    const s=state.settings;
+    document.getElementById('loginRoot').innerHTML=`<div class="auth" style="max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;padding:48px 20px">
       <div class="auth-brand"><div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l4-4 4 4 7-8"/><path d="M21 5v5h-5"/></svg></div>
         <div class="auth-name">${esc((s.appName||'LIVE TRADES').toUpperCase())}</div></div>
       <div class="auth-tag">Admin portal — manage trades, clients, and Trade Copier.</div>
@@ -486,22 +718,8 @@ async function renderLogin(needSub){
     window.__authMode='admin';
     return;
   }
-  document.getElementById('loginRoot').innerHTML=`<div class="auth">
-    <div class="auth-brand"><div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l4-4 4 4 7-8"/><path d="M21 5v5h-5"/></svg></div>
-      <div class="auth-name">${esc((s.appName||'LIVE TRADES').toUpperCase())}</div></div>
-    <div class="auth-tag">Managed futures accounts, reported daily. Choose a package to get started.</div>
-    ${needSub?`<div style="margin:0 0 16px;padding:12px 14px;border:1px solid var(--amber);border-radius:12px;background:var(--surface-2);color:var(--text-2);font-size:13px;line-height:1.5"><b style="color:var(--text)">Subscription required.</b> Purchase a package, then sign in with the access code emailed to you.</div>`:''}
-    <div class="price-grid">${priceCards(true)}</div>
-    <div class="auth-login">
-      <h3>Client portal</h3>
-      <p>Enter the access code emailed to you after purchase.</p>
-      <div class="field" style="margin-bottom:0"><label>Access code</label><input id="lg_code" placeholder="ABCD-1234" onkeydown="if(event.key==='Enter')attemptLogin()"></div>
-      <div class="auth-err" id="lg_err"></div>
-      <button class="btn primary" style="width:100%;margin-top:14px" onclick="attemptLogin()">Enter</button>
-    </div>
-    <div style="margin-top:18px;font-size:12px;text-align:center"><a href="#" onclick="showTermsModal();return false" style="color:var(--text-2);text-decoration:none">Terms &amp; Policy</a></div>
-  </div>`;
-  window.__authMode='client';
+  showScreen('home');
+  return renderHome(needSub);
 }
 
 /* ===== demo seed ===== */
