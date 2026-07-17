@@ -44,11 +44,11 @@ body::after{content:"";position:fixed;top:-25%;left:30%;width:55vw;height:55vh;z
 
 /* sidebar */
 .sidebar{background:var(--bg-2);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:20px 14px;gap:3px;overflow-y:auto}
-.brand{display:flex;align-items:center;gap:11px;padding:6px 8px 20px}
-.brand-mark{width:204px;height:204px;border-radius:24px;flex:none;position:relative;display:grid;place-items:center;
+.brand{display:flex;align-items:center;gap:10px;padding:6px 0 20px}
+.brand-mark{width:44px;height:44px;border-radius:10px;flex:none;position:relative;display:grid;place-items:center;
   background:transparent;box-shadow:none;overflow:hidden;padding:0}
 .brand-mark img{width:100%;height:100%;object-fit:cover;display:block}
-.brand-mark svg{width:114px;height:114px;color:#04121a}
+.brand-mark svg{width:24px;height:24px;color:#04121a}
 .brand-name{font-family:var(--display);font-weight:800;font-size:15.5px;letter-spacing:.04em;line-height:1.05}
 .brand-sub{font-size:9px;letter-spacing:.32em;color:var(--text-3);text-transform:uppercase;margin-top:4px}
 .nav-label{font-size:9px;letter-spacing:.24em;color:var(--text-3);text-transform:uppercase;padding:16px 10px 7px}
@@ -253,7 +253,7 @@ tbody tr{transition:.12s}tbody tr:hover{background:var(--surface-2)}
 .auth{position:fixed;inset:0;z-index:40;overflow-y:auto;display:flex;flex-direction:column;align-items:center;
   padding:48px 20px 60px;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(34,184,239,.10),transparent 70%),#000}
 .auth-brand{display:flex;align-items:center;gap:13px;margin-bottom:8px}
-.auth-brand .brand-mark{width:252px;height:252px;border-radius:28px}
+.auth-brand .brand-mark{width:56px;height:56px;border-radius:14px}
 .auth-brand .brand-mark img{width:100%;height:100%;object-fit:cover}
 .auth-name{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:.03em}
 .auth-tag{color:var(--text-2);font-size:14px;margin-bottom:34px;text-align:center}
@@ -1653,7 +1653,7 @@ function renderPortal(cid){
   const days=Object.keys(clientDayMap(c)).length;const accts=clientAccts(c);
   let h=`<div class="portal-top">
     <div style="display:flex;align-items:center;gap:12px">
-      <div class="brand-mark" style="width:204px;height:204px;border-radius:24px;flex:none"><img src="/images/logo.jpeg" alt="LIVE TRADES"></div>
+      <div class="brand-mark" style="width:44px;height:44px;border-radius:10px;flex:none"><img src="/images/logo.jpeg" alt="LIVE TRADES"></div>
       <div>
         <div style="font-family:var(--display);font-weight:700;font-size:14px">${esc((state.settings.appName||'LIVE TRADES').toUpperCase())} · Trade Copier</div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
