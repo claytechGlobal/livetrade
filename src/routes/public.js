@@ -8,7 +8,7 @@ const LINKS = {
   starter: process.env.LINK_STARTER || 'https://buy.stripe.com/bJefZh0DUdo60dteSyefC05',
   pro:     process.env.LINK_PRO     || 'https://buy.stripe.com/dRm5kD2M24RAd0feSyefC06',
   elite:   process.env.LINK_ELITE   || 'https://buy.stripe.com/7sY00j0DUbfYe4j25MefC07',
-  prime:   process.env.LINK_PRIME   || 'https://buy.stripe.com/REPLACE_WITH_PRIME_LINK'
+  prime:   process.env.LINK_PRIME   || 'https://buy.stripe.com/cNi8wPaeu2Js2lB5hYefC09'
 };
 
 router.get('/pricing', (req, res) => {

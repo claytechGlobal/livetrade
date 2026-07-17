@@ -5,7 +5,8 @@
 <meta name="theme-color" content="#000000">
 <meta name="description" content="LIVE TRADES — managed futures journal with daily P&L, edge score, playbook, and live coaching.">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/images/logo.jpeg">
+<link rel="icon" href="/images/logo.jpeg">
 <title>LIVE TRADES</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,7 +46,8 @@ body::after{content:"";position:fixed;top:-25%;left:30%;width:55vw;height:55vh;z
 .sidebar{background:var(--bg-2);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:20px 14px;gap:3px;overflow-y:auto}
 .brand{display:flex;align-items:center;gap:11px;padding:6px 8px 20px}
 .brand-mark{width:34px;height:34px;border-radius:10px;flex:none;position:relative;display:grid;place-items:center;
-  background:linear-gradient(140deg,var(--accent),var(--accent-2));box-shadow:0 8px 24px var(--accent-soft)}
+  background:transparent;box-shadow:none;overflow:hidden;padding:0}
+.brand-mark img{width:100%;height:100%;object-fit:cover;display:block}
 .brand-mark svg{width:19px;height:19px;color:#04121a}
 .brand-name{font-family:var(--display);font-weight:800;font-size:15.5px;letter-spacing:.04em;line-height:1.05}
 .brand-sub{font-size:9px;letter-spacing:.32em;color:var(--text-3);text-transform:uppercase;margin-top:4px}
@@ -252,7 +254,7 @@ tbody tr{transition:.12s}tbody tr:hover{background:var(--surface-2)}
   padding:48px 20px 60px;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(34,184,239,.10),transparent 70%),#000}
 .auth-brand{display:flex;align-items:center;gap:13px;margin-bottom:8px}
 .auth-brand .brand-mark{width:42px;height:42px;border-radius:12px}
-.auth-brand .brand-mark svg{width:24px;height:24px}
+.auth-brand .brand-mark img{width:100%;height:100%;object-fit:cover}
 .auth-name{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:.03em}
 .auth-tag{color:var(--text-2);font-size:14px;margin-bottom:34px;text-align:center}
 .price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;width:100%;max-width:1040px;margin-bottom:30px}
@@ -345,7 +347,7 @@ body.home-open::after{opacity:.35}
 <div class="app" id="appRoot" style="display:none">
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l4-4 4 4 7-8"/><path d="M21 5v5h-5"/></svg></div>
+      <div class="brand-mark"><img src="/images/logo.jpeg" alt="LIVE TRADES"></div>
       <div><div class="brand-name" id="brandName">LIVE TRADES</div><div class="brand-sub">Mindset Journal</div></div>
     </div>
     <div class="nav-label">Trading</div>
@@ -412,7 +414,7 @@ const PACKAGES={
   elite:{name:'Elite',min:6,max:6,blurb:'6 prop firm accounts managed',accent:'#f5b942',
     stripe:'https://buy.stripe.com/7sY00j0DUbfYe4j25MefC07'},
   prime:{name:'Prime',min:12,max:12,blurb:'12 prop firm accounts managed',accent:'#b06cf0',
-    stripe:'https://buy.stripe.com/REPLACE_WITH_PRIME_LINK'}};
+    stripe:'https://buy.stripe.com/cNi8wPaeu2Js2lB5hYefC09'}};
 function pkg(k){return PACKAGES[k]||PACKAGES.starter;}
 
 /* ===== state + API client ===== */
@@ -600,7 +602,7 @@ async function renderHome(needSub){
   <div class="home">
     <nav class="home-nav">
       <div class="auth-brand" style="margin:0">
-        <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l4-4 4 4 7-8"/><path d="M21 5v5h-5"/></svg></div>
+        <div class="brand-mark"><img src="/images/logo.jpeg" alt="LIVE TRADES"></div>
         <div><div class="auth-name" style="font-size:18px">${name}</div><div class="brand-sub">Mindset Journal</div></div>
       </div>
       <div class="home-nav-links">
@@ -704,7 +706,7 @@ async function renderLogin(needSub){
     await loadPublicPricing();
     const s=state.settings;
     document.getElementById('loginRoot').innerHTML=`<div class="auth" style="max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;padding:48px 20px">
-      <div class="auth-brand"><div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l4-4 4 4 7-8"/><path d="M21 5v5h-5"/></svg></div>
+      <div class="auth-brand"><div class="brand-mark"><img src="/images/logo.jpeg" alt="LIVE TRADES"></div>
         <div class="auth-name">${esc((s.appName||'LIVE TRADES').toUpperCase())}</div></div>
       <div class="auth-tag">Admin portal — manage trades, clients, and Trade Copier.</div>
       <div class="auth-login">
@@ -884,7 +886,7 @@ function renderDash(){
       <table><thead><tr><th>Client</th><th>Package</th><th>Accounts</th><th>Status</th><th>Managed P&L</th><th style="text-align:right">Your Fee</th></tr></thead><tbody>`;
     state.clients.forEach(c=>{const p=pkg(c.package);const used=clientAccts(c).length;const g=clientNet(c);
       h+=`<tr><td class="r-name">${esc(c.name)}</td><td>${pkgBadge(c.package)}</td>
-        <td class="num muted">${used}/${p.max}</td>
+        <td class="num muted">${used}</td>
         <td><span class="badge ${c.status==='active'?'b-funded':'b-eval'}">${c.status==='active'?'Active':'Pending'}</span></td>
         <td class="num ${c.status==='active'?cls(g):'muted'}">${c.status==='active'?fmt$(g,true):'—'}</td>
         <td class="num pos" style="text-align:right">${c.status==='active'?fmt$(managerFee(c)):'—'}</td></tr>`;});
@@ -1238,32 +1240,31 @@ function clientDayMap(c){const m={};(c.dailyPnl||[]).forEach(e=>{m[e.date]=(m[e.
 function clientPayouts(c){return clientAccts(c).reduce((s,a)=>s+acctPay(a),0);}
 function clientFunded(c){return clientAccts(c).filter(a=>a.status==='funded'||a.status==='payout').length;}
 function managerFee(c){const g=clientNet(c);return g>0?g*((c.split||0)/100):0;}
-function pkgBadge(k){const p=pkg(k);return `<span class="badge" style="color:${p.accent};background:${p.accent}22;border:1px solid ${p.accent}55">${p.name} · ${p.min===p.max?p.min:p.min+'–'+p.max} acct</span>`;}
+function pkgBadge(k){const p=pkg(k);return `<span class="badge" style="color:${p.accent};background:${p.accent}22;border:1px solid ${p.accent}55">${p.name}</span>`;}
 
 function renderClients(){
   const active=state.clients.filter(c=>c.status==='active');
   const totalAcc=state.clients.reduce((s,c)=>s+clientAccts(c).length,0);
-  const cap=state.clients.reduce((s,c)=>s+pkg(c.package).max,0);
   const mPnl=active.reduce((s,c)=>s+clientNet(c),0);
   const fees=active.reduce((s,c)=>s+managerFee(c),0);
   let h=`<div class="stat-row" style="grid-template-columns:repeat(4,1fr)">
     ${stat('Active Clients',active.length,'',`${state.clients.length} total`)}
-    ${stat('Managed Accounts',totalAcc,'',`of ${cap} capacity`)}
+    ${stat('Managed Accounts',totalAcc,'','across all clients')}
     ${stat('Managed P&L',fmt$(mPnl,true),cls(mPnl),'across client accounts')}
     ${stat('Your Mgmt Fees',fmt$(fees),'pos','performance split')}
   </div>`;
 
   /* central trade-copier upload */
-  const cuClientRows=active.map(c=>{const def=clientAccts(c).length||pkg(c.package).max;
+  const cuClientRows=active.map(c=>{const def=Math.max(1,clientAccts(c).length||1);
     return `<div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px" id="cu_row_${c.id}">
       <div><div style="font-weight:600">${esc(c.name)}</div><div class="hint" style="font-family:var(--ui)">${pkg(c.package).name}</div></div>
       <div style="display:flex;align-items:center;gap:7px">
         <button type="button" class="iconbtn" style="width:26px;height:26px" onclick="cuAdjust('${c.id}',-1)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/></svg></button>
-        <input id="cu_n_${c.id}" type="number" min="1" max="${pkg(c.package).max}" value="${def}"
+        <input id="cu_n_${c.id}" type="number" min="1" value="${def}"
           style="width:52px;text-align:center;font-family:var(--mono);font-size:14px;font-weight:700;padding:5px 4px;border:1px solid var(--line);border-radius:7px;background:var(--surface-2);color:var(--text)"
           oninput="cuPreview()">
         <button type="button" class="iconbtn" style="width:26px;height:26px" onclick="cuAdjust('${c.id}',1)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></button>
-        <span class="hint" style="font-family:var(--ui);white-space:nowrap">of ${pkg(c.package).max}</span>
+        <span class="hint" style="font-family:var(--ui);white-space:nowrap">accounts</span>
       </div>
       <div id="cu_tot_${c.id}" class="num muted" style="font-family:var(--mono);font-size:13px;min-width:80px;text-align:right"></div>
     </div>`;}).join('');
@@ -1302,9 +1303,8 @@ function renderClients(){
     h+=`<div class="acct-card"><div class="acct-top">
       <div><div class="acct-name">${esc(c.name)}</div><div class="acct-firm">${esc(c.email||'')}</div>
         <div style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap">${pkgBadge(c.package)}
-        <span class="badge ${c.status==='active'?'b-funded':'b-eval'}">${c.status==='active'?'Active':'Pending purchase'}</span></div></div>
-      <div style="text-align:right"><div class="hint" style="font-family:var(--ui)">Slots used</div>
-        <div class="num" style="font-size:18px;font-weight:700;color:${used>=p.max?'var(--amber)':'var(--text)'}">${used}<span class="muted" style="font-size:13px">/${p.max}</span></div></div>
+        <span class="badge ${c.status==='active'?'b-funded':'b-eval'}">${c.status==='active'?'Active':'Pending purchase'}</span>
+        <span class="badge" style="color:var(--text-2);border-color:var(--line)">${used} account${used!==1?'s':''}</span></div></div>
     </div>`;
     if(c.status!=='active'){
       h+=`<div style="text-align:center;padding:18px;border:1px dashed var(--line);border-radius:12px;background:var(--surface)">
@@ -1348,10 +1348,10 @@ function renderClients(){
       buildAcctChains(accts).forEach(chain=>{h+=renderLineageStepper(chain);});
       h+=`</div>`;
     }else{h+=`<div class="hint" style="font-family:var(--ui);padding:4px 0 10px">No accounts assigned yet.</div>`;}
-    const full=used>=p.max;
+    const full=false;
     h+=`<div class="mini-btns">
-      <button class="btn sm" ${full?'disabled style="opacity:.4;cursor:not-allowed"':''} onclick="${full?'':`openAcct('${c.id}')`}">+ New Account</button>
-      <button class="btn sm" ${full?'disabled style="opacity:.4;cursor:not-allowed"':''} onclick="${full?'':`assignModal('${c.id}')`}">Assign Existing</button>
+      <button class="btn sm" onclick="openAcct('${c.id}')">+ New Account</button>
+      <button class="btn sm" onclick="assignModal('${c.id}')">Assign Existing</button>
       <button class="btn sm" onclick="copyShareLink('${c.id}')">Share Link</button>
       <button class="btn sm" onclick="openClient('${c.id}')">Edit</button>
       <button class="btn sm danger" onclick="delClient('${c.id}')">Remove</button>
@@ -1362,9 +1362,9 @@ function renderClients(){
   drawCopierCal();
 }
 function cuTargets(){return state.clients.filter(c=>c.status==='active');}
-function cuNAccts(c){const el=document.getElementById('cu_n_'+c.id);const v=el?parseInt(el.value):NaN;return isNaN(v)||v<1?Math.max(1,clientAccts(c).length||pkg(c.package).max):Math.min(v,pkg(c.package).max);}
+function cuNAccts(c){const el=document.getElementById('cu_n_'+c.id);const v=el?parseInt(el.value):NaN;return isNaN(v)||v<1?Math.max(1,clientAccts(c).length||1):Math.max(1,v);}
 function cuAmountFor(c,per){return per*cuNAccts(c);}
-function cuAdjust(cid,d){const c=state.clients.find(x=>x.id===cid);if(!c)return;const el=document.getElementById('cu_n_'+cid);if(!el)return;const cur=parseInt(el.value)||1;el.value=Math.max(1,Math.min(pkg(c.package).max,cur+d));cuPreview();}
+function cuAdjust(cid,d){const el=document.getElementById('cu_n_'+cid);if(!el)return;const cur=parseInt(el.value)||1;el.value=Math.max(1,cur+d);cuPreview();}
 function cuShare(){const s=parseFloat(val('cu_share'));return isNaN(s)?0:Math.max(0,Math.min(100,s));}
 function cuPreview(){const el=document.getElementById('cu_prev');if(!el)return;const per=parseFloat(val('cu_amt'));
   if(isNaN(per)){el.innerHTML='<div class="hint" style="font-family:var(--ui);color:var(--text-3);padding:4px 0">Enter a P&L per account above to preview the distribution.</div>';cuTargets().forEach(c=>{const t=document.getElementById('cu_tot_'+c.id);if(t)t.textContent='';});return;}
@@ -1571,7 +1571,7 @@ function dcBuildMap(text){const wrap=document.getElementById('dc_map');const lin
 
 function openClient(id){
   const c=id?state.clients.find(x=>x.id===id):null;
-  const opts=Object.entries(PACKAGES).map(([k,p])=>`<option value="${k}" ${c&&c.package===k?'selected':''}>${p.name} — ${p.min===p.max?p.min:p.min+'–'+p.max} accounts</option>`).join('');
+  const opts=Object.entries(PACKAGES).map(([k,p])=>`<option value="${k}" ${c&&c.package===k?'selected':''}>${p.name}</option>`).join('');
   modal(c?'Edit Client':'Add Client',`
     <div class="field"><label>Client Name</label><input id="cl_name" value="${c?esc(c.name):''}" placeholder="e.g. Marcus Bell"></div>
     <div class="field"><label>Email</label><input id="cl_email" value="${c?esc(c.email||''):''}" placeholder="client@email.com"></div>
@@ -1622,12 +1622,10 @@ function unassign(aid){const a=state.accounts.find(x=>x.id===aid);if(a){a.client
 function assignModal(cid){const c=state.clients.find(x=>x.id===cid);const p=pkg(c.package);
   const free=state.accounts.filter(a=>!a.clientId);
   if(!free.length){flash('No unassigned accounts — create one with “+ New Account”');return;}
-  const remaining=p.max-clientAccts(c).length;
-  modal('Assign Accounts',`<div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:12px">${c.name} can hold ${remaining} more account${remaining>1?'s':''} on the ${p.name} package.</div>
+  modal('Assign Accounts',`<div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:12px">Assign any unassigned accounts to ${esc(c.name)} (${p.name}). No slot limit.</div>
     ${free.map(a=>`<label style="display:flex;align-items:center;gap:11px;padding:11px;border:1px solid var(--line);border-radius:11px;margin-bottom:9px;cursor:pointer">
       <input type="checkbox" value="${a.id}" style="width:auto"> ${badge(a.status)} <b>${esc(a.label)}</b> <span class="hint" style="font-family:var(--ui)">${esc(a.firm)}</span></label>`).join('')}`,
     ()=>{const picked=[...document.querySelectorAll('.modal input[type=checkbox]:checked')].map(x=>x.value);
-      if(picked.length>remaining){flash(`Only ${remaining} slot(s) left on this package`);return false;}
       picked.forEach(id=>{const a=state.accounts.find(x=>x.id===id);if(a)a.clientId=cid;});save('accounts');flash('Accounts assigned');renderClients();
     },'Assign');
 }
@@ -1655,7 +1653,7 @@ function renderPortal(cid){
   const days=Object.keys(clientDayMap(c)).length;const accts=clientAccts(c);
   let h=`<div class="portal-top">
     <div style="display:flex;align-items:center;gap:12px">
-      <div class="brand-mark" style="width:34px;height:34px;border-radius:9px;flex:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M3 13l4-4 4 4 7-8"/><path d="M21 5v5h-5"/></svg></div>
+      <div class="brand-mark" style="width:34px;height:34px;border-radius:9px;flex:none"><img src="/images/logo.jpeg" alt="LIVE TRADES"></div>
       <div>
         <div style="font-family:var(--display);font-weight:700;font-size:14px">${esc((state.settings.appName||'LIVE TRADES').toUpperCase())} · Trade Copier</div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
@@ -1674,7 +1672,7 @@ function renderPortal(cid){
         ${dailyCurve(c.dailyPnl||[])}
         <div class="hero-chips"><span class="chip">Reported days <b>${days}</b></span>
           <span class="chip">Profit split <b>${c.split||0}%</b></span>
-          <span class="chip">Accounts <b>${accts.length}/${p.max}</b></span></div></div>
+          <span class="chip">Accounts <b>${accts.length}</b></span></div></div>
       <div class="card"><div class="card-t" style="margin-bottom:14px"><span class="tick"></span>Your Account</div>
         <div style="display:grid;gap:11px">
           <div class="stat" style="padding:13px"><div class="l">Net to you (after ${c.split||0}% fee)</div><div class="v ${cls(net)}" style="font-size:19px">${fmt$(net,true)}</div></div>
