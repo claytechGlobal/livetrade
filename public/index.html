@@ -405,15 +405,17 @@ function pointValue(s){const c=spec(s);return c.tickValue/c.tickSize;}
 
 const EMOTIONS={Disciplined:'good',Calm:'good',Confident:'good',Patient:'good',FOMO:'bad',Revenge:'bad',Anxious:'bad',Greedy:'bad',Bored:'bad'};
 
-/* ===== managed-account packages (sold separately via Stripe) ===== */
+/* ===== managed-account packages (one-time) + dashboard subscription ===== */
 const PACKAGES={
-  starter:{name:'Starter',min:2,max:2,blurb:'2 prop firm accounts managed',accent:'#3bd0c4',
+  access:{name:'Dashboard Access',min:0,max:0,billing:'month',blurb:'Monthly subscription — unlocks the full trading journal dashboard',accent:'#34d399',
+    stripe:'https://buy.stripe.com/5kQaEX3Q697Q4tJbGmefC0b'},
+  starter:{name:'Starter',min:2,max:2,billing:'once',blurb:'One-time fee — 2 prop firm accounts managed. Buy again anytime.',accent:'#3bd0c4',
     stripe:'https://buy.stripe.com/bJefZh0DUdo60dteSyefC05'},
-  pro:{name:'Pro',min:4,max:4,blurb:'4 prop firm accounts managed',accent:'#22b8ef',
+  pro:{name:'Pro',min:4,max:4,billing:'once',blurb:'One-time fee — 4 prop firm accounts managed. Buy again anytime.',accent:'#22b8ef',
     stripe:'https://buy.stripe.com/dRm5kD2M24RAd0feSyefC06'},
-  elite:{name:'Elite',min:6,max:6,blurb:'6 prop firm accounts managed',accent:'#f5b942',
+  elite:{name:'Elite',min:6,max:6,billing:'once',blurb:'One-time fee — 6 prop firm accounts managed. Buy again anytime.',accent:'#f5b942',
     stripe:'https://buy.stripe.com/7sY00j0DUbfYe4j25MefC07'},
-  prime:{name:'Prime',min:12,max:12,blurb:'12 prop firm accounts managed',accent:'#b06cf0',
+  prime:{name:'Prime',min:12,max:12,billing:'once',blurb:'One-time fee — 12 prop firm accounts managed. Buy again anytime.',accent:'#b06cf0',
     stripe:'https://buy.stripe.com/cNi8wPaeu2Js2lB5hYefC09'}};
 function pkg(k){return PACKAGES[k]||PACKAGES.starter;}
 
@@ -552,20 +554,35 @@ function homeGoPricing(){
 }
 
 function priceCards(forLogin){
-  const feats={starter:['2 managed prop accounts','Daily P&L reporting','Client portal access','Account status tracking'],
-    pro:['4 managed prop accounts','Daily P&L reporting','Client portal access','Priority management'],
-    elite:['6 managed prop accounts','Daily P&L reporting','Client portal access','Dedicated management'],
-    prime:['12 managed prop accounts','Daily P&L reporting','Client portal access','Dedicated management']};
+  const feats={
+    access:['Full dashboard access','Trade log, calendar & edge score','Playbook + CSV upload','Live coaching schedule'],
+    starter:['2 managed prop accounts','Daily P&L reporting','Client portal access','Buy again anytime'],
+    pro:['4 managed prop accounts','Daily P&L reporting','Client portal access','Buy again anytime'],
+    elite:['6 managed prop accounts','Daily P&L reporting','Client portal access','Buy again anytime'],
+    prime:['12 managed prop accounts','Daily P&L reporting','Client portal access','Buy again anytime']};
   const pr=state.settings.prices||{};
-  return Object.entries(PACKAGES).map(([k,p])=>`
-    <div class="price-card ${k==='pro'?'feat':''}">${k==='pro'?'<div class="pop">Most popular</div>':''}
+  const order=['access','starter','pro','elite','prime'];
+  return order.filter(k=>PACKAGES[k]).map(k=>{
+    const p=PACKAGES[k];
+    const monthly=p.billing==='month';
+    const amt=esc(pr[k]||(monthly?'$45/mo':'$—'));
+    const pop=monthly?'<div class="pop" style="background:linear-gradient(120deg,#34d399,#22b8ef)">Dashboard access</div>':'';
+    const cardClass=monthly?'price-card feat':('price-card'+(k==='pro'?' feat':''));
+    const border=monthly?'border-color:#34d399;box-shadow:0 0 0 1px #34d399,0 18px 50px rgba(52,211,153,.22)':'';
+    const btnBg=monthly?'linear-gradient(120deg,#34d399,#22b8ef)':`linear-gradient(120deg,${p.accent},${p.accent}cc)`;
+    const tag=monthly?'<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#34d399;margin-bottom:6px">Monthly subscription</div>'
+      :'<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px">One-time fee</div>';
+    return `
+    <div class="${cardClass}" style="${border}">${monthly?pop:(k==='pro'?'<div class="pop">Most popular</div>':'')}
+      ${tag}
       <div class="price-name" style="color:${p.accent}">${p.name}</div>
-      <div class="price-amt">${esc(pr[k]||'$—')}</div>
+      <div class="price-amt">${amt}${monthly?'':'<span style="font-size:13px;color:var(--text-2);font-weight:500"> one-time</span>'}</div>
       <div class="price-blurb">${p.blurb}</div>
-      <ul class="price-feats">${feats[k].map(f=>`<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>${f}</li>`).join('')}</ul>
-      <button class="btn primary" style="width:100%;background:linear-gradient(120deg,${p.accent},${p.accent}cc)" onclick="window.open('${p.stripe}','_blank')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h20v10H2zM2 11h20"/></svg>Purchase ${p.name}</button>
-    </div>`).join('');
+      <ul class="price-feats">${(feats[k]||[]).map(f=>`<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>${f}</li>`).join('')}</ul>
+      <button class="btn primary" style="width:100%;background:${btnBg};color:#04121a" onclick="window.open('${p.stripe}','_blank')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h20v10H2zM2 11h20"/></svg>${monthly?'Subscribe — $45/mo':'Purchase '+p.name}</button>
+    </div>`;
+  }).join('');
 }
 
 function homeFeat(icon,title,desc){
@@ -649,7 +666,7 @@ async function renderHome(needSub){
       <h2 class="home-sec-h">How it works</h2>
       <p class="home-sec-p">Three steps from package to daily performance reporting.</p>
       <div class="home-steps">
-        <div class="home-step"><div class="n">1</div><h3>Choose a package</h3><p>Starter, Pro, Elite, or Prime — sized for how many prop accounts you need managed.</p></div>
+        <div class="home-step"><div class="n">1</div><h3>Get dashboard access</h3><p>$45/mo unlocks the journal. One-time Starter–Prime packages are for managed prop accounts — buy again anytime.</p></div>
         <div class="home-step"><div class="n">2</div><h3>Open your portal</h3><p>After purchase you get an access code by email. Enter it below to reach your dashboard.</p></div>
         <div class="home-step"><div class="n">3</div><h3>Track &amp; improve</h3><p>Log or upload trades, watch edge score and calendar, join live coaching, get the 5 PM ET report.</p></div>
       </div>
@@ -674,9 +691,9 @@ async function renderHome(needSub){
     </section>
 
     <section class="home-sec" id="home-pricing">
-      <h2 class="home-sec-h">Packages</h2>
-      <p class="home-sec-p">Managed futures accounts, reported daily. Purchase a package, then sign in with your access code.</p>
-      ${needSub?`<div style="margin:0 auto 16px;max-width:640px;padding:12px 14px;border:1px solid var(--amber);border-radius:12px;background:var(--surface-2);color:var(--text-2);font-size:13px;line-height:1.5"><b style="color:var(--text)">Subscription required.</b> Purchase a package, then sign in with the access code emailed to you.</div>`:''}
+      <h2 class="home-sec-h">Pricing</h2>
+      <p class="home-sec-p">$45/mo for dashboard access. Starter, Pro, Elite, and Prime are one-time management fees — purchase again anytime.</p>
+      ${needSub?`<div style="margin:0 auto 16px;max-width:640px;padding:12px 14px;border:1px solid var(--amber);border-radius:12px;background:var(--surface-2);color:var(--text-2);font-size:13px;line-height:1.5"><b style="color:var(--text)">Subscription required.</b> Subscribe for $45/mo or purchase a package, then sign in with the access code emailed to you.</div>`:''}
       <div class="price-grid">${priceCards(true)}</div>
     </section>
 
@@ -1389,8 +1406,8 @@ function drawCopierCal(){const data=copierDayMap();const days={};Object.keys(dat
   renderCalGrid(days,copierCalRef,'cpCalBody','cpCalMo',iso=>{const d=data[iso];return d?d.n+' client'+(d.n!==1?'s':''):'';});}
 /* business -> packages purchase page */
 function renderPackages(){
-  let h=`<div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:6px"><span class="tick"></span>Management Packages</div>
-    <div class="hint" style="font-family:var(--ui);color:var(--text-2)">Share this with prospects \u2014 secure checkout via Stripe. Each tier sells separately.</div></div>
+  let h=`<div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:6px"><span class="tick"></span>Pricing</div>
+    <div class="hint" style="font-family:var(--ui);color:var(--text-2)">Green card = $45/mo dashboard access. Starter–Prime = one-time management fees (buy again anytime). Checkout via Stripe.</div></div>
     <div class="price-grid" style="max-width:none">${priceCards(false)}</div>`;
   document.getElementById('content').innerHTML=h;}
 const PDF_PAGES=[
@@ -1725,14 +1742,15 @@ function renderSettings(){
       <div class="field"><label>New Password <span style="text-transform:none;color:var(--text-3)">(leave blank to keep current)</span></label><input id="set_pass" type="password" placeholder="••••••••"></div>
       <button class="btn sm" onclick="updateCredentials()">Update Credentials</button>
       <div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-top:8px">Stored hashed on the server; passwords never round-trip in plain text.</div>
-      <div class="card-t" style="margin:22px 0 14px"><span class="tick"></span>Package Pricing <span class="hint" style="font-family:var(--ui);font-weight:400">(shown on the public login screen)</span></div>
+      <div class="card-t" style="margin:22px 0 14px"><span class="tick"></span>Package Pricing <span class="hint" style="font-family:var(--ui);font-weight:400">(shown on the public pricing page)</span></div>
       <div class="f3">
-        <div class="field"><label>Starter</label><input id="set_p_starter" value="${esc((state.settings.prices||{}).starter||'')}" placeholder="$500/mo"></div>
-        <div class="field"><label>Pro</label><input id="set_p_pro" value="${esc((state.settings.prices||{}).pro||'')}" placeholder="$1000/mo"></div>
-        <div class="field"><label>Elite</label><input id="set_p_elite" value="${esc((state.settings.prices||{}).elite||'')}" placeholder="$1500/mo"></div>
-        <div class="field"><label>Prime</label><input id="set_p_prime" value="${esc((state.settings.prices||{}).prime||'')}" placeholder="$2500/mo"></div>
+        <div class="field"><label>Dashboard Access ($45/mo)</label><input id="set_p_access" value="${esc((state.settings.prices||{}).access||'')}" placeholder="$45/mo"></div>
+        <div class="field"><label>Starter (one-time)</label><input id="set_p_starter" value="${esc((state.settings.prices||{}).starter||'')}" placeholder="$500"></div>
+        <div class="field"><label>Pro (one-time)</label><input id="set_p_pro" value="${esc((state.settings.prices||{}).pro||'')}" placeholder="$1000"></div>
+        <div class="field"><label>Elite (one-time)</label><input id="set_p_elite" value="${esc((state.settings.prices||{}).elite||'')}" placeholder="$1500"></div>
+        <div class="field"><label>Prime (one-time)</label><input id="set_p_prime" value="${esc((state.settings.prices||{}).prime||'')}" placeholder="$2500"></div>
       </div>
-      <div class="hint" style="font-family:var(--ui);color:var(--text-2)">Set these to match the prices in your Stripe checkout links.</div>
+      <div class="hint" style="font-family:var(--ui);color:var(--text-2)">Only $45 is monthly. The four management packages are one-time fees.</div>
       </div></div>`;
   document.getElementById('content').innerHTML=h;
   let pick=state.settings.accent||'#22b8ef';
@@ -1752,7 +1770,7 @@ function saveLiveSession(){state.settings.liveSessionUrl=val('set_live_url').tri
   save('settings');flash('Live session saved');}
 function saveBranding(){state.settings.appName=val('set_name').trim()||'LIVE TRADES';state.settings.trader=val('set_trader').trim()||'Trader';
   state.settings.accent=window.__ac||state.settings.accent||'#22b8ef';
-  state.settings.prices={starter:val('set_p_starter').trim()||'$—',pro:val('set_p_pro').trim()||'$—',elite:val('set_p_elite').trim()||'$—',prime:val('set_p_prime').trim()||'$—'};
+  state.settings.prices={access:val('set_p_access').trim()||'$45/mo',starter:val('set_p_starter').trim()||'$—',pro:val('set_p_pro').trim()||'$—',elite:val('set_p_elite').trim()||'$—',prime:val('set_p_prime').trim()||'$—'};
   save('settings');applyBranding();flash('Settings saved');}
 function applyBranding(){const s=state.settings;document.getElementById('brandName').textContent=(s.appName||'LIVE TRADES').toUpperCase();
   document.title=(s.appName||'LIVE TRADES')+' — Dashboard';

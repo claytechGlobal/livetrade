@@ -97,10 +97,11 @@ function initDb() {
     setSetting('accent', '#22b8ef');
     setSetting('trader', 'Trader');
     setSetting('prices', JSON.stringify({
-      starter: process.env.PRICE_STARTER_LABEL || '$500/mo',
-      pro: process.env.PRICE_PRO_LABEL || '$1000/mo',
-      elite: process.env.PRICE_ELITE_LABEL || '$1500/mo',
-      prime: process.env.PRICE_PRIME_LABEL || '$2500/mo'
+      access: process.env.PRICE_ACCESS_LABEL || '$45/mo',
+      starter: process.env.PRICE_STARTER_LABEL || '$500',
+      pro: process.env.PRICE_PRO_LABEL || '$1000',
+      elite: process.env.PRICE_ELITE_LABEL || '$1500',
+      prime: process.env.PRICE_PRIME_LABEL || '$2500'
     }));
     setSetting('liveSessionUrl', process.env.LIVE_SESSION_URL || '');
     setSetting('liveSessionEnabled', process.env.LIVE_SESSION_ENABLED !== 'false' ? 'true' : 'false');
@@ -150,16 +151,18 @@ function migratePackagePrices() {
   let p = {};
   try { p = JSON.parse(getSetting('prices') || '{}'); } catch (_) { p = {}; }
   const next = {
-    starter: '$500/mo',
-    pro: '$1000/mo',
-    elite: '$1500/mo',
-    prime: '$2500/mo'
+    access: '$45/mo',
+    starter: '$500',
+    pro: '$1000',
+    elite: '$1500',
+    prime: '$2500'
   };
   const old = {
-    starter: ['$99/mo', '$99'],
-    pro: ['$179/mo', '$179'],
-    elite: ['$299/mo', '$299'],
-    prime: ['$—', '']
+    access: ['', null],
+    starter: ['$99/mo', '$99', '$500/mo'],
+    pro: ['$179/mo', '$179', '$1000/mo'],
+    elite: ['$299/mo', '$299', '$1500/mo'],
+    prime: ['$—', '', '$2500/mo']
   };
   let changed = false;
   Object.keys(next).forEach(k => {

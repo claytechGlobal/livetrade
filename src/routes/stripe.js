@@ -9,9 +9,11 @@ const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SEC
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 
 const priceMap = {};
+if (process.env.PRICE_ACCESS) priceMap[process.env.PRICE_ACCESS] = 'access';
 if (process.env.PRICE_STARTER) priceMap[process.env.PRICE_STARTER] = 'starter';
 if (process.env.PRICE_PRO) priceMap[process.env.PRICE_PRO] = 'pro';
 if (process.env.PRICE_ELITE) priceMap[process.env.PRICE_ELITE] = 'elite';
+if (process.env.PRICE_PRIME) priceMap[process.env.PRICE_PRIME] = 'prime';
 
 // IMPORTANT: this route must receive the RAW body for signature verification,
 // so express.raw is applied here (and the global JSON parser is mounted AFTER this router in server.js).
