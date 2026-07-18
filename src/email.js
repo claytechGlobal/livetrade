@@ -160,14 +160,27 @@ async function sendAccessCode(client) {
   if (!client || !client.access_code) return;
   const url = process.env.APP_URL || 'https://planthetrade.co';
   const live = liveSessionBlock(false);
+  const monthly = client.package === 'access' || !!client.access_expires_at;
+  let expLine = '';
+  if (monthly && client.access_expires_at) {
+    const d = new Date(client.access_expires_at).toLocaleDateString('en-US', {
+      timeZone: process.env.DAILY_SEND_TZ || 'America/New_York',
+      month: 'short', day: 'numeric', year: 'numeric'
+    });
+    expLine = `\nValid until: ${d} (renews automatically while subscribed)`;
+  }
   const text =
 `Your client portal is ready.
 
 Access code: ${client.access_code}
-Log in: ${url}
+Log in: ${url}${expLine}
 
-Enter this code on the login screen to view your daily P&L and account performance.
+Enter this code on the login / Get Started screen to open your dashboard.
 Keep this code private — it is your key to the portal.${live.text}`;
+
+  const expHtml = monthly && client.access_expires_at
+    ? `<p style="color:#059669;font-size:13px;margin-top:10px">Valid until <b>${new Date(client.access_expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</b>. Renews with your $45/mo subscription.</p>`
+    : '';
 
   const html =
 `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#15181d">
@@ -175,14 +188,15 @@ Keep this code private — it is your key to the portal.${live.text}`;
   <p>Hi ${client.name || 'there'},</p>
   <p>Your access code:</p>
   <p style="font-size:22px;font-weight:700;letter-spacing:.08em">${client.access_code}</p>
+  ${expHtml}
   <p><a href="${url}" style="background:#22b8ef;color:#04121a;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">Open client portal</a></p>
-  <p style="color:#666;font-size:13px">Keep this code private.</p>
+  <p style="color:#666;font-size:13px">Keep this code private. Enter it under Get Started on the site.</p>
   ${live.html}
 </div>`;
 
   await sendMail({
     to: client.email,
-    subject: 'Your LIVE TRADES portal access code',
+    subject: monthly ? 'Your LIVE TRADES access code ($45/mo)' : 'Your LIVE TRADES portal access code',
     text,
     html
   });

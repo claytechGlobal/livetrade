@@ -116,6 +116,9 @@ function initDb() {
   const accCols = db.prepare('PRAGMA table_info(accounts)').all().map(c => c.name);
   if (!accCols.includes('account_size')) db.exec('ALTER TABLE accounts ADD COLUMN account_size TEXT');
   if (!accCols.includes('parent_account_id')) db.exec('ALTER TABLE accounts ADD COLUMN parent_account_id TEXT');
+  const clientCols = db.prepare('PRAGMA table_info(clients)').all().map(c => c.name);
+  if (!clientCols.includes('access_expires_at')) db.exec('ALTER TABLE clients ADD COLUMN access_expires_at TEXT');
+  if (!clientCols.includes('stripe_subscription_id')) db.exec('ALTER TABLE clients ADD COLUMN stripe_subscription_id TEXT');
   ensureClientTradesTable();
   const tradeCols = db.prepare('PRAGMA table_info(trades)').all().map(c => c.name);
   if (!tradeCols.includes('play_name')) db.exec('ALTER TABLE trades ADD COLUMN play_name TEXT');
@@ -549,26 +552,60 @@ const replaceClients = db.transaction(arr => {
 });
 
 /* ---------- Stripe checkout handling ---------- */
-function handleCheckout({ sessionId, ref, email, name, packageKey }) {
+function expiresInDays(n) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString();
+}
+function handleCheckout({ sessionId, ref, email, name, packageKey, expiresAt, subscriptionId }) {
   let c = null;
   if (ref) c = db.prepare('SELECT * FROM clients WHERE id=?').get(ref);
   if (!c && email) c = db.prepare('SELECT * FROM clients WHERE lower(email)=lower(?)').get(email);
 
+  const pkg = packageKey || (c && c.package) || 'starter';
+  const isMonthly = pkg === 'access';
+  const exp = expiresAt || (isMonthly ? expiresInDays(31) : null);
+
   if (c) {
-    const pkg = packageKey || c.package || 'starter';
     const code = c.access_code || genCode(c.name || name);
-    db.prepare('UPDATE clients SET status=?, package=?, access_code=?, stripe_session_id=? WHERE id=?')
-      .run('active', pkg, code, sessionId, c.id);
+    db.prepare(`UPDATE clients SET status=?, package=?, access_code=?, stripe_session_id=?,
+      access_expires_at=?, stripe_subscription_id=COALESCE(?, stripe_subscription_id) WHERE id=?`)
+      .run('active', pkg, code, sessionId, exp, subscriptionId || null, c.id);
     return db.prepare('SELECT * FROM clients WHERE id=?').get(c.id);
   }
-  // No matching pre-created client → create a new active client from the checkout details
   const id = uid();
   const code = genCode(name || email || 'client');
   db.prepare(`INSERT INTO clients
-    (id,name,email,package,status,split,access_code,stripe_session_id,joined)
-    VALUES (?,?,?,?,?,?,?,?,?)`)
-    .run(id, name || (email || 'New Client'), email || '', packageKey || 'starter', 'active', 20, code, sessionId, today());
+    (id,name,email,package,status,split,access_code,stripe_session_id,joined,access_expires_at,stripe_subscription_id)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(id, name || (email || 'New Client'), email || '', pkg, 'active', 20, code, sessionId, today(), exp, subscriptionId || null);
   return db.prepare('SELECT * FROM clients WHERE id=?').get(id);
+}
+function extendClientAccess(emailOrSubId, expiresAt, subscriptionId) {
+  let c = null;
+  if (subscriptionId) c = db.prepare('SELECT * FROM clients WHERE stripe_subscription_id=?').get(subscriptionId);
+  if (!c && emailOrSubId && String(emailOrSubId).includes('@')) {
+    c = db.prepare('SELECT * FROM clients WHERE lower(email)=lower(?)').get(emailOrSubId);
+  }
+  if (!c) return null;
+  db.prepare(`UPDATE clients SET status='active', access_expires_at=?,
+    stripe_subscription_id=COALESCE(?, stripe_subscription_id) WHERE id=?`)
+    .run(expiresAt || expiresInDays(31), subscriptionId || null, c.id);
+  return db.prepare('SELECT * FROM clients WHERE id=?').get(c.id);
+}
+function expireClientBySubscription(subscriptionId) {
+  if (!subscriptionId) return null;
+  const c = db.prepare('SELECT * FROM clients WHERE stripe_subscription_id=?').get(subscriptionId);
+  if (!c) return null;
+  db.prepare(`UPDATE clients SET status='pending', access_expires_at=? WHERE id=?`)
+    .run(new Date().toISOString(), c.id);
+  return db.prepare('SELECT * FROM clients WHERE id=?').get(c.id);
+}
+function isClientAccessValid(client) {
+  if (!client) return false;
+  if (client.status !== 'active') return false;
+  if (!client.access_expires_at) return true;
+  return new Date(client.access_expires_at).getTime() > Date.now();
 }
 function isProcessed(eventOrSessionId) {
   return !!db.prepare('SELECT id FROM processed_events WHERE id=?').get(eventOrSessionId);
@@ -758,7 +795,8 @@ module.exports = {
   composeBootstrap, getClientPortal, composeClientApp, applyClientCsvUpload,
   saveClientTrades, saveClientAccounts, saveClientPlays, parseAcctSizeFromLabel,
   replacePlays, replaceTrades, replaceAccounts, replaceClients, replaceDayPnl, replaceAffiliates,
-  handleCheckout, isProcessed, markProcessed,
+  handleCheckout, extendClientAccess, expireClientBySubscription, isClientAccessValid,
+  isProcessed, markProcessed,
   findActiveClientByCode, getClientRow,
   etToday, listActiveClients, buildDailyReport, isDailySent, markDailySent
 };

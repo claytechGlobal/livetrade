@@ -1,7 +1,7 @@
 'use strict';
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { verifyAdmin, findActiveClientByCode } = require('../db');
+const { verifyAdmin, findActiveClientByCode, isClientAccessValid } = require('../db');
 const { sign, setCookie, clearCookie, authFromReq } = require('../auth');
 
 const router = express.Router();
@@ -31,6 +31,12 @@ router.post('/login', loginLimiter, (req, res) => {
         return res.status(403).json({
           error: 'Subscription required. Purchase a package to unlock your portal.',
           code: 'SUBSCRIPTION_REQUIRED'
+        });
+      }
+      if (!isClientAccessValid(client)) {
+        return res.status(403).json({
+          error: 'Your access has expired. Renew the $45/mo subscription to get a new month of access.',
+          code: 'ACCESS_EXPIRED'
         });
       }
       setCookie(res, sign({ role: 'client', clientId: client.id, accessCode: client.access_code }));
