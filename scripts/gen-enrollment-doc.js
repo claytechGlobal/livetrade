@@ -205,10 +205,18 @@ function parseMd(md) {
   return html.join('');
 }
 
+function policyOnlyMd(md) {
+  const lines = md.split(/\r?\n/);
+  const start = lines.findIndex(l => /^Risk Acknowledgement:/.test(l.trim()));
+  const end = lines.findIndex((l, i) => i > start && /^Client Eligibility/.test(l.trim()));
+  if (start < 0) return md;
+  return lines.slice(start, end > start ? end : undefined).join('\n');
+}
+
 const contractMd = fs.readFileSync(path.join(__dirname, '..', 'contract.md'), 'utf8');
 const policyMd = fs.readFileSync(path.join(__dirname, '..', 'policy.md'), 'utf8');
 const contractBody = parseMd(contractMd);
-const policyBody = parseMd(policyMd);
+const policyBody = parseMd(policyOnlyMd(policyMd));
 
 const snippet = `function contractHtml(){return \`<div style="font-size:13.5px;color:var(--text-2);line-height:1.7;max-width:860px">${contractBody}</div>\`;}
 function policyHtml(){return \`<div style="font-size:13.5px;color:var(--text-2);line-height:1.7;max-width:860px">${policyBody}</div>\`;}

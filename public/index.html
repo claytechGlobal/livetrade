@@ -1407,8 +1407,7 @@ function drawCopierCal(){const data=copierDayMap();const days={};Object.keys(dat
   renderCalGrid(days,copierCalRef,'cpCalBody','cpCalMo',iso=>{const d=data[iso];return d?d.n+' client'+(d.n!==1?'s':''):'';});}
 /* business -> packages purchase page */
 function renderPackages(){
-  let h=`<div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:6px"><span class="tick"></span>Pricing</div>
-    <div class="hint" style="font-family:var(--ui);color:var(--text-2)">Green card = $45/mo dashboard access. Starter–Prime = one-time management fees (buy again anytime). Checkout via Stripe.</div></div>
+  let h=`<div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:6px"><span class="tick"></span>Pricing</div></div>
     <div class="price-grid" style="max-width:none">${priceCards(false)}</div>
     <div class="card" style="margin-top:20px"><div class="card-t" style="margin-bottom:14px"><span class="tick"></span>Trade Copier Participation Contract</div>${contractHtml()}</div>`;
   document.getElementById('content').innerHTML=h;}
