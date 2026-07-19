@@ -5,7 +5,20 @@ function esc(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function parseMd(md) {
+let fieldN = 0;
+function fid(prefix) { fieldN++; return `${prefix}_${fieldN}`; }
+
+function inp(name, placeholder) {
+  return `<input class="contract-inp" name="${name}" type="text" placeholder="${esc(placeholder || '')}" autocomplete="off">`;
+}
+
+function initials() {
+  const id = fid('ini');
+  return `<div class="contract-initials"><span>Client Initials:</span><input class="contract-inp contract-ini" name="${id}" type="text" maxlength="6" placeholder="XX" autocomplete="off"></div>`;
+}
+
+function parseMd(md, interactive) {
+  fieldN = 0;
   const lines = md.split(/\r?\n/);
   const html = [];
   let i = 0;
@@ -29,28 +42,27 @@ function parseMd(md) {
   ]);
 
   while (i < lines.length) {
-    const line = lines[i];
-    const t = line.trim();
+    const t = lines[i].trim();
     if (!t) { i++; continue; }
 
     if (t === 'Welcome to Ebron Holdings Inc.') {
-      html.push('<h2 style="font-family:var(--display);font-size:22px;margin:0 0 4px;color:var(--text)">Welcome to Ebron Holdings Inc.</h2>');
+      html.push('<h2 class="contract-h2">Welcome to Ebron Holdings Inc.</h2>');
       i++;
       if (i < lines.length && lines[i].trim() === 'Our Wealth Building Community') {
-        html.push('<p style="font-family:var(--display);font-size:15px;color:var(--text-2);margin:0 0 20px">Our Wealth Building Community</p>');
+        html.push('<p class="contract-sub">Our Wealth Building Community</p>');
         i++;
       }
       continue;
     }
 
     if (sectionHeaders.has(t.replace(/:$/, ''))) {
-      html.push(`<h3 style="font-family:var(--display);font-size:16px;margin:28px 0 10px;color:var(--text);padding-bottom:6px;border-bottom:1px solid var(--line)">${esc(t.replace(/:$/, ''))}</h3>`);
+      html.push(`<h3 class="contract-h3">${esc(t.replace(/:$/, ''))}</h3>`);
       i++;
       continue;
     }
 
     if (subHeaders.has(t.replace(/:$/, ''))) {
-      html.push(`<h4 style="font-family:var(--display);font-size:14px;margin:20px 0 10px;color:var(--text)">${esc(t.replace(/:$/, ''))}</h4>`);
+      html.push(`<h4 class="contract-h4">${esc(t.replace(/:$/, ''))}</h4>`);
       i++;
       continue;
     }
@@ -61,8 +73,8 @@ function parseMd(md) {
         steps.push(esc(lines[i].trim().replace(/^✅\s*/, '')));
         i++;
       }
-      html.push('<div style="display:grid;gap:8px;margin:12px 0 16px">' + steps.map(s =>
-        `<div style="display:flex;align-items:flex-start;gap:10px;font-size:13px"><span style="color:var(--accent)">✅</span><span>${s}</span></div>`
+      html.push('<div class="contract-steps">' + steps.map(s =>
+        `<div class="contract-step"><span>✅</span><span>${s}</span></div>`
       ).join('') + '</div>');
       continue;
     }
@@ -72,14 +84,24 @@ function parseMd(md) {
       while (i < lines.length) {
         const lt = lines[i].trim();
         if (/^[\uF0B7•]/.test(lt) || lt.startsWith('oBusiness') || lt.startsWith('oPersonal')) {
-          items.push(esc(lt.replace(/^[\uF0B7•]\s*/, '').replace(/^o/, '')));
+          items.push(lt.replace(/^[\uF0B7•]\s*/, '').replace(/^o/, ''));
           i++;
         } else break;
       }
-      html.push('<ul style="margin:0 0 14px;padding-left:20px">' + items.map(it => {
-        const sub = it.startsWith('Business') || it.startsWith('Personal');
-        return `<li style="margin-bottom:6px${sub ? ';list-style:none;padding-left:8px' : ''}">${sub ? '○ ' : ''}${it}</li>`;
-      }).join('') + '</ul>');
+      if (interactive && items.some(x => x.startsWith('Business') || x.startsWith('Personal') || x === 'ACH' || x.includes('Stripe'))) {
+        const g = fid('pay');
+        html.push('<div class="contract-opts">' + items.map(it => {
+          const sub = it.startsWith('Business') || it.startsWith('Personal');
+          const name = sub ? `${g}_bank` : g;
+          const type = sub ? 'radio' : 'checkbox';
+          return `<label class="contract-opt${sub ? ' contract-opt-sub' : ''}"><input type="${type}" name="${name}" value="${esc(it)}"><span>${esc(it)}</span></label>`;
+        }).join('') + '</div>');
+      } else {
+        html.push('<ul class="contract-ul">' + items.map(it => {
+          const sub = it.startsWith('Business') || it.startsWith('Personal');
+          return `<li${sub ? ' class="contract-li-sub"' : ''}>${sub ? '○ ' : ''}${esc(it)}</li>`;
+        }).join('') + '</ul>');
+      }
       continue;
     }
 
@@ -89,22 +111,26 @@ function parseMd(md) {
         items.push(esc(lines[i].trim().replace(/^•\s*/, '')));
         i++;
       }
-      html.push('<ul style="margin:0 0 14px;padding-left:20px">' + items.map(it => `<li style="margin-bottom:6px">${it}</li>`).join('') + '</ul>');
+      html.push('<ul class="contract-ul">' + items.map(it => `<li>${it}</li>`).join('') + '</ul>');
       continue;
     }
 
     if (/^[○□]/.test(t) && !/^\d+\./.test(t)) {
-      const label = t.replace(/^[○□]\s*/, '');
       const opts = [];
       while (i < lines.length && /^[○□]/.test(lines[i].trim()) && !/^\d+\./.test(lines[i].trim())) {
-        opts.push(esc(lines[i].trim().replace(/^[○□]\s*/, '')));
+        opts.push(lines[i].trim().replace(/^[○□]\s*/, ''));
         i++;
       }
-      const isRadio = label.includes('Range') || label.includes('Tolerance') || label.includes('Markets');
-      if (isRadio && opts.length) {
-        html.push(`<div style="margin:8px 0 14px"><div style="color:var(--text);font-size:13px;margin-bottom:8px;font-weight:600">${esc(label)}</div><div style="display:flex;flex-wrap:wrap;gap:12px 20px">${opts.map(o => `<label style="display:flex;align-items:center;gap:6px;font-size:13px"><span style="width:14px;height:14px;border:1px solid var(--line);border-radius:50%;flex-shrink:0"></span>${o}</label>`).join('')}</div></div>`);
+      const g = fid('opt');
+      const isRadio = /^○/.test(t) || opts.some(o => /Under \$50K|Conservative|Moderate|Aggressive|None|Less than/.test(o));
+      if (interactive) {
+        html.push('<div class="contract-opts">' + opts.map(o =>
+          `<label class="contract-opt"><input type="${isRadio ? 'radio' : 'checkbox'}" name="${isRadio ? g : fid('cb')}" value="${esc(o)}"><span>${esc(o)}</span></label>`
+        ).join('') + '</div>');
       } else {
-        html.push(`<div style="margin:8px 0 14px"><div style="display:flex;flex-wrap:wrap;gap:12px 20px">${opts.map(o => `<label style="display:flex;align-items:center;gap:6px;font-size:13px"><span style="width:14px;height:14px;border:1px solid var(--line);border-radius:3px;flex-shrink:0"></span>${o}</label>`).join('')}</div></div>`);
+        html.push('<div class="contract-opts">' + opts.map(o =>
+          `<label class="contract-opt"><span class="contract-fake">${isRadio ? '○' : '☐'}</span><span>${esc(o)}</span></label>`
+        ).join('') + '</div>');
       }
       continue;
     }
@@ -112,48 +138,74 @@ function parseMd(md) {
     if (t.startsWith('☐')) {
       const opts = [];
       while (i < lines.length && lines[i].trim().startsWith('☐')) {
-        opts.push(esc(lines[i].trim().replace(/^☐\s*/, '')));
+        opts.push(lines[i].trim().replace(/^☐\s*/, ''));
         i++;
       }
-      html.push('<div style="display:flex;flex-wrap:wrap;gap:12px 20px;margin:8px 0 14px">' + opts.map(o =>
-        `<label style="display:flex;align-items:center;gap:6px;font-size:13px"><span style="width:14px;height:14px;border:1px solid var(--line);border-radius:3px;flex-shrink:0"></span>${o}</label>`
-      ).join('') + '</div>');
+      if (interactive) {
+        html.push('<div class="contract-opts">' + opts.map(o =>
+          `<label class="contract-opt"><input type="checkbox" name="${fid('cb')}" value="${esc(o)}"><span>${esc(o)}</span></label>`
+        ).join('') + '</div>');
+      } else {
+        html.push('<div class="contract-opts">' + opts.map(o =>
+          `<label class="contract-opt"><span class="contract-fake">☐</span><span>${esc(o)}</span></label>`
+        ).join('') + '</div>');
+      }
       continue;
     }
 
     if (t.startsWith('____')) {
       const items = [];
       while (i < lines.length && lines[i].trim().startsWith('____')) {
-        items.push(esc(lines[i].trim().replace(/^____\s*/, '')));
+        items.push(lines[i].trim().replace(/^____\s*/, ''));
         i++;
       }
-      html.push('<div style="display:grid;gap:6px;margin:8px 0 14px">' + items.map(it =>
-        `<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px"><span style="width:16px;height:16px;border:1px solid var(--line);border-radius:3px;flex-shrink:0;margin-top:2px"></span><span>${it}</span></label>`
-      ).join('') + '</div>');
+      if (interactive) {
+        html.push('<div class="contract-acks">' + items.map(it =>
+          `<label class="contract-ack"><input type="checkbox" name="${fid('ack')}" value="${esc(it)}"><span>${esc(it)}</span></label>`
+        ).join('') + '</div>');
+      } else {
+        html.push('<div class="contract-acks">' + items.map(it =>
+          `<label class="contract-ack"><span class="contract-fake">☐</span><span>${esc(it)}</span></label>`
+        ).join('') + '</div>');
+      }
       continue;
     }
 
-    if (t === 'Client Initials: ______' || t === 'Client Initials: _________' || t.startsWith('Client Initials:')) {
-      html.push('<div style="margin:14px 0;display:flex;align-items:center;gap:12px;font-size:13px"><span>Client Initials:</span><span style="border-bottom:1px solid var(--line);width:80px;min-height:22px"></span></div>');
+    if (t.startsWith('Client Initials:')) {
+      html.push(interactive ? initials() : '<div class="contract-initials"><span>Client Initials:</span><span class="contract-line"></span></div>');
       i++;
       continue;
     }
 
     if (/^\d+\./.test(t)) {
-      html.push(`<p style="margin:14px 0 8px;font-weight:600;color:var(--text);font-size:13px">${esc(t)}</p>`);
+      html.push(`<p class="contract-q">${esc(t)}</p>`);
       i++;
       while (i < lines.length && /^[☐○]/.test(lines[i].trim())) {
         const opts = [];
+        const first = lines[i].trim();
+        const isRadio = first.startsWith('○') || /Yes|No|Individual|Business/.test(first);
         while (i < lines.length && /^[☐○]/.test(lines[i].trim())) {
-          opts.push(esc(lines[i].trim().replace(/^[☐○]\s*/, '')));
+          opts.push(lines[i].trim().replace(/^[☐○]\s*/, ''));
           i++;
         }
-        html.push('<div style="display:flex;flex-wrap:wrap;gap:12px 20px;margin-bottom:8px">' + opts.map(o =>
-          `<label style="display:flex;align-items:center;gap:6px;font-size:13px"><span style="width:14px;height:14px;border:1px solid var(--line);border-radius:3px;flex-shrink:0"></span>${o}</label>`
-        ).join('') + '</div>');
+        const g = fid('q');
+        if (interactive) {
+          html.push('<div class="contract-opts">' + opts.map(o =>
+            `<label class="contract-opt"><input type="${isRadio ? 'radio' : 'checkbox'}" name="${isRadio ? g : fid('cb')}" value="${esc(o)}"><span>${esc(o)}</span></label>`
+          ).join('') + '</div>');
+        } else {
+          html.push('<div class="contract-opts">' + opts.map(o =>
+            `<label class="contract-opt"><span class="contract-fake">${isRadio ? '○' : '☐'}</span><span>${esc(o)}</span></label>`
+          ).join('') + '</div>');
+        }
       }
       if (i < lines.length && (lines[i].trim().startsWith('If yes') || lines[i].trim().startsWith('Business Name'))) {
-        html.push(`<p style="margin:0 0 12px;font-size:13px;color:var(--text-3)">${esc(lines[i].trim())}</p>`);
+        const label = lines[i].trim();
+        if (interactive) {
+          html.push(`<div class="contract-field"><label>${esc(label)}</label>${inp(fid('txt'), 'Type here...')}</div>`);
+        } else {
+          html.push(`<p class="contract-muted">${esc(label)}</p>`);
+        }
         i++;
       }
       continue;
@@ -161,44 +213,53 @@ function parseMd(md) {
 
     if (t.includes('________________') || t.includes('__________')) {
       const parts = t.split(/\s{2,}/).filter(Boolean);
-      if (parts.length > 1) {
-        parts.forEach(part => {
-          const idx = part.indexOf(':');
-          if (idx > 0) {
-            html.push(`<div style="display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:8px 16px;margin:8px 0;align-items:end"><span style="color:var(--text);font-size:13px">${esc(part.slice(0, idx + 1))}</span><span style="border-bottom:1px solid var(--line);min-height:22px"></span></div>`);
-          }
-        });
-      } else {
-        const idx = t.indexOf(':');
+      const fields = parts.length > 1 ? parts : [t];
+      fields.forEach(part => {
+        const idx = part.indexOf(':');
         if (idx > 0) {
-          html.push(`<div style="display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:8px 16px;margin:8px 0;align-items:end"><span style="color:var(--text);font-size:13px">${esc(t.slice(0, idx + 1))}</span><span style="border-bottom:1px solid var(--line);min-height:22px"></span></div>`);
-        } else {
-          html.push('<div style="border-bottom:1px solid var(--line);min-height:22px;margin:8px 0"></div>');
+          const label = part.slice(0, idx + 1);
+          if (interactive) {
+            html.push(`<div class="contract-field"><label>${esc(label)}</label>${inp(fid('fld'), '')}</div>`);
+          } else {
+            html.push(`<div class="contract-field"><label>${esc(label)}</label><span class="contract-line"></span></div>`);
+          }
         }
-      }
+      });
       i++;
       continue;
     }
 
     if (t === 'Initial Each:') {
-      html.push('<p style="margin:0 0 8px;font-weight:600;color:var(--text);font-size:13px">Initial Each:</p>');
+      html.push('<p class="contract-strong">Initial Each:</p>');
       i++;
       continue;
     }
 
     if (t.startsWith('(Check all')) {
-      html.push(`<p style="margin:0 0 8px;font-size:13px;color:var(--text-3)">${esc(t)}</p>`);
+      html.push(`<p class="contract-muted">${esc(t)}</p>`);
       i++;
       continue;
     }
 
     if (t === 'CLIENT' || t === 'EBRON HOLDINGS INC.') {
-      html.push(`<h4 style="font-family:var(--display);font-size:14px;margin:20px 0 8px;color:var(--text)">${esc(t)}</h4>`);
+      html.push(`<h4 class="contract-h4">${esc(t)}</h4>`);
       i++;
       continue;
     }
 
-    html.push(`<p style="margin:0 0 12px">${esc(t)}</p>`);
+    if (interactive && (t.startsWith('I certify') || t.startsWith('I consent') || t.startsWith('By signing'))) {
+      html.push(`<label class="contract-ack"><input type="checkbox" name="${fid('agree')}" value="${esc(t)}"><span>${esc(t)}</span></label>`);
+      i++;
+      continue;
+    }
+
+    if (interactive && t.startsWith('Why do you want')) {
+      html.push(`<div class="contract-field"><label>${esc(t)}</label><textarea class="contract-ta" name="${fid('why')}" rows="3" placeholder="Type your answer..."></textarea></div>`);
+      i++;
+      continue;
+    }
+
+    html.push(`<p class="contract-p">${esc(t)}</p>`);
     i++;
   }
 
@@ -215,11 +276,11 @@ function policyOnlyMd(md) {
 
 const contractMd = fs.readFileSync(path.join(__dirname, '..', 'contract.md'), 'utf8');
 const policyMd = fs.readFileSync(path.join(__dirname, '..', 'policy.md'), 'utf8');
-const contractBody = parseMd(contractMd);
-const policyBody = parseMd(policyOnlyMd(policyMd));
+const contractBody = parseMd(contractMd, true);
+const policyBody = parseMd(policyOnlyMd(policyMd), false);
 
-const snippet = `function contractHtml(){return \`<div style="font-size:13.5px;color:var(--text-2);line-height:1.7;max-width:860px">${contractBody}</div>\`;}
-function policyHtml(){return \`<div style="font-size:13.5px;color:var(--text-2);line-height:1.7;max-width:860px">${policyBody}</div>\`;}
+const snippet = `function contractHtml(){return \`<form id="contractForm" class="contract-doc" onsubmit="return submitContract(event)">${contractBody}<div class="contract-sign-bar"><button type="submit" class="btn primary">Sign &amp; Submit Contract</button><span class="hint" style="font-family:var(--ui)">Fill required fields, select options, and add your initials before signing.</span></div></form>\`;}
+function policyHtml(){return \`<div class="contract-doc">${policyBody}</div>\`;}
 `;
 
 fs.writeFileSync(path.join(__dirname, '..', 'public', 'enrollment-doc.js'), snippet);
