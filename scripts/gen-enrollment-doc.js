@@ -17,7 +17,7 @@ function initials() {
   return `<div class="contract-initials"><span>Client Initials:</span><input class="contract-inp contract-ini" name="${id}" type="text" maxlength="6" placeholder="XX" autocomplete="off"></div>`;
 }
 
-function parseMd(md, interactive) {
+function parseContractMd(md) {
   fieldN = 0;
   const lines = md.split(/\r?\n/);
   const html = [];
@@ -88,7 +88,7 @@ function parseMd(md, interactive) {
           i++;
         } else break;
       }
-      if (interactive && items.some(x => x.startsWith('Business') || x.startsWith('Personal') || x === 'ACH' || x.includes('Stripe'))) {
+      if (items.some(x => x.startsWith('Business') || x.startsWith('Personal') || x === 'ACH' || x.includes('Stripe'))) {
         const g = fid('pay');
         html.push('<div class="contract-opts">' + items.map(it => {
           const sub = it.startsWith('Business') || it.startsWith('Personal');
@@ -123,15 +123,9 @@ function parseMd(md, interactive) {
       }
       const g = fid('opt');
       const isRadio = /^○/.test(t) || opts.some(o => /Under \$50K|Conservative|Moderate|Aggressive|None|Less than/.test(o));
-      if (interactive) {
-        html.push('<div class="contract-opts">' + opts.map(o =>
-          `<label class="contract-opt"><input type="${isRadio ? 'radio' : 'checkbox'}" name="${isRadio ? g : fid('cb')}" value="${esc(o)}"><span>${esc(o)}</span></label>`
-        ).join('') + '</div>');
-      } else {
-        html.push('<div class="contract-opts">' + opts.map(o =>
-          `<label class="contract-opt"><span class="contract-fake">${isRadio ? '○' : '☐'}</span><span>${esc(o)}</span></label>`
-        ).join('') + '</div>');
-      }
+      html.push('<div class="contract-opts">' + opts.map(o =>
+        `<label class="contract-opt"><input type="${isRadio ? 'radio' : 'checkbox'}" name="${isRadio ? g : fid('cb')}" value="${esc(o)}"><span>${esc(o)}</span></label>`
+      ).join('') + '</div>');
       continue;
     }
 
@@ -141,15 +135,9 @@ function parseMd(md, interactive) {
         opts.push(lines[i].trim().replace(/^☐\s*/, ''));
         i++;
       }
-      if (interactive) {
-        html.push('<div class="contract-opts">' + opts.map(o =>
-          `<label class="contract-opt"><input type="checkbox" name="${fid('cb')}" value="${esc(o)}"><span>${esc(o)}</span></label>`
-        ).join('') + '</div>');
-      } else {
-        html.push('<div class="contract-opts">' + opts.map(o =>
-          `<label class="contract-opt"><span class="contract-fake">☐</span><span>${esc(o)}</span></label>`
-        ).join('') + '</div>');
-      }
+      html.push('<div class="contract-opts">' + opts.map(o =>
+        `<label class="contract-opt"><input type="checkbox" name="${fid('cb')}" value="${esc(o)}"><span>${esc(o)}</span></label>`
+      ).join('') + '</div>');
       continue;
     }
 
@@ -159,20 +147,14 @@ function parseMd(md, interactive) {
         items.push(lines[i].trim().replace(/^____\s*/, ''));
         i++;
       }
-      if (interactive) {
-        html.push('<div class="contract-acks">' + items.map(it =>
-          `<label class="contract-ack"><input type="checkbox" name="${fid('ack')}" value="${esc(it)}"><span>${esc(it)}</span></label>`
-        ).join('') + '</div>');
-      } else {
-        html.push('<div class="contract-acks">' + items.map(it =>
-          `<label class="contract-ack"><span class="contract-fake">☐</span><span>${esc(it)}</span></label>`
-        ).join('') + '</div>');
-      }
+      html.push('<div class="contract-acks">' + items.map(it =>
+        `<label class="contract-ack"><input type="checkbox" name="${fid('ack')}" value="${esc(it)}"><span>${esc(it)}</span></label>`
+      ).join('') + '</div>');
       continue;
     }
 
     if (t.startsWith('Client Initials:')) {
-      html.push(interactive ? initials() : '<div class="contract-initials"><span>Client Initials:</span><span class="contract-line"></span></div>');
+      html.push(initials());
       i++;
       continue;
     }
@@ -189,23 +171,13 @@ function parseMd(md, interactive) {
           i++;
         }
         const g = fid('q');
-        if (interactive) {
-          html.push('<div class="contract-opts">' + opts.map(o =>
-            `<label class="contract-opt"><input type="${isRadio ? 'radio' : 'checkbox'}" name="${isRadio ? g : fid('cb')}" value="${esc(o)}"><span>${esc(o)}</span></label>`
-          ).join('') + '</div>');
-        } else {
-          html.push('<div class="contract-opts">' + opts.map(o =>
-            `<label class="contract-opt"><span class="contract-fake">${isRadio ? '○' : '☐'}</span><span>${esc(o)}</span></label>`
-          ).join('') + '</div>');
-        }
+        html.push('<div class="contract-opts">' + opts.map(o =>
+          `<label class="contract-opt"><input type="${isRadio ? 'radio' : 'checkbox'}" name="${isRadio ? g : fid('cb')}" value="${esc(o)}"><span>${esc(o)}</span></label>`
+        ).join('') + '</div>');
       }
       if (i < lines.length && (lines[i].trim().startsWith('If yes') || lines[i].trim().startsWith('Business Name'))) {
         const label = lines[i].trim();
-        if (interactive) {
-          html.push(`<div class="contract-field"><label>${esc(label)}</label>${inp(fid('txt'), 'Type here...')}</div>`);
-        } else {
-          html.push(`<p class="contract-muted">${esc(label)}</p>`);
-        }
+        html.push(`<div class="contract-field"><label>${esc(label)}</label>${inp(fid('txt'), 'Type here...')}</div>`);
         i++;
       }
       continue;
@@ -217,12 +189,7 @@ function parseMd(md, interactive) {
       fields.forEach(part => {
         const idx = part.indexOf(':');
         if (idx > 0) {
-          const label = part.slice(0, idx + 1);
-          if (interactive) {
-            html.push(`<div class="contract-field"><label>${esc(label)}</label>${inp(fid('fld'), '')}</div>`);
-          } else {
-            html.push(`<div class="contract-field"><label>${esc(label)}</label><span class="contract-line"></span></div>`);
-          }
+          html.push(`<div class="contract-field"><label>${esc(part.slice(0, idx + 1))}</label>${inp(fid('fld'), '')}</div>`);
         }
       });
       i++;
@@ -247,13 +214,13 @@ function parseMd(md, interactive) {
       continue;
     }
 
-    if (interactive && (t.startsWith('I certify') || t.startsWith('I consent') || t.startsWith('By signing'))) {
+    if (t.startsWith('I certify') || t.startsWith('I consent') || t.startsWith('By signing')) {
       html.push(`<label class="contract-ack"><input type="checkbox" name="${fid('agree')}" value="${esc(t)}"><span>${esc(t)}</span></label>`);
       i++;
       continue;
     }
 
-    if (interactive && t.startsWith('Why do you want')) {
+    if (t.startsWith('Why do you want')) {
       html.push(`<div class="contract-field"><label>${esc(t)}</label><textarea class="contract-ta" name="${fid('why')}" rows="3" placeholder="Type your answer..."></textarea></div>`);
       i++;
       continue;
@@ -266,22 +233,102 @@ function parseMd(md, interactive) {
   return html.join('');
 }
 
-function policyOnlyMd(md) {
+function parseTermsMd(md) {
   const lines = md.split(/\r?\n/);
-  const start = lines.findIndex(l => /^Risk Acknowledgement:/.test(l.trim()));
-  const end = lines.findIndex((l, i) => i > start && /^Client Eligibility/.test(l.trim()));
-  if (start < 0) return md;
-  return lines.slice(start, end > start ? end : undefined).join('\n');
+  const html = [];
+  let i = 0;
+  let titleLines = [];
+
+  while (i < lines.length && lines[i].trim() && !/^(Applies to|Effective date|Contact)\b/.test(lines[i].trim()) && !/^\d+\.\s/.test(lines[i].trim()) && !lines[i].trim().startsWith('By accessing')) {
+    titleLines.push(lines[i].trim());
+    i++;
+  }
+  if (titleLines.length) {
+    html.push(`<h2 class="contract-h2">${esc(titleLines.join(' '))}</h2>`);
+  }
+
+  while (i < lines.length && !lines[i].trim()) i++;
+
+  const meta = [];
+  while (i < lines.length) {
+    const t = lines[i].trim();
+    if (!t) { i++; break; }
+    if (/^(Applies to|Effective date|Contact)\b/i.test(t)) {
+      const m = t.match(/^(Applies to|Effective date|Contact)\s+(.+)$/i);
+      if (m) meta.push([m[1], m[2].trim()]);
+      i++;
+      continue;
+    }
+    break;
+  }
+  if (meta.length) {
+    html.push('<div class="terms-meta">' + meta.map(([k, v]) =>
+      `<div><span class="terms-meta-k">${esc(k)}</span><span class="terms-meta-v">${esc(v)}</span></div>`
+    ).join('') + '</div>');
+  }
+
+  while (i < lines.length && !lines[i].trim()) i++;
+
+  while (i < lines.length) {
+    const t = lines[i].trim();
+    if (!t) { i++; continue; }
+
+    if (/^\d+\.\s/.test(t)) {
+      html.push(`<h3 class="contract-h3">${esc(t)}</h3>`);
+      i++;
+      continue;
+    }
+
+    if (t === 'Contact Information') {
+      html.push(`<h3 class="contract-h3">${esc(t)}</h3>`);
+      i++;
+      continue;
+    }
+
+    if (/^[\uF0B7•]/.test(t)) {
+      const items = [];
+      while (i < lines.length && /^[\uF0B7•]/.test(lines[i].trim())) {
+        items.push(esc(lines[i].trim().replace(/^[\uF0B7•]\s*/, '')));
+        i++;
+      }
+      html.push('<ul class="contract-ul">' + items.map(it => `<li>${it}</li>`).join('') + '</ul>');
+      continue;
+    }
+
+    if (t.startsWith('Users agree not to:')) {
+      html.push(`<p class="contract-strong">${esc(t)}</p>`);
+      i++;
+      continue;
+    }
+
+    if (t.startsWith('Affiliate commissions:')) {
+      html.push(`<p class="contract-strong">${esc(t)}</p>`);
+      i++;
+      continue;
+    }
+
+    if (t.startsWith('Unless expressly stated otherwise')) {
+      html.push(`<p class="contract-strong">${esc(t)}</p>`);
+      i++;
+      continue;
+    }
+
+    html.push(`<p class="contract-p">${esc(t)}</p>`);
+    i++;
+  }
+
+  return html.join('');
 }
 
-const contractMd = fs.readFileSync(path.join(__dirname, '..', 'contract.md'), 'utf8');
-const policyMd = fs.readFileSync(path.join(__dirname, '..', 'policy.md'), 'utf8');
-const contractBody = parseMd(contractMd, true);
-const policyBody = parseMd(policyOnlyMd(policyMd), false);
+const root = path.join(__dirname, '..');
+const contractMd = fs.readFileSync(path.join(root, 'contract.md'), 'utf8');
+const termsMd = fs.readFileSync(path.join(root, 'termndpolicies.md'), 'utf8');
+const contractBody = parseContractMd(contractMd);
+const policyBody = parseTermsMd(termsMd);
 
 const snippet = `function contractHtml(){return \`<form id="contractForm" class="contract-doc" onsubmit="return submitContract(event)">${contractBody}<div class="contract-sign-bar"><button type="submit" class="btn primary">Sign &amp; Submit Contract</button><span class="hint" style="font-family:var(--ui)">Fill required fields, select options, and add your initials before signing.</span></div></form>\`;}
 function policyHtml(){return \`<div class="contract-doc">${policyBody}</div>\`;}
 `;
 
-fs.writeFileSync(path.join(__dirname, '..', 'public', 'enrollment-doc.js'), snippet);
+fs.writeFileSync(path.join(root, 'public', 'enrollment-doc.js'), snippet);
 console.log('Wrote enrollment-doc.js', snippet.length, 'chars');
