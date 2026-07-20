@@ -5,8 +5,8 @@
 <meta name="theme-color" content="#000000">
 <meta name="description" content="Trading journal with daily P&L, edge score, playbook, and live coaching.">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="apple-touch-icon" href="/images/logo.jpeg">
-<link rel="icon" href="/images/logo.jpeg">
+<link rel="apple-touch-icon" href="/images/logo.png">
+<link rel="icon" href="/images/logo.png">
 <title>Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,12 +40,12 @@ html,body{height:100%}
 body{font-family:var(--ui);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow:hidden}
 body::after{content:"";position:fixed;top:-25%;left:30%;width:55vw;height:55vh;z-index:0;pointer-events:none;
   background:radial-gradient(circle,var(--accent-soft) 0%,transparent 62%);filter:blur(30px);opacity:.7}
-.app{position:relative;z-index:1;display:grid;grid-template-columns:250px 1fr;height:100vh}
+.app{position:relative;z-index:1;display:grid;grid-template-columns:380px 1fr;height:100vh}
 
 /* sidebar */
 .sidebar{background:var(--bg-2);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:20px 14px;gap:3px;overflow-y:auto}
 .brand{display:flex;align-items:center;gap:12px;padding:4px 0 18px}
-.brand-mark{width:180px;height:180px;border-radius:18px;flex:none;position:relative;display:grid;place-items:center;
+.brand-mark{width:360px;height:360px;border-radius:22px;flex:none;position:relative;display:grid;place-items:center;
   background:transparent;box-shadow:none;overflow:hidden;padding:0}
 .brand-mark img{width:100%;height:100%;object-fit:contain;display:block}
 .brand-mark svg{width:24px;height:24px;color:#04121a}
@@ -287,7 +287,7 @@ tbody tr{transition:.12s}tbody tr:hover{background:var(--surface-2)}
 .auth{position:fixed;inset:0;z-index:40;overflow-y:auto;display:flex;flex-direction:column;align-items:center;
   padding:48px 20px 60px;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(34,184,239,.10),transparent 70%),#000}
 .auth-brand{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:12px}
-.auth-brand .brand-mark{width:200px;height:200px;border-radius:20px}
+.auth-brand .brand-mark{width:400px;height:400px;border-radius:24px}
 .auth-brand .brand-mark img{width:100%;height:100%;object-fit:contain}
 .auth-name{display:none}
 .auth-brand .brand-sub{display:none}
@@ -382,7 +382,7 @@ body.home-open::after{opacity:.35}
 <div class="app" id="appRoot" style="display:none">
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-mark"><img src="/images/logo.jpeg" alt="Logo"></div>
+      <div class="brand-mark"><img src="/images/logo.png" alt="Logo"></div>
     </div>
     <div class="nav-label">Trading</div>
     <div class="nav-item active" data-view="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Dashboard</span></div>
@@ -654,7 +654,7 @@ async function renderHome(needSub){
   <div class="home">
     <nav class="home-nav">
       <div class="auth-brand" style="margin:0">
-        <div class="brand-mark"><img src="/images/logo.jpeg" alt="Logo"></div>
+        <div class="brand-mark"><img src="/images/logo.png" alt="Logo"></div>
       </div>
       <div class="home-nav-links">
         <a class="hn" href="#home-pricing" onclick="homeGoPricing();return false">Pricing</a>
@@ -757,7 +757,7 @@ async function renderLogin(needSub){
     await loadPublicPricing();
     const s=state.settings;
     document.getElementById('loginRoot').innerHTML=`<div class="auth" style="max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;padding:48px 20px">
-      <div class="auth-brand"><div class="brand-mark"><img src="/images/logo.jpeg" alt="Logo"></div></div>
+      <div class="auth-brand"><div class="brand-mark"><img src="/images/logo.png" alt="Logo"></div></div>
       <div class="auth-tag">Admin portal — manage trades, clients, and Trade Copier.</div>
       <div class="auth-login">
         <h3>Admin sign in</h3>
@@ -1708,7 +1708,7 @@ function renderPortal(cid){
   const days=Object.keys(clientDayMap(c)).length;const accts=clientAccts(c);
   let h=`<div class="portal-top">
     <div style="display:flex;align-items:center;gap:12px">
-      <div class="brand-mark" style="width:120px;height:120px;border-radius:16px;flex:none"><img src="/images/logo.jpeg" alt="Logo" style="object-fit:contain"></div>
+      <div class="brand-mark" style="width:240px;height:240px;border-radius:18px;flex:none"><img src="/images/logo.png" alt="Logo" style="object-fit:contain"></div>
       <div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
           <span style="font-weight:600;font-size:13px">${esc(c.name)}</span>
