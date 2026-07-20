@@ -249,22 +249,14 @@ function parseTermsMd(md) {
 
   while (i < lines.length && !lines[i].trim()) i++;
 
-  const meta = [];
   while (i < lines.length) {
     const t = lines[i].trim();
     if (!t) { i++; break; }
     if (/^(Applies to|Effective date|Contact)\b/i.test(t)) {
-      const m = t.match(/^(Applies to|Effective date|Contact)\s+(.+)$/i);
-      if (m) meta.push([m[1], m[2].trim()]);
       i++;
       continue;
     }
     break;
-  }
-  if (meta.length) {
-    html.push('<div class="terms-meta">' + meta.map(([k, v]) =>
-      `<div><span class="terms-meta-k">${esc(k)}</span><span class="terms-meta-v">${esc(v)}</span></div>`
-    ).join('') + '</div>');
   }
 
   while (i < lines.length && !lines[i].trim()) i++;

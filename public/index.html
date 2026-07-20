@@ -3,11 +3,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
-<meta name="description" content="Mindset Journal — managed futures journal with daily P&L, edge score, playbook, and live coaching.">
+<meta name="description" content="Trading journal with daily P&L, edge score, playbook, and live coaching.">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/images/logo.jpeg">
 <link rel="icon" href="/images/logo.jpeg">
-<title>Mindset Journal</title>
+<title>Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -40,17 +40,17 @@ html,body{height:100%}
 body{font-family:var(--ui);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow:hidden}
 body::after{content:"";position:fixed;top:-25%;left:30%;width:55vw;height:55vh;z-index:0;pointer-events:none;
   background:radial-gradient(circle,var(--accent-soft) 0%,transparent 62%);filter:blur(30px);opacity:.7}
-.app{position:relative;z-index:1;display:grid;grid-template-columns:230px 1fr;height:100vh}
+.app{position:relative;z-index:1;display:grid;grid-template-columns:250px 1fr;height:100vh}
 
 /* sidebar */
 .sidebar{background:var(--bg-2);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:20px 14px;gap:3px;overflow-y:auto}
-.brand{display:flex;align-items:center;gap:12px;padding:6px 0 20px}
-.brand-mark{width:64px;height:64px;border-radius:14px;flex:none;position:relative;display:grid;place-items:center;
+.brand{display:flex;align-items:center;gap:12px;padding:4px 0 18px}
+.brand-mark{width:180px;height:180px;border-radius:18px;flex:none;position:relative;display:grid;place-items:center;
   background:transparent;box-shadow:none;overflow:hidden;padding:0}
-.brand-mark img{width:100%;height:100%;object-fit:cover;display:block}
+.brand-mark img{width:100%;height:100%;object-fit:contain;display:block}
 .brand-mark svg{width:24px;height:24px;color:#04121a}
 .brand-name{display:none}
-.brand-sub{font-family:var(--display);font-size:15px;letter-spacing:.04em;color:var(--accent);text-transform:none;margin-top:0;font-weight:700;line-height:1.2}
+.brand-sub{display:none}
 .nav-label{font-size:9px;letter-spacing:.24em;color:var(--text-3);text-transform:uppercase;padding:16px 10px 7px}
 body.client-mode .admin-only{display:none!important}
 body.client-mode .admin-write{display:none!important}
@@ -286,11 +286,11 @@ tbody tr{transition:.12s}tbody tr:hover{background:var(--surface-2)}
 /* ===== auth + portal ===== */
 .auth{position:fixed;inset:0;z-index:40;overflow-y:auto;display:flex;flex-direction:column;align-items:center;
   padding:48px 20px 60px;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(34,184,239,.10),transparent 70%),#000}
-.auth-brand{display:flex;align-items:center;gap:14px;margin-bottom:8px}
-.auth-brand .brand-mark{width:72px;height:72px;border-radius:16px}
-.auth-brand .brand-mark img{width:100%;height:100%;object-fit:cover}
-.auth-name{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.02em;color:var(--accent)}
-.auth-brand .brand-sub{font-family:var(--display);font-size:18px;letter-spacing:.02em;color:var(--accent);text-transform:none;font-weight:700;margin-top:0}
+.auth-brand{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:12px}
+.auth-brand .brand-mark{width:200px;height:200px;border-radius:20px}
+.auth-brand .brand-mark img{width:100%;height:100%;object-fit:contain}
+.auth-name{display:none}
+.auth-brand .brand-sub{display:none}
 .auth-tag{color:var(--text-2);font-size:14px;margin-bottom:34px;text-align:center}
 .price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;width:100%;max-width:1040px;margin-bottom:30px}
 .price-card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:24px;position:relative;display:flex;flex-direction:column;transition:.18s}
@@ -382,8 +382,7 @@ body.home-open::after{opacity:.35}
 <div class="app" id="appRoot" style="display:none">
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-mark"><img src="/images/logo.jpeg" alt="Mindset Journal"></div>
-      <div><div class="brand-sub" id="brandName">Mindset Journal</div></div>
+      <div class="brand-mark"><img src="/images/logo.jpeg" alt="Logo"></div>
     </div>
     <div class="nav-label">Trading</div>
     <div class="nav-item active" data-view="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Dashboard</span></div>
@@ -655,8 +654,7 @@ async function renderHome(needSub){
   <div class="home">
     <nav class="home-nav">
       <div class="auth-brand" style="margin:0">
-        <div class="brand-mark"><img src="/images/logo.jpeg" alt="Mindset Journal"></div>
-        <div><div class="brand-sub">Mindset Journal</div></div>
+        <div class="brand-mark"><img src="/images/logo.jpeg" alt="Logo"></div>
       </div>
       <div class="home-nav-links">
         <a class="hn" href="#home-pricing" onclick="homeGoPricing();return false">Pricing</a>
@@ -759,8 +757,7 @@ async function renderLogin(needSub){
     await loadPublicPricing();
     const s=state.settings;
     document.getElementById('loginRoot').innerHTML=`<div class="auth" style="max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;padding:48px 20px">
-      <div class="auth-brand"><div class="brand-mark"><img src="/images/logo.jpeg" alt="Mindset Journal"></div>
-        <div class="brand-sub">Mindset Journal</div></div>
+      <div class="auth-brand"><div class="brand-mark"><img src="/images/logo.jpeg" alt="Logo"></div></div>
       <div class="auth-tag">Admin portal — manage trades, clients, and Trade Copier.</div>
       <div class="auth-login">
         <h3>Admin sign in</h3>
@@ -1711,9 +1708,8 @@ function renderPortal(cid){
   const days=Object.keys(clientDayMap(c)).length;const accts=clientAccts(c);
   let h=`<div class="portal-top">
     <div style="display:flex;align-items:center;gap:12px">
-      <div class="brand-mark" style="width:64px;height:64px;border-radius:14px;flex:none"><img src="/images/logo.jpeg" alt="Mindset Journal"></div>
+      <div class="brand-mark" style="width:120px;height:120px;border-radius:16px;flex:none"><img src="/images/logo.jpeg" alt="Logo" style="object-fit:contain"></div>
       <div>
-        <div class="brand-sub" style="font-size:16px">Mindset Journal</div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
           <span style="font-weight:600;font-size:13px">${esc(c.name)}</span>
           ${c.email?`<span style="color:var(--text-3);font-size:12px">${esc(c.email)}</span>`:''}
@@ -1813,8 +1809,8 @@ function saveBranding(){state.settings.appName=val('set_name').trim()||'LIVE TRA
   state.settings.accent=window.__ac||state.settings.accent||'#22b8ef';
   state.settings.prices={access:val('set_p_access').trim()||'$45/mo',starter:val('set_p_starter').trim()||'$—',pro:val('set_p_pro').trim()||'$—',elite:val('set_p_elite').trim()||'$—',prime:val('set_p_prime').trim()||'$—'};
   save('settings');applyBranding();flash('Settings saved');}
-function applyBranding(){const s=state.settings;const bn=document.getElementById('brandName');if(bn)bn.textContent='Mindset Journal';
-  document.title='Mindset Journal — Dashboard';
+function applyBranding(){const s=state.settings;
+  document.title='Dashboard';
   document.getElementById('hello').innerHTML=`Welcome back, <span>${esc(s.trader||'Trader')}</span>`;
   const ac=s.accent||'#22b8ef';previewAccent(ac);}
 function hexA(hex,a){const h=hex.replace('#','');return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;}
