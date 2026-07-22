@@ -79,7 +79,7 @@ function weekCalendarHtml(week, todayPnl) {
     if (d.isFuture) {
       inner = `<div style="font-size:11px;color:#9ca3af;margin-top:6px">—</div>`;
     } else if (!d.hasData) {
-      inner = `<div style="font-size:11px;color:#9ca3af;margin-top:6px">—</div>`;
+      inner = `<div style="font-size:11px;color:#9ca3af;margin-top:6px">$0.00</div>`;
     } else {
       const h = Math.max(8, Math.round(Math.abs(d.amount) / maxAbs * 48));
       const barColor = d.amount > 0 ? '#34d399' : d.amount < 0 ? '#fb7185' : '#d1d5db';
@@ -99,7 +99,7 @@ function weekCalendarHtml(week, todayPnl) {
   }).join('');
   return `<div style="margin:22px 0 8px">
     <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px">This week · Mon–Fri (ET)</div>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${cells}</table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>${cells}</tr></table>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:14px;border-collapse:separate;border-spacing:8px 0">
       <tr>
         <td style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;width:25%">
@@ -156,8 +156,19 @@ function liveSessionBlock(html) {
   return { text, html: htmlBlock };
 }
 
-async function sendAccessCode(client) {
+async function sendAccessCode(client, opts) {
   if (!client || !client.access_code) return;
+  const force = !!(opts && opts.force);
+  const { isProcessed, markProcessed } = require('./db');
+  const dedupeKey = 'accessmail:' + (client.id || '') + ':' + (client.access_code || '');
+  if (!force && client.id && isProcessed(dedupeKey)) {
+    console.log('[email] skip duplicate access-code mail for', client.id);
+    return { skipped: true };
+  }
+  if (!client.email) {
+    console.log('[email] skip access code — no email for', client.id || client.name);
+    return;
+  }
   const url = process.env.APP_URL || 'https://planthetrade.co';
   const live = liveSessionBlock(false);
   const monthly = client.package === 'access' || !!client.access_expires_at;
@@ -200,6 +211,8 @@ Keep this code private — it is your key to the portal.${live.text}`;
     text,
     html
   });
+  if (client.id) markProcessed(dedupeKey);
+  return { ok: true };
 }
 
 async function sendDailyReport(r) {
@@ -263,7 +276,7 @@ Sent automatically at 5:00 PM ET.`;
       </tr>
       <tr>
         <td style="padding:14px 0"><span style="color:#6b7280;font-size:14px">Net to you <span style="font-size:12px">(after ${r.split}% fee)</span></span></td>
-        <td style="padding:14px 0;text-align:right;font-size:16px;font-weight:700;color:#059669">${money(r.net)}</td>
+        <td style="padding:14px 0;text-align:right;font-size:16px;font-weight:700;color:${pnlColor(r.net)}">${money(r.net)}</td>
       </tr>
     </table>
     ${r.appUrl ? `<div style="text-align:center;margin-top:22px">

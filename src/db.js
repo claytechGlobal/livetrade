@@ -15,6 +15,9 @@ function resolveDbPath() {
 
 const DB_PATH = resolveDbPath();
 console.log('[db] path', DB_PATH);
+if (/[\\/](tmp|Temp)[\\/]/i.test(DB_PATH) || process.env.VERCEL) {
+  console.error('[db] WARNING: SQLite is on ephemeral storage (/tmp or Vercel). Data and webhook dedupe WILL RESET on cold starts — clients will look empty after logout/redeploy. Use Railway/Render with a persistent disk, or set DB_PATH to a durable volume.');
+}
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
@@ -352,19 +355,31 @@ const replaceClientAccounts = db.transaction((clientId, accounts) => {
 function saveClientPlays(plays) {
   replacePlays(plays);
 }
+function mergeClientDailyPnlFromTrades(clientId, byDay, note) {
+  const existing = db.prepare('SELECT * FROM daily_pnl WHERE client_id=?').all(clientId);
+  const tradeNote = note || 'Client trades';
+  const keep = existing.filter(e => {
+    if (byDay[e.date] != null) return false;
+    const n = String(e.note || '');
+    if (/^Client trades$/i.test(n) || /^CSV upload$/i.test(n)) return false;
+    return true;
+  });
+  const merged = keep.map(e => ({ id: e.id, date: e.date, amount: e.amount, note: e.note || '' }))
+    .concat(Object.keys(byDay).sort().map(date => ({
+      id: uid(), date, amount: byDay[date], note: tradeNote
+    })));
+  replaceClientDailyPnl(clientId, merged);
+}
 function saveClientTrades(clientId, trades) {
   replaceClientTrades(clientId, trades);
   const byDay = {};
   (trades || []).forEach(t => {
-    const date = t.date || today();
+    const date = String(t.date || today()).slice(0, 10);
     let pnl = t.csvPnl != null && t.csvPnl !== '' ? Number(t.csvPnl) : Number(t.pnl);
     if (isNaN(pnl)) pnl = 0;
     byDay[date] = (byDay[date] || 0) + pnl;
   });
-  const days = Object.keys(byDay).sort();
-  replaceClientDailyPnl(clientId, days.map(date => ({
-    id: uid(), date, amount: byDay[date], note: 'Client trades'
-  })));
+  mergeClientDailyPnlFromTrades(clientId, byDay, 'Client trades');
   return composeClientApp(clientId);
 }
 function saveClientAccounts(clientId, accounts) {
@@ -455,10 +470,8 @@ function applyClientCsvUpload(clientId, csvText) {
   });
   const days = Object.keys(byDay).sort();
   if (!days.length) throw new Error('No valid trades found in CSV. Need date (EnteredAt or TradeDay as YYYY-MM-DD) and PnL.');
-  replaceClientDailyPnl(clientId, days.map(date => ({
-    id: uid(), date, amount: byDay[date], note: 'CSV upload'
-  })));
   replaceClientTrades(clientId, trades);
+  mergeClientDailyPnlFromTrades(clientId, byDay, 'CSV upload');
   return { days: days.length, trades: trades.length, totalPnl: days.reduce((s, d) => s + byDay[d], 0) };
 }
 function composeClientApp(clientId) {
@@ -720,9 +733,25 @@ function buildDailyReport(id, isoDate) {
   const todayPnl = dayRows.reduce((s, r) => s + r.amount, 0);
   const all = db.prepare('SELECT date, amount FROM daily_pnl WHERE client_id=?').all(id);
   const dayMap = dayMapFromRows(all);
-  const total = all.reduce((s, r) => s + r.amount, 0);
+  // Fallback: fill missing days from client_trades so week strip shows uploaded trade days
+  try {
+    ensureClientTradesTable();
+    const trades = db.prepare('SELECT date, pnl, entry, exit, direction, contracts FROM client_trades WHERE client_id=?').all(id);
+    trades.forEach(t => {
+      const d = String(t.date || '').slice(0, 10);
+      if (!d || dayMap[d] != null) return;
+      let pnl = t.pnl != null ? Number(t.pnl) : NaN;
+      if (isNaN(pnl)) {
+        const dir = /short|sell/i.test(String(t.direction || '')) ? -1 : 1;
+        pnl = (Number(t.exit) - Number(t.entry)) * dir * (Number(t.contracts) || 1);
+      }
+      if (isNaN(pnl)) return;
+      dayMap[d] = (dayMap[d] || 0) + pnl;
+    });
+  } catch (_) {}
+  const total = Object.values(dayMap).reduce((s, a) => s + a, 0);
   const ym = date.slice(0, 7);
-  const mtd = all.filter(r => r.date.slice(0, 7) === ym).reduce((s, r) => s + r.amount, 0);
+  const mtd = Object.entries(dayMap).filter(([d]) => d.slice(0, 7) === ym).reduce((s, [, a]) => s + a, 0);
   const split = c.split || 0;
   const fee = total > 0 ? total * split / 100 : 0;
   const acctRow = db.prepare('SELECT COUNT(*) as n FROM accounts WHERE client_id=?').get(id);
@@ -731,7 +760,7 @@ function buildDailyReport(id, isoDate) {
   const streak = buildStreak(dayMap, date);
   return {
     clientId: c.id, name: c.name, email: c.email, accessCode: c.access_code, package: c.package || 'starter',
-    date, dateLabel: formatReportDate(date), todayPnl, hasToday: dayRows.length > 0,
+    date, dateLabel: formatReportDate(date), todayPnl, hasToday: dayRows.length > 0 || dayMap[date] != null,
     mtd, total, split, fee, net: total - fee, accountCount: acctRow ? acctRow.n : 0,
     week, month, streak,
     appUrl: process.env.APP_URL || ''

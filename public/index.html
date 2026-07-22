@@ -404,7 +404,7 @@ body.home-open::after{opacity:.35}
     <div class="spacer"></div>
     <div class="coach-card"><div class="ti">Coach</div><div class="tx" id="coachSide">Log trades to unlock your edge score.</div></div>
     <div class="nav-item" data-view="terms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg><span>Terms &amp; Policy</span></div>
-    <div class="nav-item" style="margin-top:6px" onclick="logout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Log out</span></div>
+    <div class="nav-item admin-only" style="margin-top:6px" onclick="logout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Log out</span></div>
   </aside>
 
   <main class="main">
@@ -512,9 +512,9 @@ async function init(){
     showScreen('login');renderLogin();return;
   }
   registerPwa();
-  if(me&&me.role==='client'){session=me;try{await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();return;}catch(e){showScreen('home');renderHome(true);return;}}
+  if(me&&me.role==='client'){session=me;try{await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();bumpIdle();return;}catch(e){showScreen('home');renderHome(true);return;}}
   const pc=new URLSearchParams(location.search).get('portal');
-  if(pc){try{const r2=await api('POST','/api/auth/login',{credential:pc});if(r2.role==='client'){session=r2;await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();return;}}catch(e){}}
+  if(pc){try{const r2=await api('POST','/api/auth/login',{credential:pc});if(r2.role==='client'){session=r2;await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();bumpIdle();return;}}catch(e){}}
   showScreen('home');renderHome();
 }
 
@@ -550,15 +550,34 @@ async function attemptLogin(){
       await loadAdmin();showScreen('admin');go('dashboard');
     }else{
       if(isAdminRoute()){location.href='/';return;}
-      await loadClientApp();showScreen('admin');go('dashboard');
+      await loadClientApp();showScreen('admin');go('dashboard');bumpIdle();
     }
   }catch(e){const el=document.getElementById('lg_err');if(el)el.textContent=e.message||'Login failed.';}
 }
 async function logout(){try{await api('POST','/api/auth/logout');}catch(e){}
+  stopIdleWatch();
   session=null;applyClientShell(false);
   state={settings:state.settings,plays:[],accounts:[],trades:[],clients:[],dayPnl:[],affiliates:[]};
   if(isAdminRoute()){showScreen('login');renderLogin();}else{location.href='/';}
 }
+
+const IDLE_MS=10*60*1000;
+let idleTimer=null;
+function stopIdleWatch(){if(idleTimer){clearTimeout(idleTimer);idleTimer=null;}}
+function bumpIdle(){
+  stopIdleWatch();
+  if(!session||session.role!=='client')return;
+  idleTimer=setTimeout(()=>{
+    flash('Signed out after 10 minutes idle');
+    logout();
+  },IDLE_MS);
+}
+function startIdleWatch(){
+  ['click','keydown','mousemove','touchstart','scroll'].forEach(ev=>{
+    document.addEventListener(ev,bumpIdle,{passive:true});
+  });
+}
+startIdleWatch();
 
 let deferredInstallPrompt=null;
 function syncInstallButtons(){
@@ -1720,8 +1739,7 @@ function renderPortal(cid){
         </div>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:12px"><span class="ro-pill">Read only</span>
-      <button class="btn sm" onclick="logout()">Log out</button></div></div>
+    <div style="display:flex;align-items:center;gap:12px"><span class="ro-pill">Read only</span></div></div>
   <div class="portal-wrap">
     <div class="dash-top">
       <div class="hero"><div class="hero-label">Your Managed P&L</div>

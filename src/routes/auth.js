@@ -16,7 +16,7 @@ router.post('/login', loginLimiter, (req, res) => {
   // Admin: username + password
   if (username || password) {
     if (username && password && verifyAdmin(username, password)) {
-      setCookie(res, sign({ role: 'admin' }));
+      setCookie(res, sign({ role: 'admin' }), 'admin');
       return res.json({ role: 'admin' });
     }
     return res.status(401).json({ error: 'Incorrect username or password.' });
@@ -39,7 +39,7 @@ router.post('/login', loginLimiter, (req, res) => {
           code: 'ACCESS_EXPIRED'
         });
       }
-      setCookie(res, sign({ role: 'client', clientId: client.id, accessCode: client.access_code }));
+      setCookie(res, sign({ role: 'client', clientId: client.id, accessCode: client.access_code }), 'client');
       return res.json({ role: 'client', clientId: client.id, name: client.name, accessCode: client.access_code });
     }
     return res.status(401).json({ error: 'Invalid access code.' });
