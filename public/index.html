@@ -1467,15 +1467,82 @@ function renderPackages(){
 function renderContract(){
   document.getElementById('content').innerHTML=`<div class="card"><div class="card-t" style="margin-bottom:14px"><span class="tick"></span>Trade Copier Participation Contract</div>${contractHtml()}</div>`;
 }
-function submitContract(e){
-  e.preventDefault();
+function contractQuestionFor(el){
+  let n=el.closest('.contract-opts,.contract-acks,.contract-initials')||el.parentElement;
+  while(n){
+    const prev=n.previousElementSibling;
+    if(prev&&(prev.classList.contains('contract-q')||prev.classList.contains('contract-h3')||prev.classList.contains('contract-p'))){
+      const t=(prev.textContent||'').trim();
+      if(t)return t.slice(0,160);
+    }
+    n=n.parentElement;
+    if(n&&n.id==='contractForm')break;
+  }
+  const lab=el.closest('label');
+  if(lab){const t=(lab.textContent||'').trim(); if(t)return t.slice(0,160);}
+  return '';
+}
+function collectContractPayload(){
   const form=document.getElementById('contractForm');
-  if(!form)return false;
+  if(!form)return null;
   const data=new FormData(form);
   const entries={};
   data.forEach((v,k)=>{if(entries[k]===undefined)entries[k]=v;else if(Array.isArray(entries[k]))entries[k].push(v);else entries[k]=[entries[k],v];});
-  try{localStorage.setItem('ebron_contract_'+((session&&session.email)||'guest'),JSON.stringify({signedAt:new Date().toISOString(),entries}));}catch(err){}
-  flash('Contract signed and saved');
+  const answers=[];
+  const seen=new Set();
+  form.querySelectorAll('input,textarea,select').forEach(el=>{
+    const name=el.name; if(!name||seen.has(name))return;
+    if(el.type==='radio'){
+      seen.add(name);
+      const checked=form.querySelector('input[type=radio][name="'+CSS.escape(name)+'"]:checked');
+      const labelEl=checked?(form.querySelector('label[for="'+CSS.escape(checked.id)+'"]')||checked.closest('label')):null;
+      const q=contractQuestionFor(el)||name;
+      answers.push({label:q,value:checked?(labelEl?(labelEl.textContent||'').trim():checked.value):'(not selected)'});
+      return;
+    }
+    if(el.type==='checkbox'){
+      seen.add(name);
+      const boxes=[...form.querySelectorAll('input[type=checkbox][name="'+CSS.escape(name)+'"]')].filter(b=>b.checked);
+      const vals=boxes.map(b=>{const l=form.querySelector('label[for="'+CSS.escape(b.id)+'"]')||b.closest('label');return l?(l.textContent||'').trim():b.value;});
+      const q=contractQuestionFor(el)||name;
+      answers.push({label:q,value:vals.length?vals.join(', '):'(none)'});
+      return;
+    }
+    seen.add(name);
+    const lab=form.querySelector('label[for="'+CSS.escape(el.id)+'"]')||el.closest('label');
+    const q=lab?(lab.textContent||'').trim():name;
+    answers.push({label:q||name,value:String(el.value||'').trim()||'(blank)'});
+  });
+  const signedAt=new Date().toISOString();
+  const clientName=(S&&S.client&&S.client.name)||(session&&session.name)||'';
+  const clientEmail=(S&&S.client&&S.client.email)||(session&&session.email)||'';
+  return {entries,answers,signedAt,clientName,clientEmail};
+}
+function downloadContract(){
+  const payload=collectContractPayload();
+  if(!payload){flash('Contract form not found');return;}
+  const rows=payload.answers.map(a=>'<tr><td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#6b7280;width:40%">'+esc(a.label)+'</td><td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-weight:600">'+esc(a.value)+'</td></tr>').join('');
+  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Trade Copier Participation Contract</title></head><body style="font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 20px;color:#111;line-height:1.6"><h1 style="font-size:22px">Trade Copier Participation Contract</h1><p style="color:#555;font-size:14px">Client: <strong>'+esc(payload.clientName||'—')+'</strong> · '+esc(payload.clientEmail||'—')+'<br>Downloaded: '+esc(payload.signedAt)+'</p><table style="width:100%;border-collapse:collapse;margin-top:18px;font-family:Segoe UI,Arial,sans-serif;font-size:14px">'+rows+'</table><p style="margin-top:28px;font-size:12px;color:#888">This file is a copy of your filled contract answers from planthetrade.co. You can print it to PDF from your browser.</p></body></html>';
+  const blob=new Blob([html],{type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='trade-copier-contract-'+(payload.clientEmail||'client').replace(/[^a-z0-9@._-]/gi,'_')+'.html';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  flash('Contract downloaded');
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+async function submitContract(e){
+  e.preventDefault();
+  const payload=collectContractPayload();
+  if(!payload)return false;
+  try{localStorage.setItem('ebron_contract_'+((session&&session.email)||'guest'),JSON.stringify(payload));}catch(err){}
+  try{
+    await api('POST','/api/client/contract',payload);
+    flash('Contract signed — copy emailed to us');
+  }catch(err){
+    flash(err.message||'Signed locally, but email failed');
+  }
   return false;
 }
 const PDF_PAGES=[

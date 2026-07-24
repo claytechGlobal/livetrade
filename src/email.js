@@ -292,4 +292,97 @@ Sent automatically at 5:00 PM ET.`;
   await sendMail({ to: r.email, subject, text, html });
 }
 
-module.exports = { sendAccessCode, sendDailyReport, emailEnabled, mailFrom };
+function contractNotifyTo() {
+  return process.env.CONTRACT_NOTIFY_EMAIL || process.env.ADMIN_NOTIFY_EMAIL || '';
+}
+
+function escapeHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function sendContractSubmission({
+  to,
+  clientName,
+  clientEmail,
+  clientId,
+  packageKey,
+  signedAt,
+  entries,
+  answers
+}) {
+  const notify = to || contractNotifyTo();
+  if (!notify) {
+    console.warn('[contract] CONTRACT_NOTIFY_EMAIL not set — skipping owner copy');
+    return { sent: false, reason: 'CONTRACT_NOTIFY_EMAIL not set' };
+  }
+
+  const rows = Array.isArray(answers) && answers.length
+    ? answers
+    : Object.entries(entries || {}).map(([k, v]) => ({
+      label: k,
+      value: Array.isArray(v) ? v.join(', ') : String(v)
+    }));
+
+  const textLines = [
+    'New signed Trade Copier Participation Contract',
+    '',
+    `Signed at: ${signedAt || new Date().toISOString()}`,
+    `Client: ${clientName || '—'}`,
+    `Email: ${clientEmail || '—'}`,
+    `Client ID: ${clientId || '—'}`,
+    `Package: ${packageKey || '—'}`,
+    '',
+    'Answers:',
+    ...rows.map(r => `- ${r.label}: ${r.value}`)
+  ];
+
+  const answerRows = rows.map(r => `
+    <tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;vertical-align:top;width:38%">${escapeHtml(r.label)}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#111827;font-size:13px;font-weight:600">${escapeHtml(r.value)}</td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#f3f4f6;font-family:Segoe UI,Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden">
+    <tr><td style="background:#0b1220;color:#fff;padding:20px 24px">
+      <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.7">Plant The Trade</div>
+      <div style="font-size:20px;font-weight:700;margin-top:4px">Signed contract received</div>
+    </td></tr>
+    <tr><td style="padding:22px 24px">
+      <p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.5">A client signed and submitted the Trade Copier Participation Contract.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:18px">
+        <tr><td style="padding:8px 12px;background:#f9fafb;color:#6b7280;font-size:12px;width:38%">Signed at</td><td style="padding:8px 12px;font-size:13px;font-weight:600">${escapeHtml(signedAt || '')}</td></tr>
+        <tr><td style="padding:8px 12px;background:#f9fafb;color:#6b7280;font-size:12px">Client</td><td style="padding:8px 12px;font-size:13px;font-weight:600">${escapeHtml(clientName || '—')}</td></tr>
+        <tr><td style="padding:8px 12px;background:#f9fafb;color:#6b7280;font-size:12px">Email</td><td style="padding:8px 12px;font-size:13px;font-weight:600">${escapeHtml(clientEmail || '—')}</td></tr>
+        <tr><td style="padding:8px 12px;background:#f9fafb;color:#6b7280;font-size:12px">Client ID</td><td style="padding:8px 12px;font-size:13px;font-weight:600">${escapeHtml(clientId || '—')}</td></tr>
+        <tr><td style="padding:8px 12px;background:#f9fafb;color:#6b7280;font-size:12px">Package</td><td style="padding:8px 12px;font-size:13px;font-weight:600">${escapeHtml(packageKey || '—')}</td></tr>
+      </table>
+      <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:8px">Contract answers</div>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+        ${answerRows || '<tr><td style="padding:12px;color:#6b7280">No answers captured</td></tr>'}
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  await sendMail({
+    to: notify,
+    subject: `Signed contract — ${clientName || clientEmail || 'client'}`,
+    text: textLines.join('\n'),
+    html
+  });
+  return { sent: true, to: notify };
+}
+
+module.exports = {
+  sendAccessCode,
+  sendDailyReport,
+  sendContractSubmission,
+  contractNotifyTo,
+  emailEnabled,
+  mailFrom
+};

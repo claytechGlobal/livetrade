@@ -318,7 +318,7 @@ const termsMd = fs.readFileSync(path.join(root, 'termndpolicies.md'), 'utf8');
 const contractBody = parseContractMd(contractMd);
 const policyBody = parseTermsMd(termsMd);
 
-const snippet = `function contractHtml(){return \`<form id="contractForm" class="contract-doc" onsubmit="return submitContract(event)">${contractBody}<div class="contract-sign-bar"><button type="submit" class="btn primary">Sign &amp; Submit Contract</button><span class="hint" style="font-family:var(--ui)">Fill required fields, select options, and add your initials before signing.</span></div></form>\`;}
+const snippet = `function contractHtml(){return \`<form id="contractForm" class="contract-doc" onsubmit="return submitContract(event)">${contractBody}<div class="contract-sign-bar"><button type="submit" class="btn primary">Sign &amp; Submit Contract</button><button type="button" class="btn ghost" onclick="downloadContract()">Download Contract</button><span class="hint" style="font-family:var(--ui)">Fill required fields, then download a copy and/or sign to submit.</span></div></form>\`;}
 function policyHtml(){return \`<div class="contract-doc">${policyBody}</div>\`;}
 `;
 

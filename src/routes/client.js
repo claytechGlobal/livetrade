@@ -2,6 +2,7 @@
 const express = require('express');
 const { requireClient } = require('../auth');
 const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload, saveClientTrades, saveClientAccounts, saveClientPlays } = require('../db');
+const { sendContractSubmission, emailEnabled, contractNotifyTo } = require('../email');
 
 const router = express.Router();
 router.use(requireClient);
@@ -86,6 +87,37 @@ router.put('/plays', (req, res) => {
     res.json({ ok: true, app });
   } catch (e) {
     res.status(400).json({ error: e.message || 'Could not save plays' });
+  }
+});
+
+router.post('/contract', async (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found. Log out and sign in again with your access code.' });
+  if (!assertSubscribed(row, res)) return;
+  const body = req.body || {};
+  const entries = body.entries && typeof body.entries === 'object' ? body.entries : {};
+  const answers = Array.isArray(body.answers) ? body.answers : [];
+  const signedAt = body.signedAt || new Date().toISOString();
+  try {
+    if (!emailEnabled()) {
+      return res.status(503).json({ error: 'Email is not configured (set RESEND_API_KEY).' });
+    }
+    if (!contractNotifyTo()) {
+      return res.status(503).json({ error: 'Owner notify email is not set (CONTRACT_NOTIFY_EMAIL).' });
+    }
+    const result = await sendContractSubmission({
+      clientName: row.name,
+      clientEmail: row.email,
+      clientId: row.id,
+      packageKey: row.package,
+      signedAt,
+      entries,
+      answers
+    });
+    res.json({ ok: true, emailed: !!result.sent, to: result.to || null });
+  } catch (e) {
+    console.error('[contract]', e);
+    res.status(500).json({ error: e.message || 'Could not email contract copy' });
   }
 });
 
