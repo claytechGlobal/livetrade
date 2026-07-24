@@ -75,6 +75,6 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 if (require.main === module) {
-  app.listen(PORT, () => console.log(`LIVE TRADES listening on http://localhost:${PORT}`));
+  app.listen(PORT, '0.0.0.0', () => console.log(`LIVE TRADES listening on http://0.0.0.0:${PORT}`));
 }
 module.exports = app;

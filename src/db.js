@@ -5,18 +5,43 @@ const crypto = require('crypto');
 const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 
-function resolveDbPath() {
-  if (process.env.DB_PATH) return path.resolve(process.env.DB_PATH);
-  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-    return path.join(os.tmpdir(), 'livetrades.sqlite');
+const fs = require('fs');
+
+function tryDbPath(filePath) {
+  try {
+    const dir = path.dirname(filePath);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.accessSync(dir, fs.constants.W_OK);
+    return filePath;
+  } catch (e) {
+    console.error('[db] cannot use', filePath, '-', e.message);
+    return null;
   }
-  return path.join(__dirname, '..', 'data.sqlite');
+}
+
+function resolveDbPath() {
+  const candidates = [];
+  if (process.env.DB_PATH) candidates.push(path.resolve(process.env.DB_PATH));
+  if (process.env.RAILWAY_VOLUME_MOUNT_PATH) {
+    candidates.push(path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'livetrades.sqlite'));
+  }
+  candidates.push(path.join(__dirname, '..', 'data', 'livetrades.sqlite'));
+  candidates.push(path.join(__dirname, '..', 'data.sqlite'));
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    candidates.push(path.join(os.tmpdir(), 'livetrades.sqlite'));
+  }
+
+  for (const p of candidates) {
+    const ok = tryDbPath(p);
+    if (ok) return ok;
+  }
+  return path.join(os.tmpdir(), 'livetrades.sqlite');
 }
 
 const DB_PATH = resolveDbPath();
 console.log('[db] path', DB_PATH);
 if (/[\\/](tmp|Temp)[\\/]/i.test(DB_PATH) || process.env.VERCEL) {
-  console.error('[db] WARNING: SQLite is on ephemeral storage (/tmp or Vercel). Data and webhook dedupe WILL RESET on cold starts — clients will look empty after logout/redeploy. Use Railway/Render with a persistent disk, or set DB_PATH to a durable volume.');
+  console.error('[db] WARNING: SQLite is on ephemeral storage. Add a Railway Volume mounted at /data and set DB_PATH=/data/livetrades.sqlite');
 }
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
