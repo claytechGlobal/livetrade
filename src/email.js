@@ -169,7 +169,7 @@ async function sendAccessCode(client, opts) {
     console.log('[email] skip access code — no email for', client.id || client.name);
     return;
   }
-  const url = process.env.APP_URL || 'https://planthetrade.co';
+  const url = process.env.APP_URL || 'https://www.planthetrade.co';
   const live = liveSessionBlock(false);
   const monthly = client.package === 'access' || !!client.access_expires_at;
   let expLine = '';
@@ -283,7 +283,7 @@ Sent automatically at 5:00 PM ET.`;
       <a href="${r.appUrl}" style="display:inline-block;background:#22b8ef;color:#04121a;text-decoration:none;padding:12px 28px;border-radius:9px;font-weight:700;font-size:14px">View full dashboard</a>
     </div>` : ''}
     ${live.html}
-    <p style="color:#9ca3af;font-size:11px;text-align:center;margin:20px 0 0;line-height:1.5">Sent at 5:00 PM ET · planthetrade.co<br>Performance figures reflect reported daily P&amp;L in your portal.</p>
+    <p style="color:#9ca3af;font-size:11px;text-align:center;margin:20px 0 0;line-height:1.5">Sent at 5:00 PM ET · <a href="https://www.planthetrade.co" style="color:#22b8ef;text-decoration:none">www.planthetrade.co</a><br>Performance figures reflect reported daily P&amp;L in your portal.</p>
   </td></tr>
 </table>
 </td></tr></table>
