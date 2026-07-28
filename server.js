@@ -53,7 +53,7 @@ app.get('/api/cron/daily', async (req, res) => {
 });
 
 app.use('/api/stripe', require('./src/routes/stripe'));
-app.use(express.json({ limit: '4mb' }));
+app.use(express.json({ limit: '8mb' }));
 app.use(cookieParser());
 
 app.use('/api/auth', require('./src/routes/auth'));

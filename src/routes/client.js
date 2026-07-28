@@ -1,7 +1,7 @@
 'use strict';
 const express = require('express');
 const { requireClient } = require('../auth');
-const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload, saveClientTrades, saveClientAccounts, saveClientPlays } = require('../db');
+const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload, saveClientTrades, saveClientAccounts, saveClientPlays, getDayScreenshot, saveDayScreenshot, deleteDayScreenshot } = require('../db');
 const { sendContractSubmission, emailEnabled, contractNotifyTo } = require('../email');
 
 const router = express.Router();
@@ -118,6 +118,49 @@ router.post('/contract', async (req, res) => {
   } catch (e) {
     console.error('[contract]', e);
     res.status(500).json({ error: e.message || 'Could not email contract copy' });
+  }
+});
+
+function parseDataUrl(dataUrl) {
+  const m = String(dataUrl || '').match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/i);
+  if (!m) return null;
+  return { mime: m[1].toLowerCase(), buffer: Buffer.from(m[2], 'base64') };
+}
+
+router.get('/day-shot/:date', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  const shot = getDayScreenshot(row.id, req.params.date);
+  if (!shot) return res.status(404).json({ error: 'No screenshot' });
+  res.setHeader('Content-Type', shot.mime);
+  res.setHeader('Cache-Control', 'private, max-age=3600');
+  res.sendFile(shot.filePath);
+});
+
+router.put('/day-shot/:date', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  try {
+    const parsed = parseDataUrl(req.body && req.body.dataUrl);
+    if (!parsed) return res.status(400).json({ error: 'Send a JPEG, PNG, or WebP image' });
+    saveDayScreenshot(row.id, req.params.date, parsed);
+    res.json({ ok: true, date: req.params.date });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Upload failed' });
+  }
+});
+
+router.delete('/day-shot/:date', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  try {
+    deleteDayScreenshot(row.id, req.params.date);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Delete failed' });
   }
 });
 

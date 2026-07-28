@@ -5,13 +5,20 @@ const {
   composeBootstrap, replacePlays, replaceTrades, replaceAccounts, replaceClients,
   replaceDayPnl, replaceAffiliates,
   getSettings, patchSettings, setAdminPassword, setAdminCredentials,
-  buildDailyReport, etToday, markDailySent
+  buildDailyReport, etToday, markDailySent,
+  getDayScreenshot, saveDayScreenshot, deleteDayScreenshot
 } = require('../db');
 const { sendDailyReport } = require('../email');
 const { runDailySend } = require('../scheduler');
 
 const router = express.Router();
 router.use(requireAdmin);
+
+function parseDataUrl(dataUrl) {
+  const m = String(dataUrl || '').match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/i);
+  if (!m) return null;
+  return { mime: m[1].toLowerCase(), buffer: Buffer.from(m[2], 'base64') };
+}
 
 router.get('/bootstrap', (req, res) => res.json(composeBootstrap()));
 
@@ -56,6 +63,34 @@ router.post('/clients/:id/send', async (req, res) => {
 router.post('/send-daily', async (req, res) => {
   const result = await runDailySend({ force: !!(req.body && req.body.force) });
   res.json(result);
+});
+
+router.get('/day-shot/:date', (req, res) => {
+  const shot = getDayScreenshot('admin', req.params.date);
+  if (!shot) return res.status(404).json({ error: 'No screenshot' });
+  res.setHeader('Content-Type', shot.mime);
+  res.setHeader('Cache-Control', 'private, max-age=3600');
+  res.sendFile(shot.filePath);
+});
+
+router.put('/day-shot/:date', (req, res) => {
+  try {
+    const parsed = parseDataUrl(req.body && req.body.dataUrl);
+    if (!parsed) return res.status(400).json({ error: 'Send a JPEG, PNG, or WebP image' });
+    saveDayScreenshot('admin', req.params.date, parsed);
+    res.json({ ok: true, date: req.params.date });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Upload failed' });
+  }
+});
+
+router.delete('/day-shot/:date', (req, res) => {
+  try {
+    deleteDayScreenshot('admin', req.params.date);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Delete failed' });
+  }
 });
 
 module.exports = router;

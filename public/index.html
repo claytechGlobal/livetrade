@@ -143,16 +143,22 @@ body.client-mode .client-upload{display:flex!important;align-items:center;gap:10
 /* calendar */
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .cal-dow{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);text-align:center;padding-bottom:4px;font-weight:600}
-.cal-cell{aspect-ratio:1;border-radius:10px;border:1px solid var(--line-soft);background:var(--surface-2);padding:7px 8px;
-  display:flex;flex-direction:column;justify-content:space-between;position:relative;cursor:default;transition:.12s}
-.cal-cell.has:hover{transform:translateY(-2px);border-color:var(--text-3)}
-.cal-cell.blank{background:transparent;border:none}
-.cal-cell .d{font-size:11px;color:var(--text-3);font-weight:600}
+.cal-cell{aspect-ratio:1;border-radius:10px;border:1px solid var(--line-soft);background:var(--surface-2);padding:8px 9px;
+  display:flex;flex-direction:column;justify-content:space-between;position:relative;cursor:pointer;transition:.12s;min-height:0}
+.cal-cell.has:hover,.cal-cell:hover{transform:translateY(-2px);border-color:var(--text-3)}
+.cal-cell.blank{background:transparent;border:none;cursor:default;pointer-events:none}
+.cal-cell .d{font-size:12px;color:var(--text-3);font-weight:700}
 .cal-cell.win{background:var(--green-soft);border-color:rgba(52,211,153,.35)}
 .cal-cell.loss{background:var(--red-soft);border-color:rgba(251,94,126,.35)}
 .cal-cell.today{box-shadow:inset 0 0 0 1.5px var(--accent)}
-.cal-cell .p{font-family:var(--mono);font-size:11px;font-weight:600}
-.cal-cell .tc{font-size:8.5px;color:var(--text-3)}
+.cal-cell .p{font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.cal-cell .tc{font-size:11.5px;color:var(--text-2);font-weight:600;margin-top:3px;line-height:1.2}
+.cal-cell .cal-foot{margin-top:auto}
+.cal-cell .cal-cam{position:absolute;top:7px;right:7px;width:15px;height:15px;opacity:.4;color:var(--text-3)}
+.cal-cell.has-shot .cal-cam{opacity:1;color:var(--accent)}
+.cal-cell .cal-thumb{width:100%;max-height:34%;object-fit:cover;border-radius:5px;margin:4px 0 2px;border:1px solid var(--line-soft)}
+.day-shot-preview{width:100%;max-height:280px;object-fit:contain;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);margin:10px 0}
+.day-shot-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center}
 .cal-nav{display:flex;align-items:center;gap:8px}
 .cal-nav .mo{font-family:var(--display);font-weight:600;font-size:13.5px;min-width:120px;text-align:center}
 .cal-legend{display:flex;gap:16px;justify-content:flex-end;margin-top:13px;font-size:11px;color:var(--text-2)}
@@ -459,7 +465,7 @@ const PACKAGES={
 function pkg(k){return PACKAGES[k]||PACKAGES.starter;}
 
 /* ===== state + API client ===== */
-let state={settings:{},plays:[],accounts:[],trades:[],clients:[],dayPnl:[],affiliates:[]};
+let state={settings:{},plays:[],accounts:[],trades:[],clients:[],dayPnl:[],affiliates:[],dayShots:[],dayShotRev:{}};
 const KEYS=['plays','accounts','trades','clients','dayPnl','affiliates'];
 let session=null; // {role:'admin'} | {role:'client',clientId}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
@@ -484,7 +490,7 @@ async function save(k){
       const r=await api('PUT','/api/client/'+k,state[k]||[]);
       const d=r&&r.app;if(d){
         state.plays=d.plays||state.plays;state.accounts=d.accounts||[];state.trades=d.trades||[];
-        state.dayPnl=d.dayPnl||[];state.clients=d.client?[d.client]:state.clients;
+        state.dayPnl=d.dayPnl||[];state.dayShots=d.dayShots||state.dayShots||[];state.clients=d.client?[d.client]:state.clients;
       }
     }catch(e){flash('Could not save — '+(e.message||'server error'));}
     return;
@@ -494,10 +500,10 @@ async function save(k){
     else{await api('PUT','/api/admin/'+k,state[k]||[]);}
   }catch(e){flash('Could not save — '+(e.message||'server error'));}}
 async function loadAdmin(){const d=await api('GET','/api/admin/bootstrap');
-  state.settings=d.settings||{};state.plays=d.plays||[];state.accounts=d.accounts||[];state.trades=d.trades||[];state.clients=d.clients||[];state.dayPnl=d.dayPnl||[];state.affiliates=d.affiliates||[];applyBranding();applyClientShell(false);}
+  state.settings=d.settings||{};state.plays=d.plays||[];state.accounts=d.accounts||[];state.trades=d.trades||[];state.clients=d.clients||[];state.dayPnl=d.dayPnl||[];state.affiliates=d.affiliates||[];state.dayShots=d.dayShots||[];applyBranding();applyClientShell(false);}
 async function loadClientApp(){const d=await api('GET','/api/client/app');
   state.settings=Object.assign({},state.settings,d.settings||{});
-  state.plays=d.plays||[];state.accounts=d.accounts||[];state.trades=d.trades||[];state.dayPnl=d.dayPnl||[];
+  state.plays=d.plays||[];state.accounts=d.accounts||[];state.trades=d.trades||[];state.dayPnl=d.dayPnl||[];state.dayShots=d.dayShots||[];
   state.clients=d.client?[d.client]:[];state.affiliates=[];
   applyBranding();applyClientShell(true);
   if(d.client&&d.client.name){const el=document.getElementById('hello');if(el)el.innerHTML='Welcome back, <span>'+esc(d.client.name)+'</span>';}
@@ -924,7 +930,7 @@ function renderDash(){
       <div class="mo" id="calMo"></div>
       <div class="iconbtn" style="width:30px;height:30px" onclick="calStep(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div></div></div>
       <div id="calBody"></div>
-      <div class="cal-legend"><span><i style="background:var(--green-soft);border:1px solid rgba(52,211,153,.4)"></i>Green day</span><span><i style="background:var(--red-soft);border:1px solid rgba(251,94,126,.4)"></i>Red day</span></div></div>
+      <div class="cal-legend"><span><i style="background:var(--green-soft);border:1px solid rgba(52,211,153,.4)"></i>Green day</span><span><i style="background:var(--red-soft);border:1px solid rgba(251,94,126,.4)"></i>Red day</span><span>Tap a day to add a screenshot</span></div></div>
     <div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>Mindset Edge</div></div>${mindset(m)}</div>
   </div>`;
   /* play perf + accounts */
@@ -1016,6 +1022,10 @@ function mindset(m){
 let calRef=new Date();calRef.setDate(1);
 function calStep(d){calRef.setMonth(calRef.getMonth()+d);drawCalendar();if(view==='calendar')renderCalendar();}
 function drawCalendar(){renderCalGrid(pnlByDay(),calRef,'calBody','calMo',iso=>{const tc=state.trades.filter(t=>t.date===iso).length;return tc?`${tc} trade${tc>1?'s':''}`:'';});}
+function dayShotApiBase(){return (session&&session.role==='client')?'/api/client/day-shot':'/api/admin/day-shot';}
+function dayShotUrl(iso){const rev=(state.dayShotRev&&state.dayShotRev[iso])||0;return dayShotApiBase()+'/'+iso+(rev?'?v='+rev:'');}
+function hasDayShot(iso){return (state.dayShots||[]).includes(iso);}
+function camSvg(){return '<svg class="cal-cam" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';}
 function renderCalGrid(days,ref,bodyId,moId,subFn){
   const body=document.getElementById(bodyId);if(!body)return;const moEl=document.getElementById(moId);
   const y=ref.getFullYear(),mo=ref.getMonth();
@@ -1027,8 +1037,53 @@ function renderCalGrid(days,ref,bodyId,moId,subFn){
   for(let d=1;d<=dim;d++){const iso=`${y}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const pnl=days[iso];const has=pnl!=null;const c=has?(pnl>0?'win':pnl<0?'loss':''):'';
     const sub=has&&subFn?subFn(iso):'';
-    h+=`<div class="cal-cell ${c} ${has?'has':''} ${iso===todayISO?'today':''}"><div class="d">${d}</div>${has?`<div><div class="p ${cls(pnl)}">${fmt$(pnl,true)}</div>${sub?`<div class="tc">${sub}</div>`:''}</div>`:''}</div>`;}
+    const shot=hasDayShot(iso);
+    const thumb=shot?`<img class="cal-thumb" src="${dayShotUrl(iso)}" alt="">`:'';
+    h+=`<div class="cal-cell ${c} ${has?'has':''} ${shot?'has-shot':''} ${iso===todayISO?'today':''}" onclick="openDayDetail('${iso}')"><div class="d">${d}</div>${camSvg()}${thumb}${has?`<div class="cal-foot"><div class="p ${cls(pnl)}">${fmt$(pnl,true)}</div>${sub?`<div class="tc">${sub}</div>`:''}</div>`:''}</div>`;}
   h+='</div>';body.innerHTML=h;
+}
+function openDayDetail(iso){
+  if(!iso)return;
+  const days=pnlByDay();const pnl=days[iso];const tc=state.trades.filter(t=>t.date===iso).length;
+  const shot=hasDayShot(iso);
+  const label=new Date(iso+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+  const preview=shot?`<img class="day-shot-preview" id="dayShotImg" src="${dayShotUrl(iso)}" alt="Trade screenshot">`:`<div class="hint" id="dayShotEmpty" style="font-family:var(--ui);margin:12px 0">No screenshot yet for this day.</div>`;
+  modal(label,`
+    <div style="font-family:var(--ui);margin-bottom:8px">
+      <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:6px">
+        <div><div class="hint">P&amp;L</div><div class="${pnl!=null?cls(pnl):''}" style="font-family:var(--mono);font-size:20px;font-weight:700">${pnl!=null?fmt$(pnl,true):'—'}</div></div>
+        <div><div class="hint">Trades</div><div style="font-size:20px;font-weight:700">${tc||0}</div></div>
+      </div>
+    </div>
+    ${preview}
+    <div class="day-shot-actions">
+      <label class="btn sm primary" style="cursor:pointer"><input type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="uploadDayShot('${iso}',this)">${shot?'Replace screenshot':'Upload screenshot'}</label>
+      ${shot?`<button type="button" class="btn sm ghost" onclick="removeDayShot('${iso}')">Remove</button>`:''}
+    </div>
+    <div class="hint" style="font-family:var(--ui);margin-top:10px">JPEG / PNG / WebP · max 3.5 MB</div>
+  `,()=>true,'Done');
+}
+async function uploadDayShot(iso,input){
+  const file=input&&input.files&&input.files[0];if(!file)return;
+  if(file.size>3.5*1024*1024){flash('Image must be under 3.5 MB');input.value='';return;}
+  const reader=new FileReader();
+  reader.onload=async()=>{
+    try{
+      await api('PUT',dayShotApiBase()+'/'+iso,{dataUrl:reader.result});
+      if(!(state.dayShots||[]).includes(iso))state.dayShots=(state.dayShots||[]).concat([iso]);
+      state.dayShotRev=state.dayShotRev||{};state.dayShotRev[iso]=Date.now();
+      flash('Screenshot saved');closeModal();drawCalendar();if(view==='calendar')renderCalendar();
+    }catch(e){flash(e.message||'Upload failed');}
+  };
+  reader.readAsDataURL(file);
+}
+async function removeDayShot(iso){
+  if(!confirm('Remove screenshot for this day?'))return;
+  try{
+    await api('DELETE',dayShotApiBase()+'/'+iso);
+    state.dayShots=(state.dayShots||[]).filter(d=>d!==iso);
+    flash('Screenshot removed');closeModal();drawCalendar();if(view==='calendar')renderCalendar();
+  }catch(e){flash(e.message||'Could not remove');}
 }
 function renderCalendar(){
   const days=pnlByDay();const y=calRef.getFullYear(),mo=calRef.getMonth();
@@ -1045,7 +1100,7 @@ function renderCalendar(){
       <div class="mo" id="calMo"></div>
       <div class="iconbtn" style="width:30px;height:30px" onclick="calStep(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div></div></div>
       <div id="calBody"></div>
-      <div class="cal-legend"><span><i style="background:var(--green-soft);border:1px solid rgba(52,211,153,.4)"></i>Green day</span><span><i style="background:var(--red-soft);border:1px solid rgba(251,94,126,.4)"></i>Red day</span></div></div>`;
+      <div class="cal-legend"><span><i style="background:var(--green-soft);border:1px solid rgba(52,211,153,.4)"></i>Green day</span><span><i style="background:var(--red-soft);border:1px solid rgba(251,94,126,.4)"></i>Red day</span><span>Tap a day to add a screenshot</span></div></div>`;
   document.getElementById('content').innerHTML=h;drawCalendar();
 }
 
@@ -1127,7 +1182,7 @@ function openClientCsvUpload(){
       const d=r.app||{};
       state.settings=Object.assign({},state.settings,d.settings||{});
       state.plays=d.plays||state.plays;state.accounts=d.accounts||[];state.trades=d.trades||[];
-      state.dayPnl=d.dayPnl||[];state.clients=d.client?[d.client]:state.clients;
+      state.dayPnl=d.dayPnl||[];state.dayShots=d.dayShots||state.dayShots||[];state.clients=d.client?[d.client]:state.clients;
       const res=r.result||{};
       flash('CSV applied — '+(res.trades||0)+' trades · '+(res.days||0)+' days');
       go(view||'dashboard');

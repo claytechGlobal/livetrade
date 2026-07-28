@@ -102,10 +102,19 @@ function initDb() {
       id TEXT PRIMARY KEY, affiliate_id TEXT, package TEXT, amount REAL, date TEXT
     );
     CREATE TABLE IF NOT EXISTS processed_events (id TEXT PRIMARY KEY, created_at TEXT);
+    CREATE TABLE IF NOT EXISTS day_screenshots (
+      owner_id TEXT NOT NULL,
+      date TEXT NOT NULL,
+      mime TEXT NOT NULL,
+      filename TEXT NOT NULL,
+      created_at TEXT,
+      PRIMARY KEY (owner_id, date)
+    );
     CREATE INDEX IF NOT EXISTS idx_acc_client ON accounts(client_id);
     CREATE INDEX IF NOT EXISTS idx_daily_client ON daily_pnl(client_id);
     CREATE INDEX IF NOT EXISTS idx_aff_sales ON affiliate_sales(affiliate_id);
     CREATE INDEX IF NOT EXISTS idx_trades_account ON trades(account_id);
+    CREATE INDEX IF NOT EXISTS idx_day_shots_owner ON day_screenshots(owner_id);
   `);
 
   // migrate older databases that predate the username column
@@ -302,7 +311,7 @@ function composeBootstrap() {
   }));
   const settings = getSettings();
   settings.adminUser = getAdminUsername();
-  return { settings, plays, accounts, trades, clients, dayPnl, affiliates };
+  return { settings, plays, accounts, trades, clients, dayPnl, affiliates, dayShots: listDayShotDates('admin') };
 }
 function getClientPortal(id) {
   const c = db.prepare('SELECT * FROM clients WHERE id=?').get(id);
@@ -499,6 +508,60 @@ function applyClientCsvUpload(clientId, csvText) {
   mergeClientDailyPnlFromTrades(clientId, byDay, 'CSV upload');
   return { days: days.length, trades: trades.length, totalPnl: days.reduce((s, d) => s + byDay[d], 0) };
 }
+function dayShotsRoot() {
+  return path.join(path.dirname(DB_PATH), 'day-shots');
+}
+function safeShotOwner(ownerId) {
+  return String(ownerId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64) || 'unknown';
+}
+function isShotDate(date) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(date || ''));
+}
+function listDayShotDates(ownerId) {
+  const oid = safeShotOwner(ownerId);
+  return db.prepare('SELECT date FROM day_screenshots WHERE owner_id=? ORDER BY date').all(oid).map(r => r.date);
+}
+function getDayScreenshot(ownerId, date) {
+  if (!isShotDate(date)) return null;
+  const oid = safeShotOwner(ownerId);
+  const row = db.prepare('SELECT * FROM day_screenshots WHERE owner_id=? AND date=?').get(oid, date);
+  if (!row) return null;
+  const filePath = path.join(dayShotsRoot(), oid, row.filename);
+  if (!fs.existsSync(filePath)) return null;
+  return { ...row, filePath };
+}
+function saveDayScreenshot(ownerId, date, { mime, buffer }) {
+  if (!isShotDate(date)) throw new Error('Invalid date');
+  const allowed = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+  const ext = allowed[mime];
+  if (!ext) throw new Error('Use JPEG, PNG, or WebP');
+  if (!buffer || !Buffer.isBuffer(buffer) || buffer.length < 32) throw new Error('Empty image');
+  if (buffer.length > 3.5 * 1024 * 1024) throw new Error('Image must be under 3.5 MB');
+  const oid = safeShotOwner(ownerId);
+  const dir = path.join(dayShotsRoot(), oid);
+  fs.mkdirSync(dir, { recursive: true });
+  const prev = db.prepare('SELECT filename FROM day_screenshots WHERE owner_id=? AND date=?').get(oid, date);
+  if (prev && prev.filename) {
+    try { fs.unlinkSync(path.join(dir, prev.filename)); } catch (_) {}
+  }
+  const filename = `${date}.${ext}`;
+  fs.writeFileSync(path.join(dir, filename), buffer);
+  db.prepare(`INSERT INTO day_screenshots(owner_id,date,mime,filename,created_at) VALUES(?,?,?,?,?)
+    ON CONFLICT(owner_id,date) DO UPDATE SET mime=excluded.mime, filename=excluded.filename, created_at=excluded.created_at`)
+    .run(oid, date, mime, filename, new Date().toISOString());
+  return { date, mime, filename };
+}
+function deleteDayScreenshot(ownerId, date) {
+  if (!isShotDate(date)) throw new Error('Invalid date');
+  const oid = safeShotOwner(ownerId);
+  const row = db.prepare('SELECT filename FROM day_screenshots WHERE owner_id=? AND date=?').get(oid, date);
+  if (!row) return false;
+  const filePath = path.join(dayShotsRoot(), oid, row.filename);
+  try { fs.unlinkSync(filePath); } catch (_) {}
+  db.prepare('DELETE FROM day_screenshots WHERE owner_id=? AND date=?').run(oid, date);
+  return true;
+}
+
 function composeClientApp(clientId) {
   const full = composeBootstrap();
   const client = getClientPortal(clientId);
@@ -516,6 +579,7 @@ function composeClientApp(clientId) {
     plays: full.plays,
     trades: listClientTrades(clientId),
     dayPnl: (client.dailyPnl || []).map(d => ({ id: d.id, date: d.date, amount: d.amount, note: d.note || '' })),
+    dayShots: listDayShotDates(clientId),
     accounts: mine,
     client
   };
@@ -848,6 +912,7 @@ module.exports = {
   getSettings, patchSettings, setAdminPassword, setAdminCredentials, getAdminUsername, verifyAdmin,
   composeBootstrap, getClientPortal, composeClientApp, applyClientCsvUpload,
   saveClientTrades, saveClientAccounts, saveClientPlays, parseAcctSizeFromLabel,
+  listDayShotDates, getDayScreenshot, saveDayScreenshot, deleteDayScreenshot,
   replacePlays, replaceTrades, replaceAccounts, replaceClients, replaceDayPnl, replaceAffiliates,
   handleCheckout, extendClientAccess, expireClientBySubscription, isClientAccessValid,
   isProcessed, markProcessed,
