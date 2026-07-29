@@ -1118,41 +1118,58 @@ function renderTrades(){
       <td class="num ${cls(t.c.ticks)}">${t.c.ticks>0?'+':''}${t.c.ticks.toFixed(1)}</td>
       <td class="num ${t.c.r!=null?cls(t.c.r):'muted'}">${t.c.r!=null?(t.c.r>=0?'+':'')+t.c.r.toFixed(2)+'R':'—'}</td>
       <td class="num ${cls(t.c.pnl)}" style="text-align:right;font-weight:600">${fmt$c(t.c.pnl)}</td>
-      <td style="text-align:right"><span class="x" style="display:inline-grid" onclick="delTrade('${t.id}')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span></td></tr>`;});
+      <td style="text-align:right;white-space:nowrap"><button class="btn sm ghost" style="padding:4px 8px;margin-right:4px" onclick="openTrade('${t.id}')">Edit</button><span class="x" style="display:inline-grid;vertical-align:middle" onclick="delTrade('${t.id}')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span></td></tr>`;});
   h+=`</tbody></table></div></div>`;document.getElementById('content').innerHTML=h;
 }
 function delTrade(id){state.trades=state.trades.filter(t=>t.id!==id);save('trades');renderTrades();flash('Trade deleted');}
-function openTrade(){
-  const playOpts=state.plays.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
-  const acctOpts=state.accounts.map(a=>`<option value="${a.id}">${esc(a.firm)} · ${esc(a.label)}</option>`).join('');
-  const symOpts=Object.keys(CONTRACTS).map(s=>`<option value="${s}">${s} — ${CONTRACTS[s].name}</option>`).join('');
-  const emoOpts=Object.keys(EMOTIONS).map(e=>`<option value="${e}">${e}</option>`).join('');
-  modal('Add Trade',`
+function openTrade(editId){
+  const existing=editId?state.trades.find(x=>x.id===editId):null;
+  const playOpts=state.plays.map(p=>`<option value="${p.id}" ${existing&&existing.playId===p.id?'selected':''}>${esc(p.name)}</option>`).join('');
+  const acctOpts=state.accounts.map(a=>`<option value="${a.id}" ${existing&&existing.accountId===a.id?'selected':''}>${esc(a.firm)} · ${esc(a.label)}</option>`).join('');
+  const symOpts=Object.keys(CONTRACTS).map(s=>`<option value="${s}" ${(existing?existing.symbol:Object.keys(CONTRACTS)[0])===s?'selected':''}>${s} — ${CONTRACTS[s].name}</option>`).join('');
+  const emoOpts=Object.keys(EMOTIONS).map(e=>`<option value="${e}" ${existing&&existing.emotion===e?'selected':''}>${e}</option>`).join('');
+  const useCustomPlay=!!(existing&&existing.playName&&!existing.playId);
+  const dirShort=existing&&existing.direction==='Short';
+  const planOn=existing?!!existing.plan:true;
+  modal(existing?'Edit Trade':'Add Trade',`
     <div class="f2"><div class="field"><label>Symbol</label><select id="f_sym">${symOpts}</select></div>
-      <div class="field"><label>Date</label><input id="f_date" type="date" value="${dayISO(0)}"></div></div>
-    <div class="f2"><div class="field"><label>Direction</label><select id="f_dir"><option>Long</option><option>Short</option></select></div>
-      <div class="field"><label>Contracts</label><input id="f_qty" class="num" type="number" min="1" value="1"></div></div>
-    <div class="f3"><div class="field"><label>Entry</label><input id="f_entry" class="num" type="number" step="any"></div>
-      <div class="field"><label>Exit</label><input id="f_exit" class="num" type="number" step="any"></div>
-      <div class="field"><label>Stop <span style="text-transform:none;color:var(--text-3)">(opt)</span></label><input id="f_stop" class="num" type="number" step="any"></div></div>
+      <div class="field"><label>Date</label><input id="f_date" type="date" value="${existing?existing.date:dayISO(0)}"></div></div>
+    <div class="f2"><div class="field"><label>Direction</label><select id="f_dir"><option${dirShort?'':' selected'}>Long</option><option${dirShort?' selected':''}>Short</option></select></div>
+      <div class="field"><label>Contracts</label><input id="f_qty" class="num" type="number" min="1" value="${existing?(existing.contracts||1):1}"></div></div>
+    <div class="f3"><div class="field"><label>Entry</label><input id="f_entry" class="num" type="number" step="any" value="${existing&&existing.entry!=null?existing.entry:''}"></div>
+      <div class="field"><label>Exit</label><input id="f_exit" class="num" type="number" step="any" value="${existing&&existing.exit!=null?existing.exit:''}"></div>
+      <div class="field"><label>Stop <span style="text-transform:none;color:var(--text-3)">(opt)</span></label><input id="f_stop" class="num" type="number" step="any" value="${existing&&existing.stop!=null?existing.stop:''}"></div></div>
     <div class="calc-preview" id="f_prev"><span class="muted">Enter prices to preview P&L…</span></div>
-    <div class="f2"><div class="field"><label>Setup / Play</label><select id="f_play" onchange="toggleCustomPlay()"><option value="">— none —</option>${playOpts}<option value="__other__">Other…</option></select>
-      <input id="f_play_custom" style="display:none;margin-top:8px" placeholder="Type your setup name"></div>
+    <div class="f2"><div class="field"><label>Setup / Play</label><select id="f_play" onchange="toggleCustomPlay()"><option value="">— none —</option>${playOpts}<option value="__other__" ${useCustomPlay?'selected':''}>Other…</option></select>
+      <input id="f_play_custom" style="display:${useCustomPlay?'block':'none'};margin-top:8px" placeholder="Type your setup name" value="${useCustomPlay?esc(existing.playName):''}"></div>
       <div class="field"><label>Account</label><select id="f_acct"><option value="">— none —</option>${acctOpts}</select></div></div>
     <div class="f2"><div class="field"><label>Mindset / Emotion</label><select id="f_emo"><option value="">— none —</option>${emoOpts}</select></div>
-      <div class="field"><label>Followed your plan?</label><div class="toggle" id="f_plan"><div class="opt on" data-v="1">Yes</div><div class="opt" data-v="0">No</div></div></div></div>
-    <div class="field"><label>Notes</label><textarea id="f_notes" placeholder="Why you took it, how it felt, what you'd do differently…"></textarea></div>
+      <div class="field"><label>Followed your plan?</label><div class="toggle" id="f_plan"><div class="opt ${planOn?'on':''}" data-v="1">Yes</div><div class="opt ${planOn?'':'on'}" data-v="0">No</div></div></div></div>
+    <div class="field"><label>Notes</label><textarea id="f_notes" placeholder="Why you took it, how it felt, what you'd do differently…">${existing?esc(existing.notes||''):''}</textarea></div>
   `,()=>{const playSel=val('f_play');let playId=null,playName='';
-    if(playSel==='__other__'){playName=val('f_play_custom').trim();if(!playName){flash('Enter a setup name');return false;}}
+    if(playSel==='__other__'){playName=(val('f_play_custom')||'').trim();if(!playName){flash('Enter a setup name');return false;}}
     else if(playSel)playId=playSel;
-    const t={id:uid(),symbol:val('f_sym'),date:val('f_date'),direction:val('f_dir'),contracts:+val('f_qty')||1,
+    const payload={symbol:val('f_sym'),date:val('f_date'),direction:val('f_dir'),contracts:+val('f_qty')||1,
       entry:+val('f_entry'),exit:+val('f_exit'),stop:val('f_stop')||null,playId,playName,accountId:val('f_acct')||null,
       emotion:val('f_emo')||null,plan:window.__plan!==0,notes:val('f_notes')};
-    if(isNaN(t.entry)||isNaN(t.exit)){flash('Entry and exit are required');return false;}
-    t.csvPnl=calc(t).pnl;
-    state.trades.push(t);save('trades');flash('Trade logged');go(view==='dashboard'?'dashboard':'trades');
-  },'Save Trade');
-  window.__plan=1;
+    if(isNaN(payload.entry)||isNaN(payload.exit)){flash('Entry and exit are required');return false;}
+    const bare={symbol:payload.symbol,direction:payload.direction,entry:payload.entry,exit:payload.exit,contracts:payload.contracts,stop:payload.stop};
+    if(existing&&existing.csvPnl!=null&&existing.csvPnl!==''&&!isNaN(+existing.csvPnl)){
+      const samePx=+existing.entry===payload.entry&&+existing.exit===payload.exit&&+(existing.contracts||1)===payload.contracts&&existing.direction===payload.direction&&existing.symbol===payload.symbol;
+      payload.csvPnl=samePx?+existing.csvPnl:calc(bare).pnl;
+    }else{
+      payload.csvPnl=calc(bare).pnl;
+    }
+    if(existing){
+      Object.assign(existing,payload);
+      save('trades');flash('Trade updated');
+      if(view==='trades')renderTrades();else go('trades');
+    }else{
+      payload.id=uid();
+      state.trades.push(payload);save('trades');flash('Trade logged');go(view==='dashboard'?'dashboard':'trades');
+    }
+  },existing?'Save changes':'Save Trade');
+  window.__plan=planOn?1:0;
   document.querySelectorAll('#f_plan .opt').forEach(o=>o.onclick=()=>{document.querySelectorAll('#f_plan .opt').forEach(x=>x.classList.remove('on'));o.classList.add('on');window.__plan=+o.dataset.v;});
   const upd=()=>{const e=+val('f_entry'),x=+val('f_exit');const el=document.getElementById('f_prev');
     if(isNaN(e)||isNaN(x)){el.innerHTML='<span class="muted">Enter prices to preview P&L…</span>';return;}
@@ -1160,7 +1177,8 @@ function openTrade(){
     el.innerHTML=`<span>Ticks <b class="${cls(c.ticks)}">${c.ticks>0?'+':''}${c.ticks.toFixed(1)}</b></span>
       <span>Points <b class="${cls(c.points)}">${c.points>0?'+':''}${c.points.toFixed(2)}</b></span>
       <span>P&L <b class="${cls(c.pnl)}">${fmt$c(c.pnl)}</b></span>${c.r!=null?`<span>R <b class="${cls(c.r)}">${c.r>=0?'+':''}${c.r.toFixed(2)}R</b></span>`:''}`;};
-  ['f_sym','f_dir','f_qty','f_entry','f_exit','f_stop'].forEach(id=>document.getElementById(id).addEventListener('input',upd));
+  ['f_sym','f_dir','f_qty','f_entry','f_exit','f_stop'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',upd);});
+  upd();
 }
 function toggleCustomPlay(){const sel=document.getElementById('f_play');const box=document.getElementById('f_play_custom');if(!sel||!box)return;box.style.display=sel.value==='__other__'?'block':'none';}
 
