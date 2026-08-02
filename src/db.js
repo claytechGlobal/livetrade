@@ -448,10 +448,19 @@ function normalizeCsvSymbol(raw) {
   const root = sym.replace(/[A-Z]\d+$/, '').replace(/(\d+)$/, '').replace(/^([A-Z]{1,5}).*/, '$1');
   return root || sym;
 }
+function upsertClientDailyPnlDays(clientId, byDay, note) {
+  const existing = db.prepare('SELECT * FROM daily_pnl WHERE client_id=?').all(clientId);
+  const keep = existing.filter(e => byDay[e.date] == null);
+  const merged = keep.map(e => ({ id: e.id, date: e.date, amount: e.amount, note: e.note || '' }))
+    .concat(Object.keys(byDay).sort().map(date => ({
+      id: uid(), date, amount: byDay[date], note: note || 'CSV upload'
+    })));
+  replaceClientDailyPnl(clientId, merged);
+}
 function applyClientCsvUpload(clientId, csvText) {
   const clean = String(csvText || '').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const lines = clean.trim().split('\n').filter(Boolean);
-  if (lines.length < 2) throw new Error('CSV needs a header row and at least one trade.');
+  if (lines.length < 2) throw new Error('CSV needs a header row and at least one data row.');
   function parseLine(l) {
     const out = []; let cur = ''; let inQ = false;
     for (let i = 0; i < l.length; i++) {
@@ -465,19 +474,53 @@ function applyClientCsvUpload(clientId, csvText) {
   }
   const headers = parseLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, ''));
   const idx = (re) => headers.findIndex(h => re.test(h));
-  const iDay = idx(/tradeday|^date$/);
+  const iDay = idx(/tradeday|^date$|statementdate|balancedate|asof|reportdate/);
   const iEntered = idx(/enteredat|entrytime|opentime|openat/);
   const iExited = idx(/exitedat|exittime|closetime|closeat/);
-  const iPnl = idx(/^pnl$|profit|netp/);
+  const iPnl = idx(/^pnl$|^pl$|profit|netp|realizedp/);
   const iSym = idx(/contractname|contract|symbol|ticker|instrument/);
   const iDir = idx(/^type$|side|dir|buysell/);
-  const iEntry = idx(/entryprice|entry/);
-  const iExit = idx(/exitprice|exit/);
+  const iEntry = idx(/entryprice|^entry$/);
+  const iExit = idx(/exitprice|^exit$/);
   const iSize = idx(/^size$|qty|quantity|contracts|lots/);
-  if (iPnl < 0) throw new Error('CSV must include a PnL column.');
+  const iAccount = idx(/^account$/);
+  const isBalanceSheet = idx(/beginningbalance/) >= 0 && idx(/endingbalance/) >= 0 && iPnl >= 0;
+
+  if (iPnl < 0) throw new Error('CSV must include a PL / PnL column.');
+
+  if (isBalanceSheet) {
+    const byDay = {};
+    let account = '';
+    lines.slice(1).forEach(line => {
+      if (!line.trim()) return;
+      const cols = parseLine(line);
+      const pnl = Number(String(cols[iPnl] || '').replace(/[$,]/g, ''));
+      if (isNaN(pnl)) return;
+      let date = null;
+      if (iDay >= 0) date = parseTradeDay(cols[iDay]);
+      if (!date && iEntered >= 0) date = parseTradeDay(cols[iEntered]);
+      if (!date) date = etLastTradingDay();
+      byDay[date] = (byDay[date] || 0) + pnl;
+      if (!account && iAccount >= 0) account = String(cols[iAccount] || '').trim();
+    });
+    const days = Object.keys(byDay).sort();
+    if (!days.length) throw new Error('No valid PL rows found in balance CSV.');
+    const note = account ? `Balance CSV ${account}` : 'Balance CSV';
+    upsertClientDailyPnlDays(clientId, byDay, note);
+    return {
+      mode: 'balance',
+      days: days.length,
+      trades: 0,
+      totalPnl: days.reduce((s, d) => s + byDay[d], 0),
+      dates: days,
+      keptExistingTrades: true
+    };
+  }
+
   if (iDay < 0 && iEntered < 0 && iExited < 0) {
     throw new Error('CSV must include TradeDay or EnteredAt (date) column.');
   }
+
   const byDay = {};
   const trades = [];
   lines.slice(1).forEach(line => {
@@ -504,9 +547,18 @@ function applyClientCsvUpload(clientId, csvText) {
   });
   const days = Object.keys(byDay).sort();
   if (!days.length) throw new Error('No valid trades found in CSV. Need date (EnteredAt or TradeDay as YYYY-MM-DD) and PnL.');
-  replaceClientTrades(clientId, trades);
-  mergeClientDailyPnlFromTrades(clientId, byDay, 'CSV upload');
-  return { days: days.length, trades: trades.length, totalPnl: days.reduce((s, d) => s + byDay[d], 0) };
+
+  const existing = listClientTrades(clientId);
+  const mergedTrades = existing.concat(trades);
+  replaceClientTrades(clientId, mergedTrades);
+  upsertClientDailyPnlDays(clientId, byDay, 'CSV upload');
+  return {
+    mode: 'trades',
+    days: days.length,
+    trades: trades.length,
+    totalPnl: days.reduce((s, d) => s + byDay[d], 0),
+    keptExistingTrades: existing.length
+  };
 }
 function dayShotsRoot() {
   return path.join(path.dirname(DB_PATH), 'day-shots');
@@ -805,6 +857,16 @@ function buildStreak(dayMap, anchorIso) {
 
 function etToday() {
   return new Date().toLocaleDateString('en-CA', { timeZone: REPORT_TZ() });
+}
+function etLastTradingDay() {
+  const now = Date.now();
+  for (let back = 0; back <= 3; back++) {
+    const t = new Date(now - back * 86400000);
+    const iso = t.toLocaleDateString('en-CA', { timeZone: REPORT_TZ() });
+    const wd = t.toLocaleDateString('en-US', { timeZone: REPORT_TZ(), weekday: 'short' });
+    if (wd !== 'Sat' && wd !== 'Sun') return iso;
+  }
+  return etToday();
 }
 function latestEntryDate(id) {
   const r = db.prepare('SELECT date FROM daily_pnl WHERE client_id=? ORDER BY date DESC LIMIT 1').get(id);
