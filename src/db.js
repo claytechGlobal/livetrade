@@ -156,6 +156,7 @@ function initDb() {
   const clientCols = db.prepare('PRAGMA table_info(clients)').all().map(c => c.name);
   if (!clientCols.includes('access_expires_at')) db.exec('ALTER TABLE clients ADD COLUMN access_expires_at TEXT');
   if (!clientCols.includes('stripe_subscription_id')) db.exec('ALTER TABLE clients ADD COLUMN stripe_subscription_id TEXT');
+  if (!clientCols.includes('daily_email')) db.exec('ALTER TABLE clients ADD COLUMN daily_email INTEGER DEFAULT 1');
   ensureClientTradesTable();
   const tradeCols = db.prepare('PRAGMA table_info(trades)').all().map(c => c.name);
   if (!tradeCols.includes('play_name')) db.exec('ALTER TABLE trades ADD COLUMN play_name TEXT');
@@ -281,10 +282,17 @@ function verifyAdmin(username, password) {
 }
 
 /* ---------- compose (read) ---------- */
+function clientWantsDailyEmail(c) {
+  if (!c) return false;
+  if (c.daily_email == null && c.dailyEmail == null) return true;
+  const v = c.daily_email != null ? c.daily_email : c.dailyEmail;
+  return !(v === 0 || v === false || v === '0' || v === 'false');
+}
 function clientOut(c) {
   return {
     id: c.id, name: c.name, email: c.email, package: c.package, status: c.status,
     split: c.split, accessCode: c.access_code, joined: c.joined,
+    dailyEmail: clientWantsDailyEmail(c),
     dailyPnl: db.prepare('SELECT * FROM daily_pnl WHERE client_id=? ORDER BY date').all(c.id)
       .map(d => ({ id: d.id, date: d.date, amount: d.amount, note: d.note }))
   };
@@ -688,19 +696,24 @@ const replaceAffiliates = db.transaction(arr => {
 });
 
 const replaceClients = db.transaction(arr => {
-  // Preserve stripe_session_id for any client that still exists (so webhook idempotency stays intact)
-  const prevSessions = {};
-  db.prepare('SELECT id, stripe_session_id FROM clients').all().forEach(r => { prevSessions[r.id] = r.stripe_session_id; });
+  const prev = {};
+  db.prepare('SELECT id, stripe_session_id, access_expires_at, stripe_subscription_id, daily_email FROM clients').all()
+    .forEach(r => { prev[r.id] = r; });
   db.prepare('DELETE FROM clients').run();
   db.prepare('DELETE FROM daily_pnl').run();
   const ic = db.prepare(`INSERT INTO clients
-    (id,name,email,package,status,split,access_code,stripe_session_id,joined)
-    VALUES (?,?,?,?,?,?,?,?,?)`);
+    (id,name,email,package,status,split,access_code,stripe_session_id,joined,access_expires_at,stripe_subscription_id,daily_email)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
   const idp = db.prepare('INSERT INTO daily_pnl(id,client_id,date,amount,note) VALUES(?,?,?,?,?)');
   (arr || []).forEach(c => {
     const cid = c.id || uid();
+    const old = prev[cid] || {};
+    const wantsEmail = clientWantsDailyEmail(c.dailyEmail != null ? { dailyEmail: c.dailyEmail } : old);
     ic.run(cid, c.name || '', c.email || '', c.package || 'starter', c.status || 'pending',
-      num(c.split), c.accessCode || null, c.stripeSessionId || prevSessions[cid] || null, c.joined || today());
+      num(c.split), c.accessCode || null, c.stripeSessionId || old.stripe_session_id || null, c.joined || today(),
+      c.accessExpiresAt || old.access_expires_at || null,
+      c.stripeSubscriptionId || old.stripe_subscription_id || null,
+      wantsEmail ? 1 : 0);
     (c.dailyPnl || []).forEach(d => idp.run(d.id || uid(), cid, d.date || today(), num(d.amount), d.note || ''));
   });
 });
@@ -873,7 +886,7 @@ function latestEntryDate(id) {
   return r ? r.date : null;
 }
 function listActiveClients() {
-  return db.prepare("SELECT * FROM clients WHERE status='active'").all();
+  return db.prepare("SELECT * FROM clients WHERE status='active' AND COALESCE(daily_email, 1) != 0").all();
 }
 // Build the figures for a client's daily email. date defaults to their latest uploaded day.
 function buildDailyReport(id, isoDate) {

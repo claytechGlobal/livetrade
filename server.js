@@ -45,7 +45,7 @@ app.get('/api/cron/daily', async (req, res) => {
     return res.json({ skipped: true, reason: 'DAILY_SEND_ENABLED=false' });
   }
   try {
-    const result = await runDailySend({ force: false });
+    const result = await runDailySend({ force: false, fromSchedule: true });
     res.json(result);
   } catch (e) {
     res.status(500).json({ error: e.message || 'Cron failed' });
