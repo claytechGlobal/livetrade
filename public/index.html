@@ -402,7 +402,7 @@ body.home-open::after{opacity:.35}
     <div class="nav-label">Business</div>
     <div class="nav-item" data-view="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Expense Tracker</span></div>
     <div class="nav-item" data-view="packages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Packages</span></div>
-    <div class="nav-item" data-view="propfirms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg><span>Prop Firms Guide</span></div>
+    <div class="nav-item" data-view="propfirms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg><span>Prop Firm Guide</span></div>
     <div class="nav-item" data-view="contract"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><span>Contract</span></div>
     <div class="nav-label admin-only">Management</div>
     <div class="nav-item admin-only" data-view="clients"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11"/></svg><span>Trade Copier</span></div>
@@ -846,7 +846,7 @@ function esc(s){return(s==null?'':''+s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'
 /* ===== nav ===== */
 const SUB={dashboard:"Here's where your edge stands today",trades:'Every position, with the futures math done for you',
   calendar:'Your profit & loss, day by day',playbook:'Which setups actually make you money',
-  accounts:'Fees, payouts & true business ROI',clients:'Central upload — copies to every client',packages:'Plans your prospects can purchase',propfirms:'Top futures prop firms — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Reference: the A+ move playbook',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data'};
+  accounts:'Fees, payouts & true business ROI',clients:'Central upload — copies to every client',packages:'Plans your prospects can purchase',propfirms:'Top futures prop firm — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Reference: the A+ move playbook',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data'};
 let view='dashboard';
 function go(v){
   if(session&&session.role==='client'&&(v==='clients'||v==='affiliates'||v==='settings')){v='dashboard';}
@@ -1543,7 +1543,7 @@ function drawCopierCal(){const data=copierDayMap();const days={};Object.keys(dat
   renderCalGrid(days,copierCalRef,'cpCalBody','cpCalMo',iso=>{const d=data[iso];return d?d.n+' client'+(d.n!==1?'s':''):'';});}
 /* business -> packages purchase page */
 function renderPropFirms(){
-  document.getElementById('content').innerHTML=`<div style="margin:-4px -4px 0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#0B0D10;min-height:calc(100vh - 140px)"><iframe src="/prop-firms-guide.html" title="Prop Firms Guide" style="display:block;width:100%;height:calc(100vh - 140px);min-height:640px;border:0;background:#0B0D10"></iframe></div>`;
+  document.getElementById('content').innerHTML=`<div style="margin:-4px -4px 0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#0B0D10;min-height:calc(100vh - 140px)"><iframe src="/prop-firms-guide.html" title="Prop Firm Guide" style="display:block;width:100%;height:calc(100vh - 140px);min-height:640px;border:0;background:#0B0D10"></iframe></div>`;
 }
 function renderPackages(){
   let h=`<div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:6px"><span class="tick"></span>Pricing</div></div>
