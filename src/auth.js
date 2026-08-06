@@ -6,7 +6,7 @@ const SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const COOKIE = 'lt_session';
 const isProd = process.env.NODE_ENV === 'production';
 const secureCookie = isProd && !String(process.env.APP_URL || '').startsWith('http://');
-const CLIENT_IDLE_MS = Number(process.env.CLIENT_SESSION_MS || 10 * 60 * 1000);
+const CLIENT_IDLE_MS = Number(process.env.CLIENT_SESSION_MS || 8 * 60 * 60 * 1000);
 const ADMIN_MS = 7 * 24 * 60 * 60 * 1000;
 
 function sign(payload) {
@@ -41,11 +41,9 @@ function resolveClientUser(u, res) {
   let row = u.clientId ? getClientRow(u.clientId) : null;
   if (!row && u.accessCode) row = findActiveClientByCode(u.accessCode);
   if (!row) return null;
-  if (row.id !== u.clientId || row.access_code !== u.accessCode) {
-    u.clientId = row.id;
-    u.accessCode = row.access_code;
-    if (res) setCookie(res, sign({ role: 'client', clientId: row.id, accessCode: row.access_code }), 'client');
-  }
+  u.clientId = row.id;
+  u.accessCode = row.access_code;
+  if (res) setCookie(res, sign({ role: 'client', clientId: row.id, accessCode: row.access_code }), 'client');
   return u;
 }
 function requireClient(req, res, next) {
