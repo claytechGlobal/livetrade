@@ -412,7 +412,8 @@ body.home-open::after{opacity:.35}
     <div class="spacer"></div>
     <div class="coach-card"><div class="ti">Coach</div><div class="tx" id="coachSide">Log trades to unlock your edge score.</div></div>
     <div class="nav-item" data-view="terms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg><span>Terms &amp; Policy</span></div>
-    <div class="nav-item" style="margin-top:6px" onclick="logout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Log out</span></div>
+    <div class="nav-item" style="margin-top:6px" data-action="switch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M8 21H3v-5M21 3l-7 7M3 21l7-7"/></svg><span>Switch account</span></div>
+    <div class="nav-item" style="margin-top:2px" data-action="logout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Log out</span></div>
   </aside>
 
   <main class="main">
@@ -512,15 +513,32 @@ async function loadClientApp(){const d=await api('GET','/api/client/app');
   return d.client&&d.client.id;}
 function applyClientShell(on){document.body.classList.toggle('client-mode',!!on);}
 function isAdminRoute(){return location.pathname==='/admin'||location.pathname.indexOf('/admin/')===0;}
+function wantLanding(){
+  const q=new URLSearchParams(location.search);
+  return q.has('loggedout')||q.has('home')||q.has('switch');
+}
+async function forceClearSession(){
+  session=null;stopIdleWatch();applyClientShell(false);
+  try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}catch(_){}
+}
 async function init(){
   const adminSide=isAdminRoute();
+  if(wantLanding()&&!adminSide){
+    await forceClearSession();
+    registerPwa();
+    showScreen('home');renderHome();
+    if(location.search){try{history.replaceState({},'',location.pathname||'/');}catch(_){}}
+    setTimeout(()=>{const el=document.getElementById('home-portal');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200);
+    return;
+  }
   let me=null;try{const r=await fetch('/api/auth/me',{credentials:'same-origin'});if(r.ok)me=await r.json();}catch(e){}
   if(adminSide){
     if(me&&me.role==='admin'){session=me;try{await loadAdmin();showScreen('admin');go('dashboard');return;}catch(e){}}
     showScreen('login');renderLogin();return;
   }
   registerPwa();
-  if(me&&me.role==='client'){session=me;try{await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();bumpIdle();return;}catch(e){showScreen('home');renderHome(true);return;}}
+  if(me&&me.role==='client'){session=me;try{await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();bumpIdle();return;}catch(e){await forceClearSession();showScreen('home');renderHome();return;}}
+  if(me&&me.role==='admin'){location.href='/admin';return;}
   const pc=new URLSearchParams(location.search).get('portal');
   if(pc){try{const r2=await api('POST','/api/auth/login',{credential:pc});if(r2.role==='client'){session=r2;await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();bumpIdle();return;}}catch(e){}}
   showScreen('home');renderHome();
@@ -542,32 +560,35 @@ function authTab(m){window.__authMode=m;
   document.getElementById('client-pane').style.display=m==='client'?'block':'none';
   const e=document.getElementById('lg_err');if(e)e.textContent='';}
 async function attemptLogin(){
-  const err=document.getElementById('lg_err');err.textContent='';
+  const err=document.getElementById('lg_err');if(err)err.textContent='';
   let payload;
   if(isAdminRoute()){
     const u=val('lg_user').trim(),p=val('lg_pass');
-    if(!u||!p){err.textContent='Enter your username and password.';return;}
+    if(!u||!p){if(err)err.textContent='Enter your username and password.';return;}
     payload={username:u,password:p};
   }else{
-    const code=val('lg_code').trim();if(!code){err.textContent='Enter your access code.';return;}
+    const code=val('lg_code').trim();if(!code){if(err)err.textContent='Enter your access code.';return;}
     payload={credential:code};
   }
-  try{const me=await api('POST','/api/auth/login',payload);session=me;
+  try{
+    await forceClearSession();
+    const me=await api('POST','/api/auth/login',payload);session=me;
     if(me.role==='admin'){
       if(!isAdminRoute()){location.href='/admin';return;}
       await loadAdmin();showScreen('admin');go('dashboard');
     }else{
       if(isAdminRoute()){location.href='/';return;}
-      await loadClientApp();showScreen('admin');go('dashboard');bumpIdle();
+      await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();bumpIdle();
     }
   }catch(e){const el=document.getElementById('lg_err');if(el)el.textContent=e.message||'Login failed.';}
 }
-async function logout(){try{await api('POST','/api/auth/logout');}catch(e){}
-  stopIdleWatch();
-  session=null;applyClientShell(false);
-  state={settings:state.settings,plays:[],accounts:[],trades:[],clients:[],dayPnl:[],affiliates:[]};
-  if(isAdminRoute()){showScreen('login');renderLogin();}else{location.href='/';}
+async function logout(){
+  await forceClearSession();
+  state={settings:state.settings||{},plays:[],accounts:[],trades:[],clients:[],dayPnl:[],affiliates:[],dayShots:[],dayShotRev:{}};
+  if(isAdminRoute()){showScreen('login');renderLogin();return;}
+  location.href='/?loggedout=1';
 }
+function switchAccount(){location.href='/?switch=1';}
 
 const IDLE_MS=8*60*60*1000;
 let idleTimer=null;
@@ -764,7 +785,7 @@ async function renderHome(needSub){
     <section class="home-sec" id="home-portal" style="display:flex;justify-content:center">
       <div class="auth-login">
         <h3>Enter your dashboard</h3>
-        <p>Use the access code emailed after purchase. Get Started opens your client dashboard.</p>
+        <p>Use the access code emailed after purchase. To use a different account, enter that account’s code here.</p>
         <div class="field" style="margin-bottom:0"><label>Access code</label><input id="lg_code" placeholder="ABCD-1234" autocomplete="one-time-code" onkeydown="if(event.key==='Enter')attemptLogin()"></div>
         <div class="auth-err" id="lg_err"></div>
         <button class="btn primary home-cta" style="width:100%;margin-top:14px" onclick="attemptLogin()">Get Started →</button>
@@ -851,12 +872,21 @@ const SUB={dashboard:"Here's where your edge stands today",trades:'Every positio
   accounts:'Fees, payouts & true business ROI',clients:'Central upload — copies to every client',packages:'Plans your prospects can purchase',propfirms:'Top futures prop firm — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Technicals — A+ move charts & setups',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data'};
 let view='dashboard';
 function go(v){
+  if(!v)return;
   if(session&&session.role==='client'&&(v==='clients'||v==='affiliates'||v==='settings')){v='dashboard';}
+  const fn={dashboard:renderDash,trades:renderTrades,calendar:renderCalendar,playbook:renderPlaybook,playbook101:renderPlaybook101,accounts:renderAccounts,clients:renderClients,packages:renderPackages,propfirms:renderPropFirms,contract:renderContract,guide:renderGuide,affiliates:renderAffiliates,terms:renderTerms,settings:renderSettings}[v];
+  if(!fn)return;
   view=v;document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===v));
-  document.getElementById('subline').textContent=SUB[v];
-  ({dashboard:renderDash,trades:renderTrades,calendar:renderCalendar,playbook:renderPlaybook,playbook101:renderPlaybook101,accounts:renderAccounts,clients:renderClients,packages:renderPackages,propfirms:renderPropFirms,contract:renderContract,guide:renderGuide,affiliates:renderAffiliates,terms:renderTerms,settings:renderSettings}[v])();
+  const sub=document.getElementById('subline');if(sub)sub.textContent=SUB[v]||'';
+  fn();
   document.querySelector('.main').scrollTo(0,0);}
-document.querySelectorAll('.nav-item').forEach(n=>n.onclick=()=>go(n.dataset.view));
+document.querySelectorAll('.nav-item').forEach(n=>{
+  n.addEventListener('click',e=>{
+    if(n.dataset.action==='logout'){e.preventDefault();logout();return;}
+    if(n.dataset.action==='switch'){e.preventDefault();switchAccount();return;}
+    if(n.dataset.view)go(n.dataset.view);
+  });
+});
 
 function isLiveSessionNow(){
   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'short',hour:'numeric',minute:'numeric',hour12:false}).formatToParts(new Date());

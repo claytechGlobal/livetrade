@@ -19,11 +19,14 @@ function setCookie(res, token, role) {
     httpOnly: true,
     secure: secureCookie,
     sameSite: 'lax',
+    path: '/',
     maxAge
   });
 }
 function clearCookie(res) {
-  res.clearCookie(COOKIE, { httpOnly: true, secure: secureCookie, sameSite: 'lax' });
+  const base = { httpOnly: true, secure: secureCookie, sameSite: 'lax', path: '/' };
+  res.clearCookie(COOKIE, base);
+  res.cookie(COOKIE, '', { ...base, maxAge: 0, expires: new Date(0) });
 }
 function authFromReq(req) {
   const token = req.cookies && req.cookies[COOKIE];
