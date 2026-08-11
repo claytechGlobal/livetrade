@@ -1,6 +1,6 @@
 'use strict';
 const express = require('express');
-const { getSettings } = require('../db');
+const { getSettings, getShareDisplay } = require('../db');
 
 const router = express.Router();
 
@@ -23,6 +23,12 @@ router.get('/pricing', (req, res) => {
       prime:   { label: prices.prime   || '$2500',  link: LINKS.prime   }
     }
   });
+});
+
+router.get('/share/:token', (req, res) => {
+  const data = getShareDisplay(req.params.token);
+  if (!data) return res.status(404).json({ error: 'Share link not found or inactive' });
+  res.json(data);
 });
 
 module.exports = router;

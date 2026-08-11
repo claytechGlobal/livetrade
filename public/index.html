@@ -435,6 +435,7 @@ body.home-open::after{opacity:.35}
 
 <div id="loginRoot" style="display:none"></div>
 <div id="portalRoot" style="display:none"></div>
+<div id="shareRoot" style="display:none"></div>
 
 <div id="modalRoot"></div>
 <div class="toast" id="toast"></div>
@@ -522,6 +523,10 @@ async function forceClearSession(){
   try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}catch(_){}
 }
 async function init(){
+  const shareMatch=location.pathname.match(/^\/share\/([^\/\?#]+)/i);
+  const shareQ=new URLSearchParams(location.search).get('share');
+  const shareTok=shareMatch?decodeURIComponent(shareMatch[1]):shareQ;
+  if(shareTok){await showShareView(shareTok);return;}
   const adminSide=isAdminRoute();
   if(wantLanding()&&!adminSide){
     await forceClearSession();
@@ -546,9 +551,10 @@ async function init(){
 
 /* ===== auth / sessions ===== */
 function showScreen(s){
-  document.body.classList.toggle('home-open',s==='home'||s==='login');
+  document.body.classList.toggle('home-open',s==='home'||s==='login'||s==='share');
   document.getElementById('appRoot').style.display=s==='admin'?'grid':'none';
   document.getElementById('portalRoot').style.display=s==='portal'?'block':'none';
+  const sr=document.getElementById('shareRoot');if(sr)sr.style.display=s==='share'?'block':'none';
   const lr=document.getElementById('loginRoot');
   lr.style.display=(s==='login'||s==='home')?'block':'none';
   lr.classList.toggle('home-mode',s==='home'||s==='login');
@@ -956,6 +962,7 @@ function renderDash(){
     ${stat('Avg / Trade',fmt$(m.n?m.net/m.n:0,true),cls(m.net),'per position')}
   </div>`;
   if(session&&session.role==='client')h+=renderLiveSessionCard();
+  h+=`<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px"><button class="btn sm" onclick="copyCalendarShareLink()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg> Share calendar</button></div>`;
   /* calendar + mindset */
   h+=`<div class="dash-mid">
     <div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>P&L Calendar</div>
@@ -1126,6 +1133,10 @@ function renderCalendar(){
     ${stat('Month P&L',fmt$(monthNet,true),cls(monthNet),'realized')}
     ${stat('Trading Days',td,'','this month')}
     ${stat('Green Days',td?pct(wd/td*100):'—','',`${wd} of ${td}`)}</div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn sm primary" onclick="copyCalendarShareLink()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg> Share calendar</button>
+      <button class="btn sm ghost" onclick="rotateCalendarShareLink()">New share link</button>
+    </div>
     <div class="admin-write" style="display:flex;justify-content:flex-end;margin-bottom:14px"><button class="btn sm" onclick="importDailyCsv()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Import daily P&L (CSV)</button></div>
     <div class="client-upload" style="justify-content:flex-end;margin-bottom:14px"><button class="btn sm primary" onclick="openClientCsvUpload()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M8 8l4-4 4 4"/><path d="M4 20h16"/></svg> Upload trades CSV</button></div>
         <div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>P&L Calendar</div>
@@ -1135,6 +1146,106 @@ function renderCalendar(){
       <div id="calBody"></div>
       <div class="cal-legend"><span><i style="background:var(--green-soft);border:1px solid rgba(52,211,153,.4)"></i>Green day</span><span><i style="background:var(--red-soft);border:1px solid rgba(251,94,126,.4)"></i>Red day</span><span>Tap a day to add a screenshot</span></div></div>`;
   document.getElementById('content').innerHTML=h;drawCalendar();
+}
+async function copyCalendarShareLink(rotate){
+  try{
+    const base=session&&session.role==='client'?'/api/client/share-link':'/api/admin/share-link';
+    const d=await api(rotate?'POST':'GET',rotate?base+'/rotate':base);
+    const url=location.origin+(d.path||('/share/'+d.token));
+    if(navigator.clipboard&&navigator.clipboard.writeText)await navigator.clipboard.writeText(url);
+    flash(rotate?'New share link copied — old link stops working':'Shareable calendar link copied');
+    modal('Shareable calendar',`
+      <div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:10px">Anyone with this link can view a read-only calendar + performance summary. No login required.</div>
+      <div class="field"><label>Public link</label><input id="share_url" value="${esc(url)}" readonly onclick="this.select()"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn sm primary" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(val('share_url'));flash('Copied')">Copy again</button>
+        <a class="btn sm" href="${esc(url)}" target="_blank" rel="noopener">Open preview</a>
+      </div>
+    `,()=>{},'Done');
+  }catch(e){flash(e.message||'Could not create share link');}
+}
+function rotateCalendarShareLink(){copyCalendarShareLink(true);}
+
+let shareState={days:{},ref:new Date(),data:null};
+function shareCalStep(d){shareState.ref.setMonth(shareState.ref.getMonth()+d);drawShareCalendar();}
+function drawShareCalendar(){
+  const days=shareState.days||{};
+  const ref=shareState.ref;ref.setDate(1);
+  const body=document.getElementById('shareCalBody');const moEl=document.getElementById('shareCalMo');
+  if(!body)return;
+  const y=ref.getFullYear(),mo=ref.getMonth();
+  if(moEl)moEl.textContent=ref.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const first=new Date(y,mo,1).getDay(),dim=new Date(y,mo+1,0).getDate();
+  const todayISO=new Date().toISOString().slice(0,10);
+  const dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let h='<div class="cal-grid">'+dow.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let i=0;i<first;i++)h+='<div class="cal-cell blank"></div>';
+  let monthNet=0,td=0,wd=0;
+  for(let d=1;d<=dim;d++){
+    const iso=`${y}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const pnl=days[iso];const has=pnl!=null;const c=has?(pnl>0?'win':pnl<0?'loss':''):'';
+    if(has){monthNet+=pnl;td++;if(pnl>0)wd++;}
+    h+=`<div class="cal-cell ${c} ${has?'has':''} ${iso===todayISO?'today':''}"><div class="d">${d}</div>${has?`<div class="cal-foot"><div class="p ${cls(pnl)}">${fmt$(pnl,true)}</div></div>`:''}</div>`;
+  }
+  h+='</div>';body.innerHTML=h;
+  const sn=document.getElementById('shareMonthNet');if(sn){sn.textContent=fmt$(monthNet,true);sn.className='v '+cls(monthNet);}
+  const st=document.getElementById('shareMonthDays');if(st)st.textContent=String(td);
+  const sg=document.getElementById('shareMonthGreen');if(sg)sg.textContent=td?pct(wd/td*100):'—';
+}
+async function showShareView(token){
+  showScreen('share');
+  const root=document.getElementById('shareRoot');
+  root.innerHTML=`<div style="min-height:100vh;padding:28px 18px 48px;background:radial-gradient(1200px 500px at 50% -10%,rgba(34,184,239,.12),transparent),var(--bg)"><div style="max-width:980px;margin:0 auto"><div class="hint" style="font-family:var(--ui)">Loading share…</div></div></div>`;
+  try{
+    const r=await fetch('/api/public/share/'+encodeURIComponent(token));
+    if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error||'Share link not found');}
+    const data=await r.json();
+    shareState={days:data.days||{},ref:new Date(),data};
+    if(data.accent){document.documentElement.style.setProperty('--accent',data.accent);document.documentElement.style.setProperty('--accent-soft',hexA(data.accent,.16));}
+    const s=data.summary||{};
+    document.title=(data.name||'Calendar')+' · Shared';
+    root.innerHTML=`
+    <div style="min-height:100vh;padding:24px 16px 56px;background:radial-gradient(1200px 500px at 50% -10%,rgba(34,184,239,.12),transparent),var(--bg)">
+      <div style="max-width:980px;margin:0 auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:22px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="brand-mark" style="width:72px;height:72px;border-radius:12px"><img src="/images/logo.png" alt=""></div>
+            <div>
+              <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);font-weight:700">${esc(data.appName||'LIVE TRADES')}</div>
+              <div style="font-family:var(--display);font-weight:800;font-size:24px;color:var(--text)">${esc(data.name||'Trader')}</div>
+              <div class="hint" style="font-family:var(--ui);color:var(--text-2)">Shared performance display · read only</div>
+            </div>
+          </div>
+          <a class="btn sm" href="/" style="text-decoration:none">Open Plan The Trade</a>
+        </div>
+        <div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+          ${stat('Total P&L',fmt$(s.totalNet||0,true),cls(s.totalNet||0),'all time')}
+          ${stat('Trading Days',s.tradingDays||0,'','reported')}
+          ${stat('Win Rate',(s.winRate||0)+'%','',(s.greenDays||0)+' green')}
+          ${stat('Best Day',fmt$(s.bestDay||0,true),cls(s.bestDay||0),'single session')}
+        </div>
+        <div class="stat-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+          <div class="stat"><div class="l">Month P&L</div><div class="v" id="shareMonthNet">—</div><div class="m">this month</div></div>
+          <div class="stat"><div class="l">Month Days</div><div class="v" id="shareMonthDays">—</div><div class="m">trading days</div></div>
+          <div class="stat"><div class="l">Green %</div><div class="v" id="shareMonthGreen">—</div><div class="m">this month</div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div class="card-t"><span class="tick"></span>P&L Calendar</div>
+            <div class="cal-nav">
+              <div class="iconbtn" style="width:30px;height:30px" onclick="shareCalStep(-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
+              <div class="mo" id="shareCalMo"></div>
+              <div class="iconbtn" style="width:30px;height:30px" onclick="shareCalStep(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+            </div>
+          </div>
+          <div id="shareCalBody"></div>
+          <div class="cal-legend"><span><i style="background:var(--green-soft);border:1px solid rgba(52,211,153,.4)"></i>Green day</span><span><i style="background:var(--red-soft);border:1px solid rgba(251,94,126,.4)"></i>Red day</span><span>Public view</span></div>
+        </div>
+      </div>
+    </div>`;
+    drawShareCalendar();
+  }catch(e){
+    root.innerHTML=`<div style="min-height:100vh;display:grid;place-items:center;padding:24px"><div class="card" style="max-width:420px;text-align:center"><div class="card-t" style="justify-content:center;margin-bottom:10px"><span class="tick"></span>Share unavailable</div><div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:16px">${esc(e.message||'Link not found')}</div><a class="btn primary" href="/" style="text-decoration:none">Go to home</a></div></div>`;
+  }
 }
 
 /* ===== TRADES ===== */

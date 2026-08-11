@@ -1,7 +1,7 @@
 'use strict';
 const express = require('express');
 const { requireClient } = require('../auth');
-const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload, saveClientTrades, saveClientAccounts, saveClientPlays, getDayScreenshot, saveDayScreenshot, deleteDayScreenshot } = require('../db');
+const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload, saveClientTrades, saveClientAccounts, saveClientPlays, getDayScreenshot, saveDayScreenshot, deleteDayScreenshot, ensureClientShareToken } = require('../db');
 const { sendContractSubmission, emailEnabled, contractNotifyTo } = require('../email');
 
 const router = express.Router();
@@ -162,6 +162,21 @@ router.delete('/day-shot/:date', (req, res) => {
   } catch (e) {
     res.status(400).json({ error: e.message || 'Delete failed' });
   }
+});
+
+router.get('/share-link', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  const token = ensureClientShareToken(row.id, false);
+  res.json({ token, path: '/share/' + token });
+});
+router.post('/share-link/rotate', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  const token = ensureClientShareToken(row.id, true);
+  res.json({ token, path: '/share/' + token });
 });
 
 module.exports = router;

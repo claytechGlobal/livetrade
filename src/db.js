@@ -157,6 +157,7 @@ function initDb() {
   if (!clientCols.includes('access_expires_at')) db.exec('ALTER TABLE clients ADD COLUMN access_expires_at TEXT');
   if (!clientCols.includes('stripe_subscription_id')) db.exec('ALTER TABLE clients ADD COLUMN stripe_subscription_id TEXT');
   if (!clientCols.includes('daily_email')) db.exec('ALTER TABLE clients ADD COLUMN daily_email INTEGER DEFAULT 1');
+  if (!clientCols.includes('share_token')) db.exec('ALTER TABLE clients ADD COLUMN share_token TEXT');
   ensureClientTradesTable();
   const tradeCols = db.prepare('PRAGMA table_info(trades)').all().map(c => c.name);
   if (!tradeCols.includes('play_name')) db.exec('ALTER TABLE trades ADD COLUMN play_name TEXT');
@@ -697,13 +698,13 @@ const replaceAffiliates = db.transaction(arr => {
 
 const replaceClients = db.transaction(arr => {
   const prev = {};
-  db.prepare('SELECT id, stripe_session_id, access_expires_at, stripe_subscription_id, daily_email FROM clients').all()
+  db.prepare('SELECT id, stripe_session_id, access_expires_at, stripe_subscription_id, daily_email, share_token FROM clients').all()
     .forEach(r => { prev[r.id] = r; });
   db.prepare('DELETE FROM clients').run();
   db.prepare('DELETE FROM daily_pnl').run();
   const ic = db.prepare(`INSERT INTO clients
-    (id,name,email,package,status,split,access_code,stripe_session_id,joined,access_expires_at,stripe_subscription_id,daily_email)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (id,name,email,package,status,split,access_code,stripe_session_id,joined,access_expires_at,stripe_subscription_id,daily_email,share_token)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   const idp = db.prepare('INSERT INTO daily_pnl(id,client_id,date,amount,note) VALUES(?,?,?,?,?)');
   (arr || []).forEach(c => {
     const cid = c.id || uid();
@@ -713,7 +714,8 @@ const replaceClients = db.transaction(arr => {
       num(c.split), c.accessCode || null, c.stripeSessionId || old.stripe_session_id || null, c.joined || today(),
       c.accessExpiresAt || old.access_expires_at || null,
       c.stripeSubscriptionId || old.stripe_subscription_id || null,
-      wantsEmail ? 1 : 0);
+      wantsEmail ? 1 : 0,
+      c.shareToken || old.share_token || null);
     (c.dailyPnl || []).forEach(d => idp.run(d.id || uid(), cid, d.date || today(), num(d.amount), d.note || ''));
   });
 });
@@ -982,6 +984,114 @@ function seedDemo() {
 }
 function isoBack(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
 
+function newShareToken() {
+  return 'sh_' + uid() + uid().slice(0, 6);
+}
+function ensureAdminShareToken(rotate) {
+  const cur = getSetting('calendarShareToken');
+  if (cur && !rotate) return cur;
+  const token = newShareToken();
+  setSetting('calendarShareToken', token);
+  return token;
+}
+function ensureClientShareToken(clientId, rotate) {
+  const c = db.prepare('SELECT id, share_token FROM clients WHERE id=?').get(clientId);
+  if (!c) return null;
+  if (c.share_token && !rotate) return c.share_token;
+  const token = newShareToken();
+  db.prepare('UPDATE clients SET share_token=? WHERE id=?').run(token, clientId);
+  return token;
+}
+function tradePnlRow(t) {
+  const dir = /short|sell/i.test(String(t.direction || '')) ? -1 : 1;
+  if (t.pnl != null && !isNaN(Number(t.pnl))) return Number(t.pnl);
+  const entry = Number(t.entry), exit = Number(t.exit), q = Number(t.contracts) || 1;
+  if (isNaN(entry) || isNaN(exit)) return 0;
+  const sym = String(t.symbol || 'ES');
+  const specs = {
+    ES: 50, MES: 5, NQ: 20, MNQ: 2, YM: 5, MYM: 0.5, RTY: 50, M2K: 5, CL: 1000, MCL: 100, GC: 100, MGC: 10
+  };
+  const pv = specs[sym] != null ? specs[sym] : 50;
+  return (exit - entry) * dir * q * pv;
+}
+function buildShareDaysFromAdmin() {
+  const m = {};
+  const traded = new Set();
+  db.prepare('SELECT symbol,date,direction,entry,exit,contracts FROM trades').all().forEach(t => {
+    const d = String(t.date || '').slice(0, 10);
+    if (!d) return;
+    traded.add(d);
+    m[d] = (m[d] || 0) + tradePnlRow(t);
+  });
+  db.exec(`CREATE TABLE IF NOT EXISTS admin_day_pnl (id TEXT PRIMARY KEY, date TEXT, amount REAL, note TEXT)`);
+  db.prepare('SELECT date, amount FROM admin_day_pnl').all().forEach(r => {
+    const d = String(r.date || '').slice(0, 10);
+    if (!d || traded.has(d)) return;
+    m[d] = (m[d] || 0) + Number(r.amount || 0);
+  });
+  return m;
+}
+function buildShareDaysFromClient(clientId) {
+  const m = {};
+  try {
+    ensureClientTradesTable();
+    db.prepare('SELECT date,pnl,entry,exit,direction,contracts,symbol FROM client_trades WHERE client_id=?').all(clientId).forEach(t => {
+      const d = String(t.date || '').slice(0, 10);
+      if (!d) return;
+      m[d] = (m[d] || 0) + tradePnlRow(t);
+    });
+  } catch (_) {}
+  db.prepare('SELECT date, amount FROM daily_pnl WHERE client_id=?').all(clientId).forEach(r => {
+    const d = String(r.date || '').slice(0, 10);
+    if (!d) return;
+    if (m[d] == null) m[d] = Number(r.amount || 0);
+  });
+  return m;
+}
+function summarizeShareDays(days) {
+  const entries = Object.entries(days || {});
+  const total = entries.reduce((s, [, a]) => s + a, 0);
+  const tradingDays = entries.length;
+  const greenDays = entries.filter(([, a]) => a > 0).length;
+  const best = entries.length ? Math.max(...entries.map(([, a]) => a)) : 0;
+  return {
+    totalNet: total,
+    tradingDays,
+    greenDays,
+    winRate: tradingDays ? Math.round(greenDays / tradingDays * 100) : 0,
+    bestDay: best
+  };
+}
+function getShareDisplay(token) {
+  const t = String(token || '').trim();
+  if (!t) return null;
+  const settings = getSettings();
+  if (settings.calendarShareToken && settings.calendarShareToken === t) {
+    const days = buildShareDaysFromAdmin();
+    return {
+      ok: true,
+      kind: 'admin',
+      name: settings.trader || settings.appName || 'LIVE TRADES',
+      appName: settings.appName || 'LIVE TRADES',
+      accent: settings.accent || '#22b8ef',
+      days,
+      summary: summarizeShareDays(days)
+    };
+  }
+  const c = db.prepare('SELECT * FROM clients WHERE share_token=?').get(t);
+  if (!c || c.status !== 'active') return null;
+  const days = buildShareDaysFromClient(c.id);
+  return {
+    ok: true,
+    kind: 'client',
+    name: c.name || 'Trader',
+    appName: settings.appName || 'LIVE TRADES',
+    accent: settings.accent || '#22b8ef',
+    days,
+    summary: summarizeShareDays(days)
+  };
+}
+
 module.exports = {
   db, initDb, uid, genCode,
   getSettings, patchSettings, setAdminPassword, setAdminCredentials, getAdminUsername, verifyAdmin,
@@ -992,5 +1102,6 @@ module.exports = {
   handleCheckout, extendClientAccess, expireClientBySubscription, isClientAccessValid,
   isProcessed, markProcessed,
   findActiveClientByCode, getClientRow,
-  etToday, listActiveClients, buildDailyReport, isDailySent, markDailySent
+  etToday, listActiveClients, buildDailyReport, isDailySent, markDailySent,
+  ensureAdminShareToken, ensureClientShareToken, getShareDisplay
 };

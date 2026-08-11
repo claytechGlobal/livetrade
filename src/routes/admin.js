@@ -6,7 +6,8 @@ const {
   replaceDayPnl, replaceAffiliates,
   getSettings, patchSettings, setAdminPassword, setAdminCredentials,
   buildDailyReport, etToday, markDailySent,
-  getDayScreenshot, saveDayScreenshot, deleteDayScreenshot
+  getDayScreenshot, saveDayScreenshot, deleteDayScreenshot,
+  ensureAdminShareToken
 } = require('../db');
 const { sendDailyReport } = require('../email');
 const { runDailySend } = require('../scheduler');
@@ -63,6 +64,15 @@ router.post('/clients/:id/send', async (req, res) => {
 router.post('/send-daily', async (req, res) => {
   const result = await runDailySend({ force: !!(req.body && req.body.force) });
   res.json(result);
+});
+
+router.get('/share-link', (req, res) => {
+  const token = ensureAdminShareToken(false);
+  res.json({ token, path: '/share/' + token });
+});
+router.post('/share-link/rotate', (req, res) => {
+  const token = ensureAdminShareToken(true);
+  res.json({ token, path: '/share/' + token });
 });
 
 router.get('/day-shot/:date', (req, res) => {
