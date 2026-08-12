@@ -162,6 +162,7 @@ function initDb() {
   const tradeCols = db.prepare('PRAGMA table_info(trades)').all().map(c => c.name);
   if (!tradeCols.includes('play_name')) db.exec('ALTER TABLE trades ADD COLUMN play_name TEXT');
   migrateAccountLineage();
+  migrateDayTradeEntries();
 
   if (process.env.SEED_DEMO === 'true' && !db.prepare('SELECT id FROM clients LIMIT 1').get()) {
     seedDemo();
@@ -320,7 +321,7 @@ function composeBootstrap() {
   }));
   const settings = getSettings();
   settings.adminUser = getAdminUsername();
-  return { settings, plays, accounts, trades, clients, dayPnl, affiliates, dayShots: listDayShotDates('admin') };
+  return { settings, plays, accounts, trades, clients, dayPnl, affiliates, dayShots: listDayShotDates('admin'), dayTrades: listAllDayTradeEntries('admin') };
 }
 function getClientPortal(id) {
   const c = db.prepare('SELECT * FROM clients WHERE id=?').get(id);
@@ -578,20 +579,85 @@ function safeShotOwner(ownerId) {
 function isShotDate(date) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(date || ''));
 }
+const TRADE_SHOT_NOTE = '__trade_shots__';
+function migrateDayTradeEntries() {
+  db.exec(`CREATE TABLE IF NOT EXISTS day_trade_entries (
+    id TEXT PRIMARY KEY,
+    owner_id TEXT NOT NULL,
+    date TEXT NOT NULL,
+    pnl REAL DEFAULT 0,
+    mime TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    sort_num INTEGER DEFAULT 0,
+    created_at TEXT
+  )`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_day_trade_owner_date ON day_trade_entries(owner_id, date)');
+  const old = db.prepare('SELECT * FROM day_screenshots').all();
+  old.forEach(row => {
+    const exists = db.prepare('SELECT id FROM day_trade_entries WHERE owner_id=? AND date=? AND filename=?')
+      .get(row.owner_id, row.date, row.filename);
+    if (exists) return;
+    const id = uid();
+    db.prepare(`INSERT INTO day_trade_entries(id,owner_id,date,pnl,mime,filename,sort_num,created_at)
+      VALUES(?,?,?,?,?,?,?,?)`)
+      .run(id, row.owner_id, row.date, 0, row.mime, row.filename, 0, row.created_at || new Date().toISOString());
+  });
+}
+function mapDayTradeRow(r) {
+  return { id: r.id, date: r.date, pnl: r.pnl || 0, mime: r.mime, sortNum: r.sort_num || 0, createdAt: r.created_at || '' };
+}
+function listAllDayTradeEntries(ownerId) {
+  const oid = safeShotOwner(ownerId);
+  return db.prepare('SELECT * FROM day_trade_entries WHERE owner_id=? ORDER BY date DESC, sort_num ASC, created_at ASC')
+    .all(oid).map(mapDayTradeRow);
+}
+function listDayTradeEntries(ownerId, date) {
+  if (!isShotDate(date)) return [];
+  const oid = safeShotOwner(ownerId);
+  return db.prepare('SELECT * FROM day_trade_entries WHERE owner_id=? AND date=? ORDER BY sort_num ASC, created_at ASC')
+    .all(oid, date).map(mapDayTradeRow);
+}
 function listDayShotDates(ownerId) {
   const oid = safeShotOwner(ownerId);
-  return db.prepare('SELECT date FROM day_screenshots WHERE owner_id=? ORDER BY date').all(oid).map(r => r.date);
+  return db.prepare('SELECT DISTINCT date FROM day_trade_entries WHERE owner_id=? ORDER BY date').all(oid).map(r => r.date);
 }
-function getDayScreenshot(ownerId, date) {
-  if (!isShotDate(date)) return null;
+function getDayTradeEntry(ownerId, entryId) {
   const oid = safeShotOwner(ownerId);
-  const row = db.prepare('SELECT * FROM day_screenshots WHERE owner_id=? AND date=?').get(oid, date);
+  const row = db.prepare('SELECT * FROM day_trade_entries WHERE owner_id=? AND id=?').get(oid, entryId);
   if (!row) return null;
   const filePath = path.join(dayShotsRoot(), oid, row.filename);
   if (!fs.existsSync(filePath)) return null;
-  return { ...row, filePath };
+  return { ...mapDayTradeRow(row), filePath };
 }
-function saveDayScreenshot(ownerId, date, { mime, buffer }) {
+function getDayScreenshot(ownerId, date) {
+  const entries = listDayTradeEntries(ownerId, date);
+  if (!entries.length) return null;
+  return getDayTradeEntry(ownerId, entries[0].id);
+}
+function nextTradeSortNum(ownerId, date) {
+  const oid = safeShotOwner(ownerId);
+  const r = db.prepare('SELECT MAX(sort_num) as n FROM day_trade_entries WHERE owner_id=? AND date=?').get(oid, date);
+  return (r && r.n != null ? r.n : -1) + 1;
+}
+function syncDayPnlFromTradeEntries(ownerId, date) {
+  const entries = listDayTradeEntries(ownerId, date);
+  const sum = entries.reduce((s, e) => s + (Number(e.pnl) || 0), 0);
+  if (ownerId === 'admin') {
+    db.exec(`CREATE TABLE IF NOT EXISTS admin_day_pnl (id TEXT PRIMARY KEY, date TEXT, amount REAL, note TEXT)`);
+    db.prepare('DELETE FROM admin_day_pnl WHERE date=? AND note=?').run(date, TRADE_SHOT_NOTE);
+    if (entries.length) {
+      db.prepare('INSERT INTO admin_day_pnl(id,date,amount,note) VALUES(?,?,?,?)')
+        .run(uid(), date, sum, TRADE_SHOT_NOTE);
+    }
+    return;
+  }
+  db.prepare('DELETE FROM daily_pnl WHERE client_id=? AND date=? AND note=?').run(ownerId, date, TRADE_SHOT_NOTE);
+  if (entries.length) {
+    db.prepare('INSERT INTO daily_pnl(id,client_id,date,amount,note) VALUES(?,?,?,?,?)')
+      .run(uid(), ownerId, date, sum, TRADE_SHOT_NOTE);
+  }
+}
+function addDayTradeEntry(ownerId, date, { mime, buffer, pnl }) {
   if (!isShotDate(date)) throw new Error('Invalid date');
   const allowed = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
   const ext = allowed[mime];
@@ -601,26 +667,57 @@ function saveDayScreenshot(ownerId, date, { mime, buffer }) {
   const oid = safeShotOwner(ownerId);
   const dir = path.join(dayShotsRoot(), oid);
   fs.mkdirSync(dir, { recursive: true });
-  const prev = db.prepare('SELECT filename FROM day_screenshots WHERE owner_id=? AND date=?').get(oid, date);
-  if (prev && prev.filename) {
-    try { fs.unlinkSync(path.join(dir, prev.filename)); } catch (_) {}
-  }
-  const filename = `${date}.${ext}`;
+  const id = uid();
+  const sortNum = nextTradeSortNum(ownerId, date);
+  const filename = `${date}_${id}.${ext}`;
   fs.writeFileSync(path.join(dir, filename), buffer);
-  db.prepare(`INSERT INTO day_screenshots(owner_id,date,mime,filename,created_at) VALUES(?,?,?,?,?)
-    ON CONFLICT(owner_id,date) DO UPDATE SET mime=excluded.mime, filename=excluded.filename, created_at=excluded.created_at`)
-    .run(oid, date, mime, filename, new Date().toISOString());
-  return { date, mime, filename };
+  const pnlVal = num(pnl);
+  db.prepare(`INSERT INTO day_trade_entries(id,owner_id,date,pnl,mime,filename,sort_num,created_at)
+    VALUES(?,?,?,?,?,?,?,?)`)
+    .run(id, oid, date, pnlVal, mime, filename, sortNum, new Date().toISOString());
+  syncDayPnlFromTradeEntries(ownerId, date);
+  return mapDayTradeRow(db.prepare('SELECT * FROM day_trade_entries WHERE id=?').get(id));
 }
-function deleteDayScreenshot(ownerId, date) {
-  if (!isShotDate(date)) throw new Error('Invalid date');
+function updateDayTradeEntry(ownerId, entryId, { mime, buffer, pnl } = {}) {
   const oid = safeShotOwner(ownerId);
-  const row = db.prepare('SELECT filename FROM day_screenshots WHERE owner_id=? AND date=?').get(oid, date);
+  const row = db.prepare('SELECT * FROM day_trade_entries WHERE owner_id=? AND id=?').get(oid, entryId);
+  if (!row) throw new Error('Trade entry not found');
+  const dir = path.join(dayShotsRoot(), oid);
+  let filename = row.filename;
+  let mimeOut = row.mime;
+  if (mime && buffer) {
+    const allowed = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+    const ext = allowed[mime];
+    if (!ext) throw new Error('Use JPEG, PNG, or WebP');
+    if (buffer.length > 3.5 * 1024 * 1024) throw new Error('Image must be under 3.5 MB');
+    try { fs.unlinkSync(path.join(dir, filename)); } catch (_) {}
+    filename = `${row.date}_${entryId}.${ext}`;
+    fs.writeFileSync(path.join(dir, filename), buffer);
+    mimeOut = mime;
+  }
+  const pnlVal = pnl != null ? num(pnl) : row.pnl;
+  db.prepare('UPDATE day_trade_entries SET pnl=?, mime=?, filename=? WHERE id=?')
+    .run(pnlVal, mimeOut, filename, entryId);
+  syncDayPnlFromTradeEntries(ownerId, row.date);
+  return mapDayTradeRow(db.prepare('SELECT * FROM day_trade_entries WHERE id=?').get(entryId));
+}
+function deleteDayTradeEntry(ownerId, entryId) {
+  const oid = safeShotOwner(ownerId);
+  const row = db.prepare('SELECT * FROM day_trade_entries WHERE owner_id=? AND id=?').get(oid, entryId);
   if (!row) return false;
   const filePath = path.join(dayShotsRoot(), oid, row.filename);
   try { fs.unlinkSync(filePath); } catch (_) {}
-  db.prepare('DELETE FROM day_screenshots WHERE owner_id=? AND date=?').run(oid, date);
+  db.prepare('DELETE FROM day_trade_entries WHERE id=?').run(entryId);
+  syncDayPnlFromTradeEntries(ownerId, row.date);
   return true;
+}
+function saveDayScreenshot(ownerId, date, { mime, buffer }) {
+  return addDayTradeEntry(ownerId, date, { mime, buffer, pnl: 0 });
+}
+function deleteDayScreenshot(ownerId, date) {
+  const entries = listDayTradeEntries(ownerId, date);
+  entries.forEach(e => deleteDayTradeEntry(ownerId, e.id));
+  return entries.length > 0;
 }
 
 function composeClientApp(clientId) {
@@ -641,6 +738,7 @@ function composeClientApp(clientId) {
     trades: listClientTrades(clientId),
     dayPnl: (client.dailyPnl || []).map(d => ({ id: d.id, date: d.date, amount: d.amount, note: d.note || '' })),
     dayShots: listDayShotDates(clientId),
+    dayTrades: listAllDayTradeEntries(clientId),
     accounts: mine,
     client
   };
@@ -1098,6 +1196,8 @@ module.exports = {
   composeBootstrap, getClientPortal, composeClientApp, applyClientCsvUpload,
   saveClientTrades, saveClientAccounts, saveClientPlays, parseAcctSizeFromLabel,
   listDayShotDates, getDayScreenshot, saveDayScreenshot, deleteDayScreenshot,
+  listAllDayTradeEntries, listDayTradeEntries, getDayTradeEntry, addDayTradeEntry,
+  updateDayTradeEntry, deleteDayTradeEntry,
   replacePlays, replaceTrades, replaceAccounts, replaceClients, replaceDayPnl, replaceAffiliates,
   handleCheckout, extendClientAccess, expireClientBySubscription, isClientAccessValid,
   isProcessed, markProcessed,

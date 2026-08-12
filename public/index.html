@@ -157,8 +157,12 @@ body.client-mode .client-upload{display:flex!important;align-items:center;gap:10
 .cal-cell .cal-cam{position:absolute;top:7px;right:7px;width:15px;height:15px;opacity:.4;color:var(--text-3)}
 .cal-cell.has-shot .cal-cam{opacity:1;color:var(--accent)}
 .cal-cell .cal-thumb{width:100%;max-height:34%;object-fit:cover;border-radius:5px;margin:4px 0 2px;border:1px solid var(--line-soft)}
-.day-shot-preview{width:100%;max-height:280px;object-fit:contain;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);margin:10px 0}
-.day-shot-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center}
+.day-shot-preview{width:100%;max-height:220px;object-fit:contain;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);margin:8px 0}
+.day-shot-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;align-items:center}
+.trade-shot-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--surface)}
+.trade-shot-head{font-family:var(--display);font-weight:700;font-size:13px;margin-bottom:8px;color:var(--text)}
+.trade-shot-grid{display:grid;grid-template-columns:1fr 140px;gap:12px;align-items:start}
+@media(max-width:560px){.trade-shot-grid{grid-template-columns:1fr}}
 .cal-nav{display:flex;align-items:center;gap:8px}
 .cal-nav .mo{font-family:var(--display);font-weight:600;font-size:13.5px;min-width:120px;text-align:center}
 .cal-legend{display:flex;gap:16px;justify-content:flex-end;margin-top:13px;font-size:11px;color:var(--text-2)}
@@ -469,7 +473,7 @@ const PACKAGES={
 function pkg(k){return PACKAGES[k]||PACKAGES.starter;}
 
 /* ===== state + API client ===== */
-let state={settings:{},plays:[],accounts:[],trades:[],clients:[],dayPnl:[],affiliates:[],dayShots:[],dayShotRev:{}};
+let state={settings:{},plays:[],accounts:[],trades:[],clients:[],dayPnl:[],affiliates:[],dayShots:[],dayTrades:[],dayShotRev:{}};
 const KEYS=['plays','accounts','trades','clients','dayPnl','affiliates'];
 let session=null; // {role:'admin'} | {role:'client',clientId}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
@@ -494,7 +498,7 @@ async function save(k){
       const r=await api('PUT','/api/client/'+k,state[k]||[]);
       const d=r&&r.app;if(d){
         state.plays=d.plays||state.plays;state.accounts=d.accounts||[];state.trades=d.trades||[];
-        state.dayPnl=d.dayPnl||[];state.dayShots=d.dayShots||state.dayShots||[];state.clients=d.client?[d.client]:state.clients;
+        state.dayPnl=d.dayPnl||[];state.dayShots=d.dayShots||state.dayShots||[];state.dayTrades=d.dayTrades||state.dayTrades||[];state.clients=d.client?[d.client]:state.clients;
       }
     }catch(e){flash('Could not save — '+(e.message||'server error'));}
     return;
@@ -504,10 +508,10 @@ async function save(k){
     else{await api('PUT','/api/admin/'+k,state[k]||[]);}
   }catch(e){flash('Could not save — '+(e.message||'server error'));}}
 async function loadAdmin(){const d=await api('GET','/api/admin/bootstrap');
-  state.settings=d.settings||{};state.plays=d.plays||[];state.accounts=d.accounts||[];state.trades=d.trades||[];state.clients=d.clients||[];state.dayPnl=d.dayPnl||[];state.affiliates=d.affiliates||[];state.dayShots=d.dayShots||[];applyBranding();applyClientShell(false);}
+  state.settings=d.settings||{};state.plays=d.plays||[];state.accounts=d.accounts||[];state.trades=d.trades||[];state.clients=d.clients||[];state.dayPnl=d.dayPnl||[];state.affiliates=d.affiliates||[];state.dayShots=d.dayShots||[];state.dayTrades=d.dayTrades||[];applyBranding();applyClientShell(false);}
 async function loadClientApp(){const d=await api('GET','/api/client/app');
   state.settings=Object.assign({},state.settings,d.settings||{});
-  state.plays=d.plays||[];state.accounts=d.accounts||[];state.trades=d.trades||[];state.dayPnl=d.dayPnl||[];state.dayShots=d.dayShots||[];
+  state.plays=d.plays||[];state.accounts=d.accounts||[];state.trades=d.trades||[];state.dayPnl=d.dayPnl||[];state.dayShots=d.dayShots||[];state.dayTrades=d.dayTrades||[];
   state.clients=d.client?[d.client]:[];state.affiliates=[];
   applyBranding();applyClientShell(true);
   if(d.client&&d.client.name){const el=document.getElementById('hello');if(el)el.innerHTML='Welcome back, <span>'+esc(d.client.name)+'</span>';}
@@ -590,7 +594,7 @@ async function attemptLogin(){
 }
 async function logout(){
   await forceClearSession();
-  state={settings:state.settings||{},plays:[],accounts:[],trades:[],clients:[],dayPnl:[],affiliates:[],dayShots:[],dayShotRev:{}};
+  state={settings:state.settings||{},plays:[],accounts:[],trades:[],clients:[],dayPnl:[],affiliates:[],dayShots:[],dayTrades:[],dayShotRev:{}};
   if(isAdminRoute()){showScreen('login');renderLogin();return;}
   location.href='/?loggedout=1';
 }
@@ -970,7 +974,7 @@ function renderDash(){
       <div class="mo" id="calMo"></div>
       <div class="iconbtn" style="width:30px;height:30px" onclick="calStep(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div></div></div>
       <div id="calBody"></div>
-      <div class="cal-legend"><span><i style="background:var(--green-soft);border:1px solid rgba(52,211,153,.4)"></i>Green day</span><span><i style="background:var(--red-soft);border:1px solid rgba(251,94,126,.4)"></i>Red day</span><span>Tap a day to add a screenshot</span></div></div>
+      <div class="cal-legend"><span><i style="background:var(--green-soft);border:1px solid rgba(52,211,153,.4)"></i>Green day</span><span><i style="background:var(--red-soft);border:1px solid rgba(251,94,126,.4)"></i>Red day</span><span>Tap a day to log trades &amp; screenshots</span></div></div>
     <div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>Mindset Edge</div></div>${mindset(m)}</div>
   </div>`;
   /* play perf + accounts */
@@ -1062,9 +1066,124 @@ function mindset(m){
 let calRef=new Date();calRef.setDate(1);
 function calStep(d){calRef.setMonth(calRef.getMonth()+d);drawCalendar();if(view==='calendar')renderCalendar();}
 function drawCalendar(){renderCalGrid(pnlByDay(),calRef,'calBody','calMo',iso=>{const tc=state.trades.filter(t=>t.date===iso).length;return tc?`${tc} trade${tc>1?'s':''}`:'';});}
-function dayShotApiBase(){return (session&&session.role==='client')?'/api/client/day-shot':'/api/admin/day-shot';}
-function dayShotUrl(iso){const rev=(state.dayShotRev&&state.dayShotRev[iso])||0;return dayShotApiBase()+'/'+iso+(rev?'?v='+rev:'');}
-function hasDayShot(iso){return (state.dayShots||[]).includes(iso);}
+function dayTradesApiBase(){return (session&&session.role==='client')?'/api/client/day-trades':'/api/admin/day-trades';}
+function dayTradesForDate(iso){return (state.dayTrades||[]).filter(t=>t.date===iso).sort((a,b)=>(a.sortNum||0)-(b.sortNum||0)||String(a.createdAt||'').localeCompare(String(b.createdAt||'')));}
+function dayTradeImageUrl(iso,id){const rev=(state.dayShotRev&&state.dayShotRev[id])||0;return dayTradesApiBase()+'/'+iso+'/'+id+(rev?'?v='+rev:'');}
+function hasDayShot(iso){return dayTradesForDate(iso).length>0;}
+function firstDayTrade(iso){const a=dayTradesForDate(iso);return a.length?a[0]:null;}
+function syncDayTradeState(entries,dayPnl){
+  if(!entries)return;
+  const ids=new Set(entries.map(e=>e.id));
+  state.dayTrades=(state.dayTrades||[]).filter(t=>!ids.has(t.id)).concat(entries);
+  const dates=[...new Set(entries.map(e=>e.date))];
+  state.dayShots=[...new Set((state.dayTrades||[]).map(t=>t.date))];
+  if(dayPnl)state.dayPnl=dayPnl;
+}
+function renderTradeShotCards(iso){
+  const entries=dayTradesForDate(iso);
+  if(!entries.length)return `<div class="hint" id="dayShotEmpty" style="font-family:var(--ui);margin:8px 0 12px">No trades logged yet for this day.</div>`;
+  return entries.map((e,i)=>`
+    <div class="trade-shot-card" id="trade_card_${e.id}">
+      <div class="trade-shot-head">Trade ${i+1}</div>
+      <div class="trade-shot-grid">
+        <img class="day-shot-preview" src="${dayTradeImageUrl(iso,e.id)}" alt="Trade ${i+1}">
+        <div>
+          <div class="field" style="margin-bottom:8px"><label>P&amp;L (USD)</label>
+            <input class="num" type="number" step="any" value="${e.pnl!=null?e.pnl:''}" placeholder="e.g. 420 or -150"
+              onchange="saveTradePnl('${iso}','${e.id}',this.value)"></div>
+          <div class="day-shot-actions" style="margin-top:0">
+            <label class="btn sm ghost" style="cursor:pointer"><input type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="replaceTradeShot('${iso}','${e.id}',this)">Replace</label>
+            <button type="button" class="btn sm ghost" onclick="removeTradeShot('${iso}','${e.id}')">Remove</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function openDayDetail(iso){
+  if(!iso)return;
+  const days=pnlByDay();const entries=dayTradesForDate(iso);
+  const entrySum=entries.reduce((s,e)=>s+(Number(e.pnl)||0),0);
+  const pnl=days[iso]!=null?days[iso]:entries.length?entrySum:null;
+  const tc=state.trades.filter(t=>t.date===iso).length;
+  const label=new Date(iso+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+  modal(label,`
+    <div style="font-family:var(--ui);margin-bottom:10px">
+      <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:6px">
+        <div><div class="hint">Day P&amp;L</div><div class="${pnl!=null?cls(pnl):''}" style="font-family:var(--mono);font-size:20px;font-weight:700">${pnl!=null?fmt$(pnl,true):'—'}</div></div>
+        <div><div class="hint">Trades logged</div><div style="font-size:20px;font-weight:700">${entries.length}</div></div>
+        <div><div class="hint">Journal trades</div><div style="font-size:20px;font-weight:700">${tc||0}</div></div>
+      </div>
+    </div>
+    <div id="tradeShotList">${renderTradeShotCards(iso)}</div>
+    <div class="trade-shot-card" style="border-style:dashed;background:var(--surface-2)">
+      <div class="trade-shot-head">Add trade</div>
+      <div class="f2" style="margin-bottom:10px">
+        <div class="field"><label>P&amp;L (USD)</label><input id="new_trade_pnl" class="num" type="number" step="any" placeholder="e.g. 420 or -150"></div>
+        <div class="field"><label>Screenshot</label><input id="new_trade_file" type="file" accept="image/jpeg,image/png,image/webp"></div>
+      </div>
+      <button type="button" class="btn sm primary" onclick="addTradeShot('${iso}')">+ Add trade</button>
+      <div class="hint" style="font-family:var(--ui);margin-top:8px">JPEG / PNG / WebP · max 3.5 MB per trade</div>
+    </div>
+  `,()=>true,'Done');
+}
+async function addTradeShot(iso){
+  const file=document.getElementById('new_trade_file')&&document.getElementById('new_trade_file').files[0];
+  if(!file){flash('Choose a screenshot');return;}
+  if(file.size>3.5*1024*1024){flash('Image must be under 3.5 MB');return;}
+  const pnlRaw=document.getElementById('new_trade_pnl')?document.getElementById('new_trade_pnl').value:'';
+  const reader=new FileReader();
+  reader.onload=async()=>{
+    try{
+      const r=await api('POST',dayTradesApiBase()+'/'+iso,{dataUrl:reader.result,pnl:pnlRaw===''?0:parseFloat(pnlRaw)});
+      if(r.entry){
+        state.dayTrades=(state.dayTrades||[]).concat([r.entry]);
+        state.dayShots=[...new Set((state.dayTrades||[]).map(t=>t.date))];
+        state.dayShotRev=state.dayShotRev||{};state.dayShotRev[r.entry.id]=Date.now();
+      }
+      if(r.dayPnl)state.dayPnl=r.dayPnl;
+      flash('Trade added');openDayDetail(iso);drawCalendar();if(view==='calendar')renderCalendar();
+    }catch(e){flash(e.message||'Upload failed');}
+  };
+  reader.readAsDataURL(file);
+}
+async function saveTradePnl(iso,id,val){
+  try{
+    const r=await api('PATCH',dayTradesApiBase()+'/'+iso+'/'+id,{pnl:val===''?0:parseFloat(val)});
+    if(r.entry){
+      const i=(state.dayTrades||[]).findIndex(t=>t.id===id);
+      if(i>=0)state.dayTrades[i]=r.entry;
+    }
+    if(r.dayPnl)state.dayPnl=r.dayPnl;
+    drawCalendar();if(view==='calendar')renderCalendar();
+  }catch(e){flash(e.message||'Could not save P&L');}
+}
+async function replaceTradeShot(iso,id,input){
+  const file=input&&input.files&&input.files[0];if(!file)return;
+  if(file.size>3.5*1024*1024){flash('Image must be under 3.5 MB');input.value='';return;}
+  const reader=new FileReader();
+  reader.onload=async()=>{
+    try{
+      const r=await api('PATCH',dayTradesApiBase()+'/'+iso+'/'+id,{dataUrl:reader.result});
+      if(r.entry){
+        const i=(state.dayTrades||[]).findIndex(t=>t.id===id);
+        if(i>=0)state.dayTrades[i]=r.entry;
+        state.dayShotRev=state.dayShotRev||{};state.dayShotRev[id]=Date.now();
+      }
+      flash('Screenshot updated');openDayDetail(iso);drawCalendar();
+    }catch(e){flash(e.message||'Upload failed');}
+  };
+  reader.readAsDataURL(file);
+}
+async function removeTradeShot(iso,id){
+  if(!confirm('Remove this trade screenshot?'))return;
+  try{
+    const r=await api('DELETE',dayTradesApiBase()+'/'+iso+'/'+id);
+    state.dayTrades=(state.dayTrades||[]).filter(t=>t.id!==id);
+    state.dayShots=[...new Set((state.dayTrades||[]).map(t=>t.date))];
+    if(r.dayPnl)state.dayPnl=r.dayPnl;
+    flash('Trade removed');openDayDetail(iso);drawCalendar();if(view==='calendar')renderCalendar();
+  }catch(e){flash(e.message||'Could not remove');}
+}
 function camSvg(){return '<svg class="cal-cam" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';}
 function renderCalGrid(days,ref,bodyId,moId,subFn){
   const body=document.getElementById(bodyId);if(!body)return;const moEl=document.getElementById(moId);
@@ -1078,52 +1197,10 @@ function renderCalGrid(days,ref,bodyId,moId,subFn){
     const pnl=days[iso];const has=pnl!=null;const c=has?(pnl>0?'win':pnl<0?'loss':''):'';
     const sub=has&&subFn?subFn(iso):'';
     const shot=hasDayShot(iso);
-    const thumb=shot?`<img class="cal-thumb" src="${dayShotUrl(iso)}" alt="">`:'';
+    const first=firstDayTrade(iso);
+    const thumb=shot&&first?`<img class="cal-thumb" src="${dayTradeImageUrl(iso,first.id)}" alt="">`:'';
     h+=`<div class="cal-cell ${c} ${has?'has':''} ${shot?'has-shot':''} ${iso===todayISO?'today':''}" onclick="openDayDetail('${iso}')"><div class="d">${d}</div>${camSvg()}${thumb}${has?`<div class="cal-foot"><div class="p ${cls(pnl)}">${fmt$(pnl,true)}</div>${sub?`<div class="tc">${sub}</div>`:''}</div>`:''}</div>`;}
   h+='</div>';body.innerHTML=h;
-}
-function openDayDetail(iso){
-  if(!iso)return;
-  const days=pnlByDay();const pnl=days[iso];const tc=state.trades.filter(t=>t.date===iso).length;
-  const shot=hasDayShot(iso);
-  const label=new Date(iso+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
-  const preview=shot?`<img class="day-shot-preview" id="dayShotImg" src="${dayShotUrl(iso)}" alt="Trade screenshot">`:`<div class="hint" id="dayShotEmpty" style="font-family:var(--ui);margin:12px 0">No screenshot yet for this day.</div>`;
-  modal(label,`
-    <div style="font-family:var(--ui);margin-bottom:8px">
-      <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:6px">
-        <div><div class="hint">P&amp;L</div><div class="${pnl!=null?cls(pnl):''}" style="font-family:var(--mono);font-size:20px;font-weight:700">${pnl!=null?fmt$(pnl,true):'—'}</div></div>
-        <div><div class="hint">Trades</div><div style="font-size:20px;font-weight:700">${tc||0}</div></div>
-      </div>
-    </div>
-    ${preview}
-    <div class="day-shot-actions">
-      <label class="btn sm primary" style="cursor:pointer"><input type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="uploadDayShot('${iso}',this)">${shot?'Replace screenshot':'Upload screenshot'}</label>
-      ${shot?`<button type="button" class="btn sm ghost" onclick="removeDayShot('${iso}')">Remove</button>`:''}
-    </div>
-    <div class="hint" style="font-family:var(--ui);margin-top:10px">JPEG / PNG / WebP · max 3.5 MB</div>
-  `,()=>true,'Done');
-}
-async function uploadDayShot(iso,input){
-  const file=input&&input.files&&input.files[0];if(!file)return;
-  if(file.size>3.5*1024*1024){flash('Image must be under 3.5 MB');input.value='';return;}
-  const reader=new FileReader();
-  reader.onload=async()=>{
-    try{
-      await api('PUT',dayShotApiBase()+'/'+iso,{dataUrl:reader.result});
-      if(!(state.dayShots||[]).includes(iso))state.dayShots=(state.dayShots||[]).concat([iso]);
-      state.dayShotRev=state.dayShotRev||{};state.dayShotRev[iso]=Date.now();
-      flash('Screenshot saved');closeModal();drawCalendar();if(view==='calendar')renderCalendar();
-    }catch(e){flash(e.message||'Upload failed');}
-  };
-  reader.readAsDataURL(file);
-}
-async function removeDayShot(iso){
-  if(!confirm('Remove screenshot for this day?'))return;
-  try{
-    await api('DELETE',dayShotApiBase()+'/'+iso);
-    state.dayShots=(state.dayShots||[]).filter(d=>d!==iso);
-    flash('Screenshot removed');closeModal();drawCalendar();if(view==='calendar')renderCalendar();
-  }catch(e){flash(e.message||'Could not remove');}
 }
 function renderCalendar(){
   const days=pnlByDay();const y=calRef.getFullYear(),mo=calRef.getMonth();
@@ -1144,7 +1221,7 @@ function renderCalendar(){
       <div class="mo" id="calMo"></div>
       <div class="iconbtn" style="width:30px;height:30px" onclick="calStep(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div></div></div>
       <div id="calBody"></div>
-      <div class="cal-legend"><span><i style="background:var(--green-soft);border:1px solid rgba(52,211,153,.4)"></i>Green day</span><span><i style="background:var(--red-soft);border:1px solid rgba(251,94,126,.4)"></i>Red day</span><span>Tap a day to add a screenshot</span></div></div>`;
+      <div class="cal-legend"><span><i style="background:var(--green-soft);border:1px solid rgba(52,211,153,.4)"></i>Green day</span><span><i style="background:var(--red-soft);border:1px solid rgba(251,94,126,.4)"></i>Red day</span><span>Tap a day to log trades &amp; screenshots</span></div></div>`;
   document.getElementById('content').innerHTML=h;drawCalendar();
 }
 async function copyCalendarShareLink(rotate){
@@ -1344,7 +1421,7 @@ function openClientCsvUpload(){
       const d=r.app||{};
       state.settings=Object.assign({},state.settings,d.settings||{});
       state.plays=d.plays||state.plays;state.accounts=d.accounts||[];state.trades=d.trades||[];
-      state.dayPnl=d.dayPnl||[];state.dayShots=d.dayShots||state.dayShots||[];state.clients=d.client?[d.client]:state.clients;
+      state.dayPnl=d.dayPnl||[];state.dayShots=d.dayShots||state.dayShots||[];state.dayTrades=d.dayTrades||state.dayTrades||[];state.clients=d.client?[d.client]:state.clients;
       const res=r.result||{};
       if(res.mode==='balance'){
         flash('Balance P&L saved — $'+(Number(res.totalPnl)||0)+' on '+((res.dates||[]).join(', ')||'today'));

@@ -1,7 +1,7 @@
 'use strict';
 const express = require('express');
 const { requireClient } = require('../auth');
-const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload, saveClientTrades, saveClientAccounts, saveClientPlays, getDayScreenshot, saveDayScreenshot, deleteDayScreenshot, ensureClientShareToken } = require('../db');
+const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload, saveClientTrades, saveClientAccounts, saveClientPlays, getDayScreenshot, saveDayScreenshot, deleteDayScreenshot, listDayTradeEntries, getDayTradeEntry, addDayTradeEntry, updateDayTradeEntry, deleteDayTradeEntry, ensureClientShareToken } = require('../db');
 const { sendContractSubmission, emailEnabled, contractNotifyTo } = require('../email');
 
 const router = express.Router();
@@ -138,6 +138,79 @@ router.get('/day-shot/:date', (req, res) => {
   res.sendFile(shot.filePath);
 });
 
+router.get('/day-trades/:date', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  res.json({ entries: listDayTradeEntries(row.id, req.params.date) });
+});
+
+router.get('/day-trades/:date/:id', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  const shot = getDayTradeEntry(row.id, req.params.id);
+  if (!shot) return res.status(404).json({ error: 'No screenshot' });
+  res.setHeader('Content-Type', shot.mime);
+  res.setHeader('Cache-Control', 'private, max-age=3600');
+  res.sendFile(shot.filePath);
+});
+
+router.post('/day-trades/:date', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  try {
+    const parsed = parseDataUrl(req.body && req.body.dataUrl);
+    if (!parsed) return res.status(400).json({ error: 'Send a JPEG, PNG, or WebP image' });
+    const entry = addDayTradeEntry(row.id, req.params.date, {
+      mime: parsed.mime,
+      buffer: parsed.buffer,
+      pnl: req.body && req.body.pnl
+    });
+    const data = composeClientApp(row.id);
+    res.json({ ok: true, entry, dayPnl: data.dayPnl, dayTrades: data.dayTrades });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Upload failed' });
+  }
+});
+
+router.patch('/day-trades/:date/:id', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  try {
+    const body = req.body || {};
+    let parsed = null;
+    if (body.dataUrl) {
+      parsed = parseDataUrl(body.dataUrl);
+      if (!parsed) return res.status(400).json({ error: 'Send a JPEG, PNG, or WebP image' });
+    }
+    const entry = updateDayTradeEntry(row.id, req.params.id, {
+      mime: parsed && parsed.mime,
+      buffer: parsed && parsed.buffer,
+      pnl: body.pnl
+    });
+    const data = composeClientApp(row.id);
+    res.json({ ok: true, entry, dayPnl: data.dayPnl, dayTrades: data.dayTrades });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Update failed' });
+  }
+});
+
+router.delete('/day-trades/:date/:id', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  try {
+    deleteDayTradeEntry(row.id, req.params.id);
+    const data = composeClientApp(row.id);
+    res.json({ ok: true, dayPnl: data.dayPnl, dayTrades: data.dayTrades });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Delete failed' });
+  }
+});
+
 router.put('/day-shot/:date', (req, res) => {
   const row = req.clientRow || getClientRow(req.user.clientId);
   if (!row) return res.status(404).json({ error: 'Client not found' });
@@ -145,8 +218,8 @@ router.put('/day-shot/:date', (req, res) => {
   try {
     const parsed = parseDataUrl(req.body && req.body.dataUrl);
     if (!parsed) return res.status(400).json({ error: 'Send a JPEG, PNG, or WebP image' });
-    saveDayScreenshot(row.id, req.params.date, parsed);
-    res.json({ ok: true, date: req.params.date });
+    const entry = addDayTradeEntry(row.id, req.params.date, { mime: parsed.mime, buffer: parsed.buffer, pnl: 0 });
+    res.json({ ok: true, date: req.params.date, entry });
   } catch (e) {
     res.status(400).json({ error: e.message || 'Upload failed' });
   }

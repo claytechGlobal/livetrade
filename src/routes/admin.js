@@ -7,6 +7,7 @@ const {
   getSettings, patchSettings, setAdminPassword, setAdminCredentials,
   buildDailyReport, etToday, markDailySent,
   getDayScreenshot, saveDayScreenshot, deleteDayScreenshot,
+  listDayTradeEntries, getDayTradeEntry, addDayTradeEntry, updateDayTradeEntry, deleteDayTradeEntry,
   ensureAdminShareToken
 } = require('../db');
 const { sendDailyReport } = require('../email');
@@ -83,12 +84,67 @@ router.get('/day-shot/:date', (req, res) => {
   res.sendFile(shot.filePath);
 });
 
+router.get('/day-trades/:date', (req, res) => {
+  res.json({ entries: listDayTradeEntries('admin', req.params.date) });
+});
+
+router.get('/day-trades/:date/:id', (req, res) => {
+  const shot = getDayTradeEntry('admin', req.params.id);
+  if (!shot) return res.status(404).json({ error: 'No screenshot' });
+  res.setHeader('Content-Type', shot.mime);
+  res.setHeader('Cache-Control', 'private, max-age=3600');
+  res.sendFile(shot.filePath);
+});
+
+router.post('/day-trades/:date', (req, res) => {
+  try {
+    const parsed = parseDataUrl(req.body && req.body.dataUrl);
+    if (!parsed) return res.status(400).json({ error: 'Send a JPEG, PNG, or WebP image' });
+    const entry = addDayTradeEntry('admin', req.params.date, {
+      mime: parsed.mime,
+      buffer: parsed.buffer,
+      pnl: req.body && req.body.pnl
+    });
+    res.json({ ok: true, entry, dayPnl: composeBootstrap().dayPnl });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Upload failed' });
+  }
+});
+
+router.patch('/day-trades/:date/:id', (req, res) => {
+  try {
+    const body = req.body || {};
+    let parsed = null;
+    if (body.dataUrl) {
+      parsed = parseDataUrl(body.dataUrl);
+      if (!parsed) return res.status(400).json({ error: 'Send a JPEG, PNG, or WebP image' });
+    }
+    const entry = updateDayTradeEntry('admin', req.params.id, {
+      mime: parsed && parsed.mime,
+      buffer: parsed && parsed.buffer,
+      pnl: body.pnl
+    });
+    res.json({ ok: true, entry, dayPnl: composeBootstrap().dayPnl });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Update failed' });
+  }
+});
+
+router.delete('/day-trades/:date/:id', (req, res) => {
+  try {
+    deleteDayTradeEntry('admin', req.params.id);
+    res.json({ ok: true, dayPnl: composeBootstrap().dayPnl });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Delete failed' });
+  }
+});
+
 router.put('/day-shot/:date', (req, res) => {
   try {
     const parsed = parseDataUrl(req.body && req.body.dataUrl);
     if (!parsed) return res.status(400).json({ error: 'Send a JPEG, PNG, or WebP image' });
-    saveDayScreenshot('admin', req.params.date, parsed);
-    res.json({ ok: true, date: req.params.date });
+    const entry = addDayTradeEntry('admin', req.params.date, { mime: parsed.mime, buffer: parsed.buffer, pnl: 0 });
+    res.json({ ok: true, date: req.params.date, entry });
   } catch (e) {
     res.status(400).json({ error: e.message || 'Upload failed' });
   }
