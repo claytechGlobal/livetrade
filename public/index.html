@@ -141,22 +141,31 @@ body.client-mode .client-upload{display:flex!important;align-items:center;gap:10
 .dash-mid{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-bottom:16px}
 
 /* calendar */
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
 .cal-dow{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);text-align:center;padding-bottom:4px;font-weight:600}
-.cal-cell{aspect-ratio:1;border-radius:10px;border:1px solid var(--line-soft);background:var(--surface-2);padding:8px 9px;
-  display:flex;flex-direction:column;justify-content:space-between;position:relative;cursor:pointer;transition:.12s;min-height:0}
+.cal-cell{aspect-ratio:1;min-height:64px;border-radius:10px;border:1px solid var(--line-soft);background:var(--surface-2);padding:7px 8px;
+  display:flex;flex-direction:column;gap:4px;position:relative;cursor:pointer;transition:.12s;overflow:hidden}
 .cal-cell.has:hover,.cal-cell:hover{transform:translateY(-2px);border-color:var(--text-3)}
-.cal-cell.blank{background:transparent;border:none;cursor:default;pointer-events:none}
-.cal-cell .d{font-size:12px;color:var(--text-3);font-weight:700}
+.cal-cell.blank{background:transparent;border:none;cursor:default;pointer-events:none;min-height:0;aspect-ratio:auto}
+.cal-cell .cal-head{display:flex;align-items:center;justify-content:space-between;gap:4px;flex-shrink:0;min-height:14px}
+.cal-cell .d{font-size:11px;color:var(--text-3);font-weight:700;line-height:1}
 .cal-cell.win{background:var(--green-soft);border-color:rgba(52,211,153,.35)}
 .cal-cell.loss{background:var(--red-soft);border-color:rgba(251,94,126,.35)}
 .cal-cell.today{box-shadow:inset 0 0 0 1.5px var(--accent)}
-.cal-cell .p{font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
-.cal-cell .tc{font-size:11.5px;color:var(--text-2);font-weight:600;margin-top:3px;line-height:1.2}
-.cal-cell .cal-foot{margin-top:auto}
-.cal-cell .cal-cam{position:absolute;top:7px;right:7px;width:15px;height:15px;opacity:.4;color:var(--text-3)}
+.cal-cell .cal-foot{margin-top:auto;flex-shrink:0;min-width:0;padding-top:2px}
+.cal-cell .p{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:-.02em;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-cell .tc{font-size:9px;color:var(--text-3);font-weight:600;margin-top:2px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-cell .cal-shot-ind{display:inline-flex;align-items:center;gap:2px;flex-shrink:0}
+.cal-cell .cal-cam{width:12px;height:12px;opacity:.45;color:var(--text-3);flex-shrink:0}
 .cal-cell.has-shot .cal-cam{opacity:1;color:var(--accent)}
-.cal-cell .cal-thumb{width:100%;max-height:34%;object-fit:cover;border-radius:5px;margin:4px 0 2px;border:1px solid var(--line-soft)}
+.cal-cell .cal-shot-n{font-size:8px;font-weight:800;line-height:1;min-width:13px;height:13px;padding:0 3px;border-radius:999px;
+  background:var(--accent-soft);color:var(--accent);display:inline-flex;align-items:center;justify-content:center}
+.cal-grid.cal-compact .cal-cell{min-height:58px;padding:6px 7px}
+.cal-grid.cal-compact .cal-cell .p{font-size:11px}
+.cal-grid.cal-compact .cal-cell .d{font-size:10px}
+.dash-mid .cal-grid{gap:7px}
+.dash-mid .cal-cell{min-height:54px}
+.dash-mid .cal-cell .p{font-size:10.5px}
 .day-shot-preview{width:100%;max-height:220px;object-fit:contain;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);margin:8px 0}
 .day-shot-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;align-items:center}
 .trade-shot-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--surface)}
@@ -1065,7 +1074,15 @@ function mindset(m){
 /* ===== CALENDAR (full page + dashboard widget) ===== */
 let calRef=new Date();calRef.setDate(1);
 function calStep(d){calRef.setMonth(calRef.getMonth()+d);drawCalendar();if(view==='calendar')renderCalendar();}
-function drawCalendar(){renderCalGrid(pnlByDay(),calRef,'calBody','calMo',iso=>{const tc=state.trades.filter(t=>t.date===iso).length;return tc?`${tc} trade${tc>1?'s':''}`:'';});}
+function calDaySub(iso){
+  const shots=dayTradesForDate(iso).length;
+  const tc=state.trades.filter(t=>t.date===iso).length;
+  if(shots&&tc)return shots+' shot'+(shots>1?'s':'')+' · '+tc+' trade'+(tc>1?'s':'');
+  if(shots)return shots+' screenshot'+(shots>1?'s':'');
+  if(tc)return tc+' trade'+(tc>1?'s':'');
+  return '';
+}
+function drawCalendar(){renderCalGrid(pnlByDay(),calRef,'calBody','calMo',calDaySub,view!=='calendar');}
 function dayTradesApiBase(){return (session&&session.role==='client')?'/api/client/day-trades':'/api/admin/day-trades';}
 function dayTradesForDate(iso){return (state.dayTrades||[]).filter(t=>t.date===iso).sort((a,b)=>(a.sortNum||0)-(b.sortNum||0)||String(a.createdAt||'').localeCompare(String(b.createdAt||'')));}
 function dayTradeImageUrl(iso,id){const rev=(state.dayShotRev&&state.dayShotRev[id])||0;return dayTradesApiBase()+'/'+iso+'/'+id+(rev?'?v='+rev:'');}
@@ -1185,21 +1202,23 @@ async function removeTradeShot(iso,id){
   }catch(e){flash(e.message||'Could not remove');}
 }
 function camSvg(){return '<svg class="cal-cam" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';}
-function renderCalGrid(days,ref,bodyId,moId,subFn){
+function renderCalGrid(days,ref,bodyId,moId,subFn,compact){
   const body=document.getElementById(bodyId);if(!body)return;const moEl=document.getElementById(moId);
   const y=ref.getFullYear(),mo=ref.getMonth();
   if(moEl)moEl.textContent=ref.toLocaleDateString('en-US',{month:'long',year:'numeric'});
-  const first=new Date(y,mo,1).getDay(),dim=new Date(y,mo+1,0).getDate();const todayISO=new Date().toISOString().slice(0,10);
+  const firstDow=new Date(y,mo,1).getDay(),dim=new Date(y,mo+1,0).getDate();const todayISO=new Date().toISOString().slice(0,10);
   const dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  let h='<div class="cal-grid">'+dow.map(d=>`<div class="cal-dow">${d}</div>`).join('');
-  for(let i=0;i<first;i++)h+='<div class="cal-cell blank"></div>';
+  let h='<div class="cal-grid'+(compact?' cal-compact':'')+'">'+dow.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let i=0;i<firstDow;i++)h+='<div class="cal-cell blank"></div>';
   for(let d=1;d<=dim;d++){const iso=`${y}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const pnl=days[iso];const has=pnl!=null;const c=has?(pnl>0?'win':pnl<0?'loss':''):'';
-    const sub=has&&subFn?subFn(iso):'';
-    const shot=hasDayShot(iso);
-    const first=firstDayTrade(iso);
-    const thumb=shot&&first?`<img class="cal-thumb" src="${dayTradeImageUrl(iso,first.id)}" alt="">`:'';
-    h+=`<div class="cal-cell ${c} ${has?'has':''} ${shot?'has-shot':''} ${iso===todayISO?'today':''}" onclick="openDayDetail('${iso}')"><div class="d">${d}</div>${camSvg()}${thumb}${has?`<div class="cal-foot"><div class="p ${cls(pnl)}">${fmt$(pnl,true)}</div>${sub?`<div class="tc">${sub}</div>`:''}</div>`:''}</div>`;}
+    const sub=!compact&&has&&subFn?subFn(iso):'';
+    const shots=dayTradesForDate(iso).length;
+    const shotInd=shots?`<span class="cal-shot-ind">${camSvg()}${shots>1?`<span class="cal-shot-n">${shots}</span>`:''}</span>`:'';
+    h+=`<div class="cal-cell ${c} ${has?'has':''} ${shots?'has-shot':''} ${iso===todayISO?'today':''}" onclick="openDayDetail('${iso}')">
+      <div class="cal-head"><span class="d">${d}</span>${shotInd}</div>
+      ${has?`<div class="cal-foot"><div class="p ${cls(pnl)}">${fmt$(pnl,true)}</div>${sub?`<div class="tc">${sub}</div>`:''}</div>`:''}
+    </div>`;}
   h+='</div>';body.innerHTML=h;
 }
 function renderCalendar(){
