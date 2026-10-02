@@ -43,7 +43,29 @@ body::after{content:"";position:fixed;top:-25%;left:30%;width:55vw;height:55vh;z
 .app{position:relative;z-index:1;display:grid;grid-template-columns:minmax(210px,20vw) 1fr;height:100vh}
 
 /* sidebar */
-.sidebar{background:var(--bg-2);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:12px 10px;gap:3px;overflow-y:auto}
+.sidebar{position:relative;background:var(--bg-2);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-in{display:flex;flex-direction:column;gap:3px;padding:12px 10px;overflow-y:auto;height:100%;position:relative;z-index:1}
+.side-trace{position:absolute;inset:0;z-index:2;pointer-events:none}
+.side-trace svg{width:100%;height:100%;display:block}
+.side-trace rect{fill:none;stroke:#3d7cff;stroke-width:2.5;stroke-linecap:round;filter:drop-shadow(0 0 6px #3d7cff);
+  stroke-dasharray:14 86;animation:sideTrace 11s linear infinite}
+@keyframes sideTrace{
+  0%{stroke-dashoffset:0;opacity:1}
+  24%{stroke-dashoffset:-100;opacity:1}
+  30%{stroke-dashoffset:-100;opacity:0}
+  100%{stroke-dashoffset:-100;opacity:0}
+}
+.install-glow{position:relative;animation:installGlow 2.4s ease-in-out infinite}
+@keyframes installGlow{
+  0%,100%{box-shadow:0 0 0 0 rgba(61,124,255,0);transform:scale(1)}
+  35%{box-shadow:0 0 18px 3px rgba(61,124,255,.55);transform:scale(1.045)}
+  55%{box-shadow:0 0 6px 0 rgba(61,124,255,.2);transform:scale(1)}
+  75%{box-shadow:0 0 14px 2px rgba(34,184,239,.45);transform:scale(1.03)}
+}
+@media(prefers-reduced-motion:reduce){
+  .install-glow{animation:none}
+  .side-trace{display:none}
+}
 .brand{display:flex;align-items:center;justify-content:center;gap:0;padding:4px 0 10px}
 .brand-mark{width:192px;height:192px;border-radius:14px;flex:none;position:relative;display:grid;place-items:center;
   background:transparent;box-shadow:none;overflow:hidden;padding:0}
@@ -303,7 +325,9 @@ tbody tr{transition:.12s}tbody tr:hover{background:var(--surface-2)}
 @media(max-width:1080px){.dash-top,.dash-mid{grid-template-columns:1fr}.stat-row{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:760px){
   .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
-  .sidebar{flex-direction:row;flex-wrap:wrap;align-items:center;padding:11px;gap:5px;border-right:none;border-bottom:1px solid var(--line)}
+  .sidebar{flex-direction:row;flex-wrap:wrap;align-items:center;border-right:none;border-bottom:1px solid var(--line);overflow:visible}
+  .sidebar-in{flex-direction:row;flex-wrap:wrap;align-items:center;height:auto;padding:11px;gap:5px}
+  .side-trace{display:none}
   .brand{padding:4px 8px;width:100%}.nav-label,.spacer,.coach-card{display:none}
   .nav-item{flex:none;padding:8px 10px}.nav-item span{display:none}.nav-item svg{width:20px;height:20px}
   .content,.topbar{padding-left:16px;padding-right:16px}
@@ -410,6 +434,8 @@ body.home-open::after{opacity:.35}
 
 <div class="app" id="appRoot" style="display:none">
   <aside class="sidebar">
+    <div class="side-trace" aria-hidden="true"><svg id="sideTrace" viewBox="0 0 100 100" preserveAspectRatio="none"><rect id="sideTraceRect" x="1.2" y="1.2" width="97.6" height="97.6" rx="2" pathLength="100"/></svg></div>
+    <div class="sidebar-in">
     <div class="brand">
       <div class="brand-mark"><img src="/images/logo.png" alt="Logo"></div>
     </div>
@@ -434,7 +460,9 @@ body.home-open::after{opacity:.35}
     <div class="coach-card"><div class="ti">Coach</div><div class="tx" id="coachSide">Log trades to unlock your edge score.</div></div>
     <div class="nav-item" data-view="terms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg><span>Terms &amp; Policy</span></div>
     <div class="nav-item" style="margin-top:6px" data-action="switch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M8 21H3v-5M21 3l-7 7M3 21l7-7"/></svg><span>Switch account</span></div>
+    <button type="button" class="btn sm install-glow" id="installAppBtnSide" style="display:none;margin:8px 6px 4px;justify-content:center" onclick="installApp()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Install App</button>
     <div class="nav-item" style="margin-top:2px" data-action="logout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Log out</span></div>
+    </div>
   </aside>
 
   <main class="main">
@@ -638,7 +666,7 @@ startIdleWatch();
 let deferredInstallPrompt=null;
 function syncInstallButtons(){
   const show=!!deferredInstallPrompt?'inline-flex':'none';
-  ['installAppBtn','installAppBtnTop'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display=show;});
+  ['installAppBtn','installAppBtnTop','installAppBtnSide'].forEach(id=>{const b=document.getElementById(id);if(b)b.style.display=show;});
 }
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;syncInstallButtons();});
 window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;syncInstallButtons();});
