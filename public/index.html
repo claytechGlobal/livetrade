@@ -176,6 +176,13 @@ body.client-mode .client-upload{display:flex!important;align-items:center;gap:10
 .cal-nav .mo{font-family:var(--display);font-weight:600;font-size:13.5px;min-width:120px;text-align:center}
 .cal-legend{display:flex;gap:16px;justify-content:flex-end;margin-top:13px;font-size:11px;color:var(--text-2)}
 .cal-legend i{width:10px;height:10px;border-radius:3px;display:inline-block;vertical-align:-1px;margin-right:6px}
+.lc-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 16px}
+.lc-tab{border:1px solid var(--line);background:var(--surface-2);color:var(--text-2);border-radius:999px;padding:8px 14px;font-weight:650;cursor:pointer;transition:.15s}
+.lc-tab.on{background:var(--accent);color:#041018;border-color:transparent}
+.lc-bar{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin:8px 0}
+.lc-bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .45s ease}
+.lc-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:1100px){.lc-grid{grid-template-columns:repeat(2,1fr)}}
 
 /* mindset bars */
 .emo-row{display:flex;align-items:center;gap:11px;margin-bottom:12px}
@@ -415,6 +422,7 @@ body.home-open::after{opacity:.35}
     <div class="nav-item" data-view="guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span>Technicals</span></div>
     <div class="nav-label">Business</div>
     <div class="nav-item" data-view="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Expense Tracker</span></div>
+    <div class="nav-item" data-view="livecapital"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M7 8l5-5 5 5"/><path d="M4 21h16"/></svg><span>Live Capital</span></div>
     <div class="nav-item" data-view="packages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Packages</span></div>
     <div class="nav-item" data-view="propfirms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg><span>Prop Firm Guide</span></div>
     <div class="nav-item" data-view="contract"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><span>Contract</span></div>
@@ -888,12 +896,12 @@ function esc(s){return(s==null?'':''+s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'
 const SUB={dashboard:"Here's where your edge stands today",trades:'Every position, with the futures math done for you',
   calendar:'Your profit & loss, day by day',playbook:'Which setups actually make you money',
   playbook101:'PTT Playbook — full training PDF',
-  accounts:'Fees, payouts & true business ROI',clients:'Central upload — copies to every client',packages:'Plans your prospects can purchase',propfirms:'Top futures prop firm — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Technicals — A+ move charts & setups',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data'};
+  accounts:'Fees, payouts & true business ROI',livecapital:'Live capital, drawdown, contributions, and risk buffer',clients:'Central upload — copies to every client',packages:'Plans your prospects can purchase',propfirms:'Top futures prop firm — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Technicals — A+ move charts & setups',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data'};
 let view='dashboard';
 function go(v){
   if(!v)return;
   if(session&&session.role==='client'&&(v==='clients'||v==='affiliates'||v==='settings')){v='dashboard';}
-  const fn={dashboard:renderDash,trades:renderTrades,calendar:renderCalendar,playbook:renderPlaybook,playbook101:renderPlaybook101,accounts:renderAccounts,clients:renderClients,packages:renderPackages,propfirms:renderPropFirms,contract:renderContract,guide:renderGuide,affiliates:renderAffiliates,terms:renderTerms,settings:renderSettings}[v];
+  const fn={dashboard:renderDash,trades:renderTrades,calendar:renderCalendar,playbook:renderPlaybook,playbook101:renderPlaybook101,accounts:renderAccounts,livecapital:renderLiveCapital,clients:renderClients,packages:renderPackages,propfirms:renderPropFirms,contract:renderContract,guide:renderGuide,affiliates:renderAffiliates,terms:renderTerms,settings:renderSettings}[v];
   if(!fn)return;
   view=v;document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===v));
   const sub=document.getElementById('subline');if(sub)sub.textContent=SUB[v]||'';
@@ -1606,6 +1614,164 @@ function renderLineageStepper(chain,opts){
       h+=`</div>`;});
   }
   h+=`</div>`;return h;
+}
+let lcTab='overview';
+function lcBase(){return (session&&session.role==='client')?'/api/client/live-capital':'/api/admin/live-capital';}
+function lcMoney(n){return fmt$c(Number(n)||0);}
+function lcMonth(k){const [y,m]=String(k).split('-');const names=['January','February','March','April','May','June','July','August','September','October','November','December'];return (names[(+m||1)-1]||k)+' '+y;}
+async function renderLiveCapital(){
+  const root=document.getElementById('content');
+  root.innerHTML='<div class="hint" style="font-family:var(--ui)">Loading live capital…</div>';
+  let d;
+  try{d=await api('GET',lcBase());}catch(e){root.innerHTML='<div class="card">'+esc(e.message||'Could not load')+'</div>';return;}
+  window.__lc=d;
+  const s=d.settings||{};
+  const tabs=['overview','Overview','setup','Setup & Automation','txns','Transactions','risk','Risk Settings'];
+  let tabH='<div class="lc-tabs">';
+  for(let i=0;i<tabs.length;i+=2)tabH+=`<button type="button" class="lc-tab ${lcTab===tabs[i]?'on':''}" onclick="lcTab='${tabs[i]}';renderLiveCapital()">${tabs[i+1]}</button>`;
+  tabH+='</div>';
+  let body='';
+  if(lcTab==='overview'){
+    const warn=d.warnings&&d.warnings.length?d.warnings.map(w=>`<div class="coach-line">${esc(w)}</div>`).join(''):'<div class="hint" style="font-family:var(--ui)">No capital protection warnings right now.</div>';
+    const pts=d.curve||[];
+    let svg='<div class="hint" style="font-family:var(--ui)">Add a deposit and trades to draw the curve.</div>';
+    if(pts.length){
+      const vals=pts.flatMap(p=>[p.equity,p.organic,p.baseline]);
+      const mn=Math.min(0,...vals),mx=Math.max(...vals,1),rg=mx-mn||1;
+      const W=860,H=180;
+      const X=i=>pts.length<2?20:i/(pts.length-1)*W;
+      const Y=v=>H-16-((v-mn)/rg)*(H-28);
+      const line=(key,color)=>`<polyline fill="none" stroke="${color}" stroke-width="2.4" points="${pts.map((p,i)=>X(i).toFixed(1)+','+Y(p[key]).toFixed(1)).join(' ')}"/>`;
+      svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:190px"><line x1="0" y1="${Y(0)}" x2="${W}" y2="${Y(0)}" stroke="rgba(255,255,255,.08)"/>${line('baseline','#64748b')}${line('organic','#34d399')}${line('equity','#22b8ef')}</svg>
+        <div class="hint" style="font-family:var(--ui);display:flex;gap:14px"><span style="color:#22b8ef">Net account</span><span style="color:#34d399">Trading profit</span><span style="color:#64748b">Starting baseline</span></div>`;
+    }
+    const months=(d.months||[]).map(m=>`<tr><td>${esc(lcMonth(m.month))}</td><td class="num ${cls(m.trade)}">${lcMoney(m.trade)}</td><td class="num">${lcMoney(m.contributions)}</td><td class="num">${lcMoney(-Math.abs(m.withdrawals))}</td><td class="num ${cls(m.net)}">${lcMoney(m.net)}</td><td class="num">${lcMoney(m.ending)}</td></tr>`).join('')||'<tr><td colspan="6" class="hint">No months yet.</td></tr>';
+    const best=d.best?`${esc(d.best.symbol||'Trade')} ${lcMoney(d.best.pnl)}`:'—';
+    body=`<div class="lc-grid">
+      ${stat('Current Live Capital',lcMoney(d.current),'','posted capital + trades')}
+      ${stat('Net Account Change',lcMoney(d.netAccountChange),cls(d.netAccountChange),d.baseline?((d.netAccountChange/(d.baseline||1))*100).toFixed(1)+'% vs start':'add a starting deposit')}
+      ${stat('Realized Trading Profit',lcMoney(d.realized),cls(d.realized),'excludes deposits')}
+      ${stat('Current Drawdown',lcMoney(d.currentDrawdown),d.currentDrawdown>0?'neg':'',(d.currentDrawdownPct||0).toFixed(1)+'%')}
+      ${stat('Available Risk Buffer',lcMoney(d.buffer),'','under max drawdown')}
+    </div>
+    <div class="card" style="margin-bottom:16px"><div class="card-h"><div class="card-t"><span class="tick"></span>Profit Target Progress</div>
+      <button class="btn sm ghost" onclick="lcTab='risk';renderLiveCapital()">Edit</button></div>
+      <div class="lc-bar"><i style="width:${Math.max(0,Math.min(100,d.targetPct||0))}%"></i></div>
+      <div style="font-family:var(--ui);font-size:13px">${lcMoney(d.current)} / ${lcMoney(d.target)} — ${(d.targetPct||0).toFixed(0)}% · remaining ${lcMoney(d.remaining)}</div>
+    </div>
+    <div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:8px"><span class="tick"></span>Live Capital Curve</div>${svg}</div>
+    <div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:8px"><span class="tick"></span>Capital Growth</div>
+      <div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
+        ${stat('Monthly Pace',lcMoney(d.monthlyPace),cls(d.monthlyPace),'average trading month')}
+        ${stat('Target',lcMoney(d.target),'','profit target')}
+        ${stat('Est. Timeline',d.estMonths!=null?d.estMonths+' mo':'—','',d.estMonths!=null?'at current trading pace':'need profitable months')}
+      </div>
+      <div class="hint" style="font-family:var(--ui);margin-top:8px">${d.estMonths!=null?`At this pace the book may reach ${lcMoney(d.target)} in about ${d.estMonths} months.`:'Log trading P&L to estimate a timeline. Deposits are not treated as trading skill.'}</div>
+    </div>
+    <div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:8px"><span class="tick"></span>Monthly Capital Breakdown</div>
+      <table><thead><tr><th>Month</th><th>Trading Net</th><th>Contributions</th><th>Withdrawals & Fees</th><th>Net Growth</th><th>Ending</th></tr></thead><tbody>${months}</tbody></table></div>
+    <div class="dash-mid">
+      <div class="card"><div class="card-t" style="margin-bottom:8px"><span class="tick"></span>Drawdown Protection</div>
+        ${stat('Max Drawdown Reached',lcMoney(d.maxDrawdown),'','peak to trough')}
+        <div class="hint" style="font-family:var(--ui);margin-top:8px">Daily loss used ${(d.dayLossPct||0).toFixed(1)}% · Weekly ${(d.weekLossPct||0).toFixed(1)}% · Buffer ${lcMoney(d.buffer)}</div>
+        <div style="margin-top:10px">${warn}</div>
+      </div>
+      <div class="card"><div class="card-t" style="margin-bottom:8px"><span class="tick"></span>Linked Journal</div>
+        ${stat('Trades',d.linkedCount||0,'','from your trade log')}
+        <div class="hint" style="font-family:var(--ui);margin-top:8px">Win rate ${(d.winRate||0).toFixed(1)}% · Profit factor ${d.profitFactor==null?'—':Number(d.profitFactor).toFixed(2)} · Best ${best}</div>
+        <div class="hint" style="font-family:var(--ui);margin-top:8px">Organic trading ${lcMoney(d.organic)} · Net contributions ${lcMoney(d.netContributions)}</div>
+      </div>
+    </div>`;
+  } else if(lcTab==='setup'){
+    body=`<div class="card" style="margin-bottom:16px"><div class="card-h"><div class="card-t"><span class="tick"></span>Monthly Contribution</div></div>
+      <div class="f2">
+        <div class="field"><label>Amount</label><input id="lc_c_amt" class="num" type="number" value="${s.contribAmount||0}"></div>
+        <div class="field"><label>Day of month</label><input id="lc_c_day" class="num" type="number" min="1" max="28" value="${s.contribDay||14}"></div>
+        <div class="field"><label>Start date</label><input id="lc_c_start" type="date" value="${esc(s.contribStart||'')}"></div>
+        <div class="field"><label>Auto-add</label><select id="lc_c_on"><option value="1" ${s.contribOn?'selected':''}>On</option><option value="0" ${!s.contribOn?'selected':''}>Off</option></select></div>
+      </div>
+      <button class="btn sm primary" onclick="lcSaveRules()">Save contribution plan</button>
+    </div>
+    <div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>Monthly Withdrawal</div></div>
+      <div class="f2">
+        <div class="field"><label>Amount</label><input id="lc_w_amt" class="num" type="number" value="${s.withdrawAmount||0}"></div>
+        <div class="field"><label>Day of month</label><input id="lc_w_day" class="num" type="number" min="1" max="28" value="${s.withdrawDay||15}"></div>
+        <div class="field"><label>Start date</label><input id="lc_w_start" type="date" value="${esc(s.withdrawStart||'')}"></div>
+        <div class="field"><label>Auto-add</label><select id="lc_w_on"><option value="1" ${s.withdrawOn?'selected':''}>On</option><option value="0" ${!s.withdrawOn?'selected':''}>Off</option></select></div>
+      </div>
+      <button class="btn sm primary" onclick="lcSaveRules()">Save withdrawal plan</button>
+      <div class="hint" style="font-family:var(--ui);margin-top:10px">When on, future months are pending until you mark them complete. Past dates in the plan are posted.</div>
+    </div>`;
+  } else if(lcTab==='txns'){
+    const rows=(d.txns||[]).map(t=>`<tr><td class="num">${esc(t.date)}</td><td>${esc(t.type)}${t.status==='pending'?' · pending':''}${t.status==='cancelled'?' · cancelled':''}</td><td class="num ${t.type==='withdrawal'||t.type==='fee'?'neg':'pos'}">${lcMoney(t.amount)}</td><td>${esc(t.note||'')}</td><td>
+      ${t.status==='pending'?`<button class="btn sm" onclick="lcTxnStatus('${t.id}','posted')">Mark complete</button> <button class="btn sm ghost" onclick="lcTxnStatus('${t.id}','cancelled')">Cancel</button>`:''}
+      <button class="btn sm ghost" onclick="lcTxnDel('${t.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="5" class="hint">No transactions yet.</td></tr>';
+    body=`<div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:10px"><span class="tick"></span>Add Transaction</div>
+      <div class="f2">
+        <div class="field"><label>Date</label><input id="lc_tx_date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div class="field"><label>Type</label><select id="lc_tx_type"><option>deposit</option><option>withdrawal</option><option>fee</option><option>correction</option></select></div>
+        <div class="field"><label>Amount</label><input id="lc_tx_amt" class="num" type="number" step="any" placeholder="0.00"></div>
+        <div class="field"><label>Note</label><input id="lc_tx_note" placeholder="Starting balance, payout, platform fee"></div>
+      </div>
+      <button class="btn sm primary" onclick="lcAddTxn()">Add</button>
+    </div>
+    <div class="card"><table><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Note</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  } else {
+    body=`<div class="card"><div class="card-t" style="margin-bottom:10px"><span class="tick"></span>Risk Settings</div>
+      <div class="f2">
+        <div class="field"><label>Profit target</label><input id="lc_target" class="num" type="number" value="${s.profitTarget||0}"></div>
+        <div class="field"><label>Daily loss limit</label><input id="lc_dll" class="num" type="number" value="${s.dailyLossLimit||0}"></div>
+        <div class="field"><label>Weekly loss limit</label><input id="lc_wll" class="num" type="number" value="${s.weeklyLossLimit||0}"></div>
+        <div class="field"><label>Max drawdown limit</label><input id="lc_mdd" class="num" type="number" value="${s.maxDrawdownLimit||0}"></div>
+        <div class="field"><label>Soft warning %</label><input id="lc_soft" class="num" type="number" value="${s.softWarningPct||80}"></div>
+        <div class="field"><label>Growth style</label><select id="lc_style"><option ${s.growthStyle==='Conservative'?'selected':''}>Conservative</option><option ${s.growthStyle==='Balanced'?'selected':''}>Balanced</option><option ${s.growthStyle==='Aggressive'?'selected':''}>Aggressive</option></select></div>
+        <div class="field"><label>Account purpose</label><select id="lc_purpose"><option ${s.purpose==='Growth Account'?'selected':''}>Growth Account</option><option ${s.purpose==='Income Account'?'selected':''}>Income Account</option><option ${s.purpose==='Preservation'?'selected':''}>Preservation</option></select></div>
+      </div>
+      <button class="btn sm primary" onclick="lcSaveRules()">Save risk settings</button>
+    </div>`;
+  }
+  root.innerHTML=`<div style="margin-bottom:8px"><div style="font-family:var(--display);font-weight:800;font-size:28px">Live Capital</div>
+    <div class="hint" style="font-family:var(--ui)">Track capital, drawdown, contributions, and trading profit from your journal. Deposits are not counted as trading skill.</div></div>${tabH}${body}`;
+}
+function lcRulesBody(){
+  const g=id=>document.getElementById(id);
+  const s=(window.__lc&&window.__lc.settings)||{};
+  const body=Object.assign({},s);
+  if(g('lc_target'))body.profitTarget=+g('lc_target').value;
+  if(g('lc_dll'))body.dailyLossLimit=+g('lc_dll').value;
+  if(g('lc_wll'))body.weeklyLossLimit=+g('lc_wll').value;
+  if(g('lc_mdd'))body.maxDrawdownLimit=+g('lc_mdd').value;
+  if(g('lc_soft'))body.softWarningPct=+g('lc_soft').value;
+  if(g('lc_style'))body.growthStyle=g('lc_style').value;
+  if(g('lc_purpose'))body.purpose=g('lc_purpose').value;
+  if(g('lc_c_amt'))body.contribAmount=+g('lc_c_amt').value;
+  if(g('lc_c_day'))body.contribDay=+g('lc_c_day').value;
+  if(g('lc_c_start'))body.contribStart=g('lc_c_start').value;
+  if(g('lc_c_on'))body.contribOn=g('lc_c_on').value==='1'?1:0;
+  if(g('lc_w_amt'))body.withdrawAmount=+g('lc_w_amt').value;
+  if(g('lc_w_day'))body.withdrawDay=+g('lc_w_day').value;
+  if(g('lc_w_start'))body.withdrawStart=g('lc_w_start').value;
+  if(g('lc_w_on'))body.withdrawOn=g('lc_w_on').value==='1'?1:0;
+  return body;
+}
+async function lcSaveRules(){
+  try{await api('PUT',lcBase(),lcRulesBody());flash('Saved');renderLiveCapital();}
+  catch(e){flash(e.message||'Save failed');}
+}
+async function lcAddTxn(){
+  try{
+    await api('POST',lcBase()+'/txns',{date:val('lc_tx_date'),type:val('lc_tx_type'),amount:+val('lc_tx_amt'),note:val('lc_tx_note')});
+    flash('Transaction added');renderLiveCapital();
+  }catch(e){flash(e.message||'Could not add');}
+}
+async function lcTxnStatus(id,status){
+  try{await api('PATCH',lcBase()+'/txns/'+id,{status});renderLiveCapital();}
+  catch(e){flash(e.message||'Could not update');}
+}
+async function lcTxnDel(id){
+  if(!confirm('Delete this transaction?'))return;
+  try{await api('DELETE',lcBase()+'/txns/'+id);renderLiveCapital();}
+  catch(e){flash(e.message||'Could not delete');}
 }
 function renderAccounts(){
   const tE=state.accounts.reduce((s,a)=>s+acctExp(a),0),tP=state.accounts.reduce((s,a)=>s+acctPay(a),0),roi=tP-tE;

@@ -244,6 +244,43 @@ router.get('/share-link', (req, res) => {
   const token = ensureClientShareToken(row.id, false);
   res.json({ token, path: '/share/' + token });
 });
+const liveCap = require('../liveCapital');
+function lcOwner(req) { return req.user.clientId; }
+router.get('/live-capital', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  res.json(liveCap.getView(lcOwner(req)));
+});
+router.put('/live-capital', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  try { res.json(liveCap.saveSettings(lcOwner(req), req.body || {})); }
+  catch (e) { res.status(400).json({ error: e.message || 'Save failed' }); }
+});
+router.post('/live-capital/txns', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  try { res.json(liveCap.addTxn(lcOwner(req), req.body || {})); }
+  catch (e) { res.status(400).json({ error: e.message || 'Could not add' }); }
+});
+router.patch('/live-capital/txns/:id', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  try { res.json(liveCap.patchTxn(lcOwner(req), req.params.id, req.body || {})); }
+  catch (e) { res.status(400).json({ error: e.message || 'Could not update' }); }
+});
+router.delete('/live-capital/txns/:id', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  try { res.json(liveCap.deleteTxn(lcOwner(req), req.params.id)); }
+  catch (e) { res.status(400).json({ error: e.message || 'Could not delete' }); }
+});
+
 router.post('/share-link/rotate', (req, res) => {
   const row = req.clientRow || getClientRow(req.user.clientId);
   if (!row) return res.status(404).json({ error: 'Client not found' });

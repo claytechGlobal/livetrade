@@ -159,4 +159,23 @@ router.delete('/day-shot/:date', (req, res) => {
   }
 });
 
+const { getView, saveSettings, addTxn, patchTxn, deleteTxn } = require('../liveCapital');
+router.get('/live-capital', (req, res) => res.json(getView('admin')));
+router.put('/live-capital', (req, res) => {
+  try { res.json(saveSettings('admin', req.body || {})); }
+  catch (e) { res.status(400).json({ error: e.message || 'Save failed' }); }
+});
+router.post('/live-capital/txns', (req, res) => {
+  try { res.json(addTxn('admin', req.body || {})); }
+  catch (e) { res.status(400).json({ error: e.message || 'Could not add' }); }
+});
+router.patch('/live-capital/txns/:id', (req, res) => {
+  try { res.json(patchTxn('admin', req.params.id, req.body || {})); }
+  catch (e) { res.status(400).json({ error: e.message || 'Could not update' }); }
+});
+router.delete('/live-capital/txns/:id', (req, res) => {
+  try { res.json(deleteTxn('admin', req.params.id)); }
+  catch (e) { res.status(400).json({ error: e.message || 'Could not delete' }); }
+});
+
 module.exports = router;

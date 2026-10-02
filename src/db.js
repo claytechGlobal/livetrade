@@ -163,6 +163,7 @@ function initDb() {
   if (!tradeCols.includes('play_name')) db.exec('ALTER TABLE trades ADD COLUMN play_name TEXT');
   migrateAccountLineage();
   migrateDayTradeEntries();
+  require('./liveCapital').ensureTables();
 
   if (process.env.SEED_DEMO === 'true' && !db.prepare('SELECT id FROM clients LIMIT 1').get()) {
     seedDemo();
