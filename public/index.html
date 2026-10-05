@@ -47,7 +47,7 @@ body::after{content:"";position:fixed;top:-25%;left:30%;width:55vw;height:55vh;z
 .sidebar-in{display:flex;flex-direction:column;gap:3px;padding:12px 10px;overflow-y:auto;height:100%;position:relative;z-index:1}
 .side-trace{position:absolute;inset:0;z-index:2;pointer-events:none}
 .side-trace svg{width:100%;height:100%;display:block}
-.side-trace rect{fill:none;stroke:#3d7cff;stroke-width:2.5;stroke-linecap:round;filter:drop-shadow(0 0 6px #3d7cff);
+.side-trace rect{fill:none;stroke:#3d7cff;stroke-width:1.15;stroke-linecap:round;filter:drop-shadow(0 0 3px #3d7cff);
   stroke-dasharray:14 86;animation:sideTrace 11s linear infinite}
 @keyframes sideTrace{
   0%{stroke-dashoffset:0;opacity:1}
@@ -201,6 +201,10 @@ body.client-mode .client-upload{display:flex!important;align-items:center;gap:10
 .lc-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 16px}
 .lc-tab{border:1px solid var(--line);background:var(--surface-2);color:var(--text-2);border-radius:999px;padding:8px 14px;font-weight:650;cursor:pointer;transition:.15s}
 .lc-tab.on{background:var(--accent);color:#041018;border-color:transparent}
+.lb-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:8px 0 16px}
+.lb-pill{border:1px solid var(--line);background:var(--surface-2);color:var(--text-2);border-radius:999px;padding:8px 14px;font-weight:650;cursor:pointer;transition:.18s}
+.lb-pill:hover{border-color:var(--accent);color:var(--text);transform:translateY(-1px)}
+.lb-pill.on{background:#c9a227;color:#1a1404;border-color:#e6c45a;box-shadow:0 0 16px rgba(201,162,39,.35)}
 .lc-bar{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin:8px 0}
 .lc-bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .45s ease}
 .lc-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
@@ -443,12 +447,13 @@ body.home-open::after{opacity:.35}
     <div class="nav-item active" data-view="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Dashboard</span></div>
     <div class="nav-item" data-view="trades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><span>Trade Log</span></div>
     <div class="nav-item" data-view="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Calendar</span></div>
-    <div class="nav-item" data-view="playbook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 4v16"/></svg><span>Playbook</span></div>
+    <div class="nav-item" data-view="playbook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 4v16"/></svg><span>Plays</span></div>
     <div class="nav-item" data-view="playbook101"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg><span>PTT Playbook</span></div>
     <div class="nav-item" data-view="guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span>Technicals</span></div>
     <div class="nav-label">Business</div>
     <div class="nav-item" data-view="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Expense Tracker</span></div>
     <div class="nav-item" data-view="livecapital"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M7 8l5-5 5 5"/><path d="M4 21h16"/></svg><span>Live Capital</span></div>
+    <div class="nav-item" data-view="leaderboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 3M17 6h3a3 3 0 0 1-3 3"/></svg><span>Leaderboard</span></div>
     <div class="nav-item" data-view="packages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Packages</span></div>
     <div class="nav-item" data-view="propfirms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg><span>Prop Firm Guide</span></div>
     <div class="nav-item" data-view="contract"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><span>Contract</span></div>
@@ -924,12 +929,12 @@ function esc(s){return(s==null?'':''+s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'
 const SUB={dashboard:"Here's where your edge stands today",trades:'Every position, with the futures math done for you',
   calendar:'Your profit & loss, day by day',playbook:'Which setups actually make you money',
   playbook101:'PTT Playbook — full training PDF',
-  accounts:'Fees, payouts & true business ROI',livecapital:'Live capital, drawdown, contributions, and risk buffer',clients:'Central upload — copies to every client',packages:'Plans your prospects can purchase',propfirms:'Top futures prop firm — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Technicals — A+ move charts & setups',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data'};
+  accounts:'Fees, payouts & true business ROI',livecapital:'Live capital, drawdown, contributions, and risk buffer',leaderboard:'Traders ranked by real journal results',clients:'Central upload — copies to every client',packages:'Plans your prospects can purchase',propfirms:'Top futures prop firm — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Technicals — A+ move charts & setups',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data'};
 let view='dashboard';
 function go(v){
   if(!v)return;
   if(session&&session.role==='client'&&(v==='clients'||v==='affiliates'||v==='settings')){v='dashboard';}
-  const fn={dashboard:renderDash,trades:renderTrades,calendar:renderCalendar,playbook:renderPlaybook,playbook101:renderPlaybook101,accounts:renderAccounts,livecapital:renderLiveCapital,clients:renderClients,packages:renderPackages,propfirms:renderPropFirms,contract:renderContract,guide:renderGuide,affiliates:renderAffiliates,terms:renderTerms,settings:renderSettings}[v];
+  const fn={dashboard:renderDash,trades:renderTrades,calendar:renderCalendar,playbook:renderPlaybook,playbook101:renderPlaybook101,accounts:renderAccounts,livecapital:renderLiveCapital,leaderboard:renderLeaderboard,clients:renderClients,packages:renderPackages,propfirms:renderPropFirms,contract:renderContract,guide:renderGuide,affiliates:renderAffiliates,terms:renderTerms,settings:renderSettings}[v];
   if(!fn)return;
   view=v;document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===v));
   const sub=document.getElementById('subline');if(sub)sub.textContent=SUB[v]||'';
@@ -1643,6 +1648,39 @@ function renderLineageStepper(chain,opts){
   }
   h+=`</div>`;return h;
 }
+let lbSort='profit', lbRange='all';
+function lbBase(){return (session&&session.role==='client')?'/api/client/leaderboard':'/api/admin/leaderboard';}
+function lbMarks(m){
+  if(!m||!m.count)return '';
+  const bits=[];
+  if(m.month)bits.push('last month');
+  if(m.quarter)bits.push('last 3 months');
+  if(m.year)bits.push('last year');
+  return `<span title="Profitable: ${esc(bits.join(', '))}" style="color:#e6c45a;letter-spacing:.08em">${'$'.repeat(m.count)}</span>`;
+}
+async function renderLeaderboard(){
+  const root=document.getElementById('content');
+  root.innerHTML='<div class="hint" style="font-family:var(--ui)">Loading leaderboard…</div>';
+  let d;
+  try{d=await api('GET',lbBase()+'?sort='+encodeURIComponent(lbSort)+'&range='+encodeURIComponent(lbRange));}
+  catch(e){root.innerHTML='<div class="card">Could not load the leaderboard right now.</div>';return;}
+  const sorts=[['profit','Profit'],['winRate','Win Rate'],['avgGain','Avg Gain'],['trades','Trades']];
+  const ranges=[['all','All Time'],['year','This Year'],['90d','90 Days'],['30d','30 Days']];
+  const pills=(list,cur,set)=>list.map(([k,label])=>`<button type="button" class="lb-pill ${cur===k?'on':''}" onclick="${set}='${k}';renderLeaderboard()">${label}</button>`).join('');
+  const rows=(d.rows||[]);
+  const table=rows.length?`<table><thead><tr><th>#</th><th>Trader</th><th>Profit</th><th>Win Rate</th><th>Avg Gain</th><th>Trades</th><th></th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td class="num">${r.rank}</td><td>${esc(r.name)}</td><td class="num ${cls(r.profit)}">${fmt$c(r.profit)}</td><td class="num">${r.winRate.toFixed(1)}%</td><td class="num ${cls(r.avgGain)}">${fmt$c(r.avgGain)}</td><td class="num">${r.trades}</td><td>${lbMarks(r.marks)}</td></tr>`).join('')}
+  </tbody></table>`:'<div class="hint" style="font-family:var(--ui);text-align:center;padding:28px 8px">No trades in this window yet.</div>';
+  root.innerHTML=`<div class="card" style="margin-bottom:16px;background:linear-gradient(135deg,var(--surface),var(--accent-soft))">
+    <div class="card-t" style="margin-bottom:6px"><span class="tick"></span>Global Leaderboard</div>
+    <div class="hint" style="font-family:var(--ui)">Active traders ranked from their real journal. Dollar marks mean a profitable last month, last 3 months, or last year.</div>
+  </div>
+  <div class="lb-pills">${pills(sorts,lbSort,'lbSort')}</div>
+  <div class="lb-pills">${pills(ranges,lbRange,'lbRange')}</div>
+  <div class="card" id="lbTable">${table}
+    <div class="hint" style="font-family:var(--ui);margin-top:12px"><span style="color:#e6c45a">$</span> last month · <span style="color:#e6c45a">$$</span> also last 3 months · <span style="color:#e6c45a">$$$</span> also last year</div>
+  </div>`;
+}
 let lcTab='overview';
 const LC_BROKER_URL='https://members.livvglobal.com/client/register/6aba9100b19a3';
 function lcBrokerBanner(){return `<div class="card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-color:rgba(34,184,239,.35);background:linear-gradient(135deg,var(--surface),var(--accent-soft))">
@@ -1659,7 +1697,7 @@ async function renderLiveCapital(){
   try{d=await api('GET',lcBase());}catch(e){root.innerHTML='<div class="card">'+esc(e.message||'Could not load')+'</div>';return;}
   window.__lc=d;
   const s=d.settings||{};
-  const tabs=['overview','Overview','setup','Setup & Automation','txns','Transactions','risk','Risk Settings'];
+  const tabs=['overview','Overview','txns','Transactions','risk','Risk Settings'];
   let tabH='<div class="lc-tabs">';
   for(let i=0;i<tabs.length;i+=2)tabH+=`<button type="button" class="lc-tab ${lcTab===tabs[i]?'on':''}" onclick="lcTab='${tabs[i]}';renderLiveCapital()">${tabs[i+1]}</button>`;
   tabH+='</div>';
@@ -1714,26 +1752,6 @@ async function renderLiveCapital(){
         <div class="hint" style="font-family:var(--ui);margin-top:8px">Win rate ${(d.winRate||0).toFixed(1)}% · Profit factor ${d.profitFactor==null?'—':Number(d.profitFactor).toFixed(2)} · Best ${best}</div>
         <div class="hint" style="font-family:var(--ui);margin-top:8px">Organic trading ${lcMoney(d.organic)} · Net contributions ${lcMoney(d.netContributions)}</div>
       </div>
-    </div>`;
-  } else if(lcTab==='setup'){
-    body=`<div class="card" style="margin-bottom:16px"><div class="card-h"><div class="card-t"><span class="tick"></span>Monthly Contribution</div></div>
-      <div class="f2">
-        <div class="field"><label>Amount</label><input id="lc_c_amt" class="num" type="number" value="${s.contribAmount||0}"></div>
-        <div class="field"><label>Day of month</label><input id="lc_c_day" class="num" type="number" min="1" max="28" value="${s.contribDay||14}"></div>
-        <div class="field"><label>Start date</label><input id="lc_c_start" type="date" value="${esc(s.contribStart||'')}"></div>
-        <div class="field"><label>Auto-add</label><select id="lc_c_on"><option value="1" ${s.contribOn?'selected':''}>On</option><option value="0" ${!s.contribOn?'selected':''}>Off</option></select></div>
-      </div>
-      <button class="btn sm primary" onclick="lcSaveRules()">Save contribution plan</button>
-    </div>
-    <div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>Monthly Withdrawal</div></div>
-      <div class="f2">
-        <div class="field"><label>Amount</label><input id="lc_w_amt" class="num" type="number" value="${s.withdrawAmount||0}"></div>
-        <div class="field"><label>Day of month</label><input id="lc_w_day" class="num" type="number" min="1" max="28" value="${s.withdrawDay||15}"></div>
-        <div class="field"><label>Start date</label><input id="lc_w_start" type="date" value="${esc(s.withdrawStart||'')}"></div>
-        <div class="field"><label>Auto-add</label><select id="lc_w_on"><option value="1" ${s.withdrawOn?'selected':''}>On</option><option value="0" ${!s.withdrawOn?'selected':''}>Off</option></select></div>
-      </div>
-      <button class="btn sm primary" onclick="lcSaveRules()">Save withdrawal plan</button>
-      <div class="hint" style="font-family:var(--ui);margin-top:10px">When on, future months are pending until you mark them complete. Past dates in the plan are posted.</div>
     </div>`;
   } else if(lcTab==='txns'){
     const rows=(d.txns||[]).map(t=>`<tr><td class="num">${esc(t.date)}</td><td>${esc(t.type)}${t.status==='pending'?' · pending':''}${t.status==='cancelled'?' · cancelled':''}</td><td class="num ${t.type==='withdrawal'||t.type==='fee'?'neg':'pos'}">${lcMoney(t.amount)}</td><td>${esc(t.note||'')}</td><td>

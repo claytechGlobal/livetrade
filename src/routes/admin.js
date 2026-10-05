@@ -160,6 +160,8 @@ router.delete('/day-shot/:date', (req, res) => {
 });
 
 const { getView, saveSettings, addTxn, patchTxn, deleteTxn } = require('../liveCapital');
+const { getLeaderboard } = require('../leaderboard');
+router.get('/leaderboard', (req, res) => res.json(getLeaderboard(req.query)));
 router.get('/live-capital', (req, res) => res.json(getView('admin')));
 router.put('/live-capital', (req, res) => {
   try { res.json(saveSettings('admin', req.body || {})); }

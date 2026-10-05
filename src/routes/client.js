@@ -245,6 +245,13 @@ router.get('/share-link', (req, res) => {
   res.json({ token, path: '/share/' + token });
 });
 const liveCap = require('../liveCapital');
+const { getLeaderboard } = require('../leaderboard');
+router.get('/leaderboard', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  res.json(getLeaderboard(req.query));
+});
 function lcOwner(req) { return req.user.clientId; }
 router.get('/live-capital', (req, res) => {
   const row = req.clientRow || getClientRow(req.user.clientId);
