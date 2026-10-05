@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gold Risk Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: control rail on the left (account + instrument + trade), stacked result panels on the right; collapses to one column on phones */
+/* Single dark look: deep navy ground, each panel keyed to its own neon accent */
+:root{
+  --bg:#0a0d1a; --panel:#121729; --panel-2:#181f38; --ink:#eef1ff; --muted:#9aa3c7; --line:#262e4d;
+  --gold:#ffc53d; --cyan:#22d3ee; --magenta:#ff4fa3; --violet:#a78bfa; --lime:#3ef08a;
+  --gold-soft:rgba(255,197,61,.12);
+  --good:#3ef08a; --warn:#ffb020; --bad:#ff5470;
+  --good-soft:rgba(62,240,138,.14); --warn-soft:rgba(255,176,32,.15); --bad-soft:rgba(255,84,112,.16);
+  --acc:var(--gold);
+  --display:"Archivo",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);padding:0 16px}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 48px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:22px}
+h1{font:800 clamp(28px,4.4vw,44px)/1 var(--display);letter-spacing:-.02em;margin:0;text-wrap:balance}
+h1 span{color:var(--gold)}
+header p{margin:0;color:var(--muted);max-width:52ch;font-size:14px}
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.rail{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:16px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:860px){.rail{position:static}}
+.main{display:flex;flex-direction:column;gap:22px;min-width:0}
+.group-label{font:600 11px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);font-weight:500}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input,select{font:500 15px var(--mono);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0}
+select{font-family:var(--body)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font:600 13px var(--mono);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:var(--panel)}
+section.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px}
+section.panel h2{font:700 19px/1.2 var(--display);margin:0 0 4px;letter-spacing:-.01em}
+section.panel > p.sub{margin:0 0 16px;color:var(--muted);font-size:14px}
+.headline{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:baseline;padding:16px;background:var(--gold-soft);border-radius:8px;margin-bottom:14px}
+.big{font:600 clamp(30px,5vw,44px)/1 var(--mono);letter-spacing:-.02em}
+.big small{font:500 15px var(--body);color:var(--muted);margin-left:6px;letter-spacing:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stat{background:var(--panel);padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.stat .k{font-size:12px;color:var(--muted)}
+.stat .v{font:600 18px var(--mono);font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:6px;font:600 12px var(--body);padding:4px 10px;border-radius:999px}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.notes{margin:12px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.notes li{padding-left:14px;position:relative}
+.notes li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;min-width:520px}
+th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);font:14px var(--mono)}
+th{font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+th:first-child,td:first-child{text-align:left}
+tr:last-child td{border-bottom:0}
+tr.hl td{background:var(--gold-soft)}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%;background:var(--gold)}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:640px){.split{grid-template-columns:minmax(0,1fr)}}
+.ctrls{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+footer{margin-top:26px;color:var(--muted);font-size:12.5px;max-width:80ch}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .25s}}
+
+/* vibrant overrides */
+body{background:radial-gradient(1200px 600px at 10% -10%,rgba(167,139,250,.18),transparent 60%),radial-gradient(900px 500px at 100% 0%,rgba(34,211,238,.12),transparent 60%),var(--bg);background-attachment:fixed}
+header{border-bottom:0;position:relative}
+header::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--magenta),var(--violet),var(--cyan))}
+h1 span{background:linear-gradient(90deg,var(--gold),var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent}
+.rail,section.panel{background:linear-gradient(180deg,var(--panel-2),var(--panel));border-color:var(--line)}
+.rail{border-top:3px solid var(--gold)}
+section.panel{border-top:3px solid var(--acc);box-shadow:0 0 0 1px rgba(255,255,255,.02),0 10px 40px -20px var(--acc)}
+section[aria-labelledby="h-size"]{--acc:var(--gold)}
+section[aria-labelledby="h-margin"]{--acc:var(--cyan)}
+section[aria-labelledby="h-streak"]{--acc:var(--magenta)}
+section[aria-labelledby="h-goal"]{--acc:var(--lime)}
+section.panel h2{color:var(--acc)}
+.headline{background:linear-gradient(120deg,color-mix(in srgb,var(--acc) 22%,transparent),color-mix(in srgb,var(--acc) 6%,transparent));border:1px solid color-mix(in srgb,var(--acc) 40%,transparent)}
+.big{color:var(--acc);text-shadow:0 0 24px color-mix(in srgb,var(--acc) 45%,transparent)}
+.stat{background:var(--panel)}
+.stat .v{color:var(--ink)}
+section.panel .stat .v{color:color-mix(in srgb,var(--acc) 55%,var(--ink))}
+input,select{background:#0c1022;border-color:#2c355a}
+input:focus-visible,select:focus-visible,button:focus-visible{outline-color:var(--cyan)}
+.seg button{background:#0c1022;border-color:#2c355a}
+.seg button:hover{border-color:var(--gold)}
+.seg button[aria-pressed="true"]{background:linear-gradient(90deg,var(--gold),var(--magenta));border-color:transparent;color:#0a0d1a}
+th{background:#0e1328}
+.bar{background:#222a47}
+.bar i{background:linear-gradient(90deg,var(--gold),var(--magenta))}
+tr.hl td{background:color-mix(in srgb,var(--lime) 14%,transparent);color:var(--lime)}
+.notes li::before{background:var(--acc);box-shadow:0 0 8px var(--acc)}
+.group-label{color:var(--gold)}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Gold <span>Risk</span> Desk</h1>
+  <p>Size every trade from your account balance, see what a losing streak does to it, and test whether a $/day goal is realistic for your account. Sample values are filled in. Replace them with your own.</p>
+</header>
+
+<div class="grid">
+<aside class="rail" aria-label="Inputs">
+  <fieldset>
+    <p class="group-label">Account</p>
+    <label for="bal">Account balance (USD)<input id="bal" type="number" inputmode="decimal" min="0" step="100" value="5000"></label>
+    <label>Risk per trade
+      <div class="seg" id="riskSeg"></div>
+    </label>
+    <div class="row2">
+      <label for="riskPct">Risk %<input id="riskPct" type="number" min="0" step="0.1" value="1"></label>
+      <label for="riskUsd">or Risk $<input id="riskUsd" type="number" min="0" step="1" value="50"></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <p class="group-label">Instrument</p>
+    <label for="inst">Symbol<select id="inst"></select></label>
+    <p class="hint" id="instSpec"></p>
+    <div class="row2">
+      <label for="price">Entry price<input id="price" type="number" step="any"></label>
+      <label for="stop"><span id="stopLbl">Stop distance</span><input id="stop" type="number" step="any" min="0"></label>
+    </div>
+    <div class="row2">
+      <label for="rr">Target (R multiple)<input id="rr" type="number" step="0.1" min="0" value="2"></label>
+      <label for="lev" id="levWrap"><span id="levLbl">Leverage 1:</span><input id="lev" type="number" step="any" min="1"></label>
+    </div>
+    <p class="hint" id="levHint"></p>
+  </fieldset>
+</aside>
+
+<div class="main">
+  <section class="panel" aria-labelledby="h-size">
+    <h2 id="h-size">Position size</h2>
+    <p class="sub">How big you can trade so that hitting your stop loses only what you chose to risk.</p>
+    <div class="headline">
+      <div><div class="big" id="sizeOut">—</div></div>
+      <div id="sizeFlag"></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="k">Exact size (unrounded)</span><span class="v" id="sExact">—</span></div>
+      <div class="stat"><span class="k">Actual $ at risk</span><span class="v" id="sRisk">—</span></div>
+      <div class="stat"><span class="k">Actual % of account</span><span class="v" id="sRiskPct">—</span></div>
+      <div class="stat"><span class="k">Profit at target</span><span class="v" id="sTarget">—</span></div>
+      <div class="stat"><span class="k">Value per 1 unit move</span><span class="v" id="sPerUnit">—</span></div>
+      <div class="stat"><span class="k">Stop / target price</span><span class="v" id="sLevels">—</span></div>
+    </div>
+    <ul class="notes" id="sizeNotes"></ul>
+  </section>
+
+  <section class="panel" aria-labelledby="h-margin">
+    <h2 id="h-margin">Margin and leverage</h2>
+    <p class="sub">How much of your account the position ties up, and how hard a normal move hits you.</p>
+    <div class="stats">
+      <div class="stat"><span class="k">Notional value</span><span class="v" id="mNotional">—</span></div>
+      <div class="stat"><span class="k">Margin required</span><span class="v" id="mMargin">—</span></div>
+      <div class="stat"><span class="k">Margin used</span><span class="v" id="mUsed">—</span></div>
+      <div class="stat"><span class="k">Effective leverage</span><span class="v" id="mEff">—</span></div>
+      <div class="stat"><span class="k">Free margin left</span><span class="v" id="mFree">—</span></div>
+      <div class="stat"><span class="k">Adverse move to wipe free margin</span><span class="v" id="mWipe">—</span></div>
+    </div>
+    <ul class="notes" id="marginNotes"></ul>
+  </section>
+
+  <section class="panel" aria-labelledby="h-streak">
+    <h2 id="h-streak">Losing streaks</h2>
+    <p class="sub">Every system has them. This is your balance after back-to-back losses at your current risk %, and how likely each streak is over a year.</p>
+    <div class="ctrls">
+      <label for="win">Win rate %<input id="win" type="number" min="1" max="99" step="1" value="45"></label>
+      <label for="tpd">Trades per day<input id="tpd" type="number" min="0.1" step="0.5" value="2"></label>
+      <label for="days">Trading days / year<input id="days" type="number" min="1" step="1" value="250"></label>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Losses in a row</th><th>Balance after</th><th>Drawdown</th><th style="width:22%"></th><th>Chance it happens this year</th></tr></thead>
+        <tbody id="streakBody"></tbody>
+      </table>
+    </div>
+    <ul class="notes" id="streakNotes"></ul>
+  </section>
+
+  <section class="panel" aria-labelledby="h-goal">
+    <h2 id="h-goal">Daily target reality check</h2>
+    <p class="sub">The "$X a day × 250 days" math is correct. What it leaves out is how big an account each number needs. Pick a target to see what it asks of yours.</p>
+    <div class="ctrls">
+      <label for="goal">Average $ per day<input id="goal" type="number" min="0" step="50" value="200"></label>
+      <label>Quick pick<div class="seg" id="goalSeg"></div></label>
+    </div>
+    <div class="split">
+      <div>
+        <div class="headline" style="margin-bottom:10px">
+          <div><div class="big" id="gYear">—</div><div class="hint">per year at this average</div></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><span class="k">Daily return needed</span><span class="v" id="gDayPct">—</span></div>
+          <div class="stat"><span class="k">Yearly return needed</span><span class="v" id="gYearPct">—</span></div>
+          <div class="stat"><span class="k">Your edge per trade</span><span class="v" id="gExp">—</span></div>
+          <div class="stat"><span class="k">Trades/day that edge needs</span><span class="v" id="gTrades">—</span></div>
+        </div>
+        <p style="margin:12px 0 0" id="gVerdict"></p>
+      </div>
+      <div class="tablewrap">
+        <table style="min-width:300px">
+          <thead><tr><th>$/day</th><th>$/year</th><th>Account for 0.5%/day</th></tr></thead>
+          <tbody id="goalBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <ul class="notes" id="goalNotes"></ul>
+  </section>
+
+  <footer>Contract sizes follow common broker and CME specs: XAUUSD 100 oz per lot, MGC 10 oz, GC 100 oz, XAGUSD 5,000 oz, SIL 1,000 oz, FX 100,000 units, MES $5/pt, MNQ $2/pt. Some brokers use different lot sizes, and exchange margins change often, so confirm both with your broker. Prices shown on load are examples, not live quotes. This is an educational tool, not financial advice.</footer>
+</div>
+</div>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+// unitValue(price): USD per 1 stop-unit per 1 lot/contract. notional(price): USD notional per lot/contract.
+const INST=[
+ {id:"XAUUSD",g:"Metals (spot / CFD)",name:"XAUUSD — Gold spot",type:"cfd",unit:"$ move",ul:"$1.00 move",price:3850,stop:8,step:0.01,sz:"lots",uv:()=>100,nt:p=>p*100,lev:100,spec:"1 lot = 100 oz · $1 move = $100/lot · 0.01 lot = $1 per $1 move",dp:2},
+ {id:"XAGUSD",g:"Metals (spot / CFD)",name:"XAGUSD — Silver spot",type:"cfd",unit:"cents",ul:"1¢ move",price:46,stop:30,step:0.01,sz:"lots",uv:()=>50,nt:p=>p*5000,lev:50,spec:"1 lot = 5,000 oz · 1¢ move = $50/lot",dp:3,unitPrice:0.01},
+ {id:"MGC",g:"Metals (futures)",name:"MGC — Micro Gold futures",type:"fut",unit:"$ move",ul:"$1.00 move",price:3860,stop:8,step:1,sz:"contracts",uv:()=>10,nt:p=>p*10,margin:2300,spec:"10 oz · tick 0.10 = $1.00 · $1 move = $10/contract",dp:1,tick:0.1},
+ {id:"GC",g:"Metals (futures)",name:"GC — Gold futures",type:"fut",unit:"$ move",ul:"$1.00 move",price:3860,stop:8,step:1,sz:"contracts",uv:()=>100,nt:p=>p*100,margin:23000,spec:"100 oz · tick 0.10 = $10 · $1 move = $100/contract",dp:1,tick:0.1},
+ {id:"SIL",g:"Metals (futures)",name:"SIL — Micro Silver futures",type:"fut",unit:"cents",ul:"1¢ move",price:46.5,stop:30,step:1,sz:"contracts",uv:()=>10,nt:p=>p*1000,margin:4500,spec:"1,000 oz · tick 0.005 = $5 · 1¢ = $10/contract",dp:3,unitPrice:0.01,tick:0.005},
+ {id:"EURUSD",g:"FX majors",name:"EURUSD",type:"cfd",unit:"pips",ul:"1 pip",price:1.17,stop:20,step:0.01,sz:"lots",uv:()=>10,nt:p=>p*100000,lev:30,spec:"1 lot = 100,000 EUR · 1 pip (0.0001) = $10/lot",dp:5,unitPrice:0.0001},
+ {id:"GBPUSD",g:"FX majors",name:"GBPUSD",type:"cfd",unit:"pips",ul:"1 pip",price:1.34,stop:25,step:0.01,sz:"lots",uv:()=>10,nt:p=>p*100000,lev:30,spec:"1 lot = 100,000 GBP · 1 pip = $10/lot",dp:5,unitPrice:0.0001},
+ {id:"AUDUSD",g:"FX majors",name:"AUDUSD",type:"cfd",unit:"pips",ul:"1 pip",price:0.66,stop:20,step:0.01,sz:"lots",uv:()=>10,nt:p=>p*100000,lev:30,spec:"1 lot = 100,000 AUD · 1 pip = $10/lot",dp:5,unitPrice:0.0001},
+ {id:"NZDUSD",g:"FX majors",name:"NZDUSD",type:"cfd",unit:"pips",ul:"1 pip",price:0.59,stop:20,step:0.01,sz:"lots",uv:()=>10,nt:p=>p*100000,lev:30,spec:"1 lot = 100,000 NZD · 1 pip = $10/lot",dp:5,unitPrice:0.0001},
+ {id:"USDJPY",g:"FX majors",name:"USDJPY",type:"cfd",unit:"pips",ul:"1 pip",price:148,stop:25,step:0.01,sz:"lots",uv:p=>1000/p,nt:()=>100000,lev:30,spec:"1 lot = 100,000 USD · 1 pip (0.01) = ¥1,000/lot ≈ $1000 ÷ price",dp:3,unitPrice:0.01},
+ {id:"USDCAD",g:"FX majors",name:"USDCAD",type:"cfd",unit:"pips",ul:"1 pip",price:1.38,stop:20,step:0.01,sz:"lots",uv:p=>10/p,nt:()=>100000,lev:30,spec:"1 lot = 100,000 USD · 1 pip = C$10/lot ≈ $10 ÷ price",dp:5,unitPrice:0.0001},
+ {id:"USDCHF",g:"FX majors",name:"USDCHF",type:"cfd",unit:"pips",ul:"1 pip",price:0.80,stop:20,step:0.01,sz:"lots",uv:p=>10/p,nt:()=>100000,lev:30,spec:"1 lot = 100,000 USD · 1 pip = CHF10/lot ≈ $10 ÷ price",dp:5,unitPrice:0.0001},
+ {id:"MES",g:"Index micros (futures)",name:"MES — Micro E-mini S&P 500",type:"fut",unit:"points",ul:"1 point",price:6600,stop:10,step:1,sz:"contracts",uv:()=>5,nt:p=>p*5,margin:2400,spec:"$5 per point · tick 0.25 = $1.25",dp:2,tick:0.25},
+ {id:"MNQ",g:"Index micros (futures)",name:"MNQ — Micro E-mini Nasdaq-100",type:"fut",unit:"points",ul:"1 point",price:24500,stop:40,step:1,sz:"contracts",uv:()=>2,nt:p=>p*2,margin:3400,spec:"$2 per point · tick 0.25 = $0.50",dp:2,tick:0.25}
+];
+const state={};
+INST.forEach(i=>state[i.id]={price:i.price,stop:i.stop,lev:i.type==="cfd"?i.lev:i.margin});
+
+// build select
+const sel=$("inst");const groups={};
+INST.forEach(i=>{if(!groups[i.g]){groups[i.g]=document.createElement("optgroup");groups[i.g].label=i.g;sel.appendChild(groups[i.g]);}
+ const o=document.createElement("option");o.value=i.id;o.textContent=i.name;groups[i.g].appendChild(o);});
+
+const usd=(v,d=0)=>(v<0?"−$":"$")+Math.abs(v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct=(v,d=2)=>(isFinite(v)?v.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}):"—")+"%";
+const num=(v,d=2)=>v.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+const val=id=>{const v=parseFloat($(id).value);return isFinite(v)?v:0};
+
+// risk chips
+[0.25,0.5,1,2,3,5].forEach(r=>{const b=document.createElement("button");b.type="button";b.textContent=r+"%";b.dataset.r=r;
+ b.onclick=()=>{$("riskPct").value=r;syncRisk("pct");};$("riskSeg").appendChild(b);});
+[100,200,300,400,1000,4000].forEach(g=>{const b=document.createElement("button");b.type="button";b.textContent="$"+g.toLocaleString();b.dataset.g=g;
+ b.onclick=()=>{$("goal").value=g;render();};$("goalSeg").appendChild(b);});
+
+function syncRisk(from){
+ const bal=val("bal");
+ if(from==="usd"){ $("riskPct").value=bal>0?+(val("riskUsd")/bal*100).toFixed(3):0; }
+ else { $("riskUsd").value=+(bal*val("riskPct")/100).toFixed(2); }
+ render();
+}
+
+function loadInst(){
+ const i=cur(), s=state[i.id];
+ $("price").value=s.price;$("stop").value=s.stop;$("lev").value=s.lev;
+ $("stopLbl").textContent="Stop distance ("+i.unit+")";
+ $("instSpec").textContent=i.spec;
+ if(i.type==="cfd"){$("levLbl").textContent="Leverage 1:";$("levHint").textContent="Your broker's leverage for this symbol. Margin = notional ÷ leverage.";}
+ else{$("levLbl").textContent="Margin / contract $";$("levHint").textContent="Initial margin per contract. Day-trade margins at many brokers are lower; overnight follows the exchange.";}
+ render();
+}
+const cur=()=>INST.find(x=>x.id===sel.value);
+
+// probability of at least one run of >=k losses in n trades, loss prob q
+function streakProb(n,k,q){
+ if(k>n) return 0;
+ // dp[j] = prob current trailing loss run = j and no run >=k yet
+ let dp=new Float64Array(k);dp[0]=1;let hit=0;
+ for(let t=0;t<n;t++){const nd=new Float64Array(k);let tot=0;
+  for(let j=0;j<k;j++){const p=dp[j];if(!p)continue;nd[0]+=p*(1-q);
+   if(j+1>=k)hit+=p*q;else nd[j+1]+=p*q;}
+  dp=nd;}
+ return hit;
+}
+
+function render(){
+ const i=cur(),s=state[i.id];
+ s.price=val("price");s.stop=val("stop");s.lev=val("lev");
+ const bal=val("bal"),riskPct=val("riskPct"),riskUsd=bal*riskPct/100,rr=val("rr");
+ const price=s.price,stop=s.stop,uv=i.uv(price||1);
+ document.querySelectorAll("#riskSeg button").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.r===riskPct)));
+ document.querySelectorAll("#goalSeg button").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.g===val("goal"))));
+
+ // ---- size
+ const riskPerLot=stop*uv;
+ const exact=riskPerLot>0?riskUsd/riskPerLot:0;
+ const step=i.step;
+ let size=Math.floor(exact/step+1e-9)*step;
+ const minSize=step;
+ const tooSmall=size<minSize-1e-12;
+ const shownSize=tooSmall?minSize:size;
+ const actRisk=shownSize*riskPerLot;
+ const sdp=step<1?2:0;
+ $("sizeOut").innerHTML=(tooSmall?num(0,sdp):num(size,sdp))+"<small>"+i.sz+"</small>";
+ $("sExact").textContent=num(exact,step<1?3:2)+" "+i.sz;
+ $("sRisk").textContent=usd(tooSmall?0:actRisk,2);
+ $("sRiskPct").textContent=pct(bal?(tooSmall?0:actRisk)/bal*100:0);
+ $("sTarget").textContent=usd((tooSmall?0:actRisk)*rr,2);
+ $("sPerUnit").textContent=usd(uv*(tooSmall?minSize:size||minSize),2)+" / "+i.ul;
+ const pDist=stop*(i.unitPrice||1);
+ $("sLevels").textContent="L "+num(price-pDist,i.dp)+" / "+num(price+pDist*rr,i.dp);
+ const minRisk=minSize*riskPerLot;
+ let flag,notes=[];
+ if(!(stop>0)||!(bal>0)){flag='<span class="pill warn">Enter a balance and a stop distance</span>';}
+ else if(tooSmall){flag='<span class="pill bad">Account too small for this stop</span>';
+  notes.push("The smallest size, "+num(minSize,sdp)+" "+i.sz.replace(/s$/,"")+", would risk "+usd(minRisk,2)+" ("+pct(minRisk/bal*100)+" of the account). Tighten the stop to "+num(riskUsd/(minSize*uv),2)+" "+i.unit+" or less, or choose a smaller instrument"+(i.id==="GC"?" such as MGC":i.id==="MGC"?" such as XAUUSD at 0.01 lots":"")+".");}
+ else if(riskPct>3){flag='<span class="pill bad">High risk per trade</span>';}
+ else if(riskPct>1.5){flag='<span class="pill warn">Aggressive risk per trade</span>';}
+ else flag='<span class="pill good">Within common 0.5–1.5% guidance</span>';
+ $("sizeFlag").innerHTML=flag;
+ if(i.type==="fut"&&i.tick&&stop>0) notes.push("Stop of "+num(stop,2)+" "+i.unit+" = "+num(pDist/i.tick/(i.unitPrice?1:1),0)+" ticks.");
+ if(!tooSmall&&exact-size>step*0.01&&stop>0) notes.push("Rounded down from "+num(exact,3)+" to stay at or under your risk. Rounding up would risk "+usd((size+step)*riskPerLot,2)+".");
+ notes.push("Your stop goes where the trade idea is wrong. Size comes from the stop, never the other way round.");
+ $("sizeNotes").innerHTML=notes.map(n=>"<li>"+n+"</li>").join("");
+
+ // ---- margin
+ const pos=tooSmall?0:size;
+ const notional=i.nt(price)*pos;
+ const margin=i.type==="cfd"?(s.lev>0?notional/s.lev:0):s.lev*pos;
+ const used=bal?margin/bal*100:0;
+ const eff=bal?notional/bal:0;
+ const free=bal-margin;
+ $("mNotional").textContent=usd(notional);
+ $("mMargin").textContent=usd(margin);
+ $("mUsed").textContent=pct(used,1);
+ $("mEff").textContent=num(eff,1)+"×";
+ $("mFree").textContent=usd(free);
+ const perUnitPos=uv*pos;
+ $("mWipe").textContent=perUnitPos>0?num(free/perUnitPos,1)+" "+i.unit:"—";
+ const mn=[];
+ if(pos>0){
+  mn.push("A 1% move in "+i.id+" changes this position by "+usd(notional*0.01)+", which is "+pct(notional*0.01/bal*100,1)+" of your account.");
+  if(used>50) mn.push("<b>Over half the account is tied up as margin.</b> One gap or spike past the stop could trigger a margin call.");
+  else if(used>25) mn.push("Margin use above 25% leaves little room for a second position or slippage.");
+  if(eff>10) mn.push("Effective leverage above 10× means small price moves swing the account hard. Gaps over weekends and news can skip your stop.");
+ }
+ $("marginNotes").innerHTML=mn.map(n=>"<li>"+n+"</li>").join("");
+
+ // ---- streaks
+ const win=Math.min(99,Math.max(1,val("win")))/100, tpd=val("tpd"), days=val("days");
+ const n=Math.round(tpd*days);
+ const rf=riskPct/100;
+ const rows=[3,5,7,10,15,20].map(k=>{
+  const after=bal*Math.pow(1-rf,k), dd=(1-Math.pow(1-rf,k))*100;
+  const pr=streakProb(Math.min(n,5000),k,1-win);
+  return {k,after,dd,pr};});
+ $("streakBody").innerHTML=rows.map(r=>`<tr class="${r.pr>0.5&&r.pr<0.995?"":""}"><td>${r.k}</td><td>${usd(r.after)}</td><td>${pct(-r.dd,1)}</td><td><div class="bar"><i style="width:${Math.min(100,r.dd)}%"></i></div></td><td>${r.pr>=0.995?"almost certain":r.pr<0.005?"&lt; 0.5%":pct(r.pr*100,0)}</td></tr>`).join("");
+ const likely=rows.filter(r=>r.pr>=0.5).pop();
+ const sn=[];
+ sn.push("Based on "+n.toLocaleString()+" trades a year at a "+Math.round(win*100)+"% win rate.");
+ if(likely) sn.push("A streak of "+likely.k+" losses is more likely than not this year. At "+pct(riskPct,1)+" risk that's a "+pct(likely.dd,1)+" drawdown, so plan for it before it happens.");
+ sn.push("Recovering from a drawdown takes a bigger gain: −20% needs +25%, −50% needs +100%.");
+ $("streakNotes").innerHTML=sn.map(x=>"<li>"+x+"</li>").join("");
+
+ // ---- goal
+ const goal=val("goal");
+ const year=goal*days;
+ $("gYear").textContent=usd(year);
+ const dayPct=bal?goal/bal*100:0;
+ $("gDayPct").textContent=pct(dayPct,2);
+ $("gYearPct").textContent=bal?pct(year/bal*100,0):"—";
+ const exp=riskUsd*(win*rr-(1-win));
+ $("gExp").textContent=usd(exp,2);
+ $("gTrades").textContent=exp>0?num(goal/exp,1):"no edge";
+ let v;
+ if(!(bal>0)) v='<span class="pill warn">Enter a balance</span>';
+ else if(exp<=0) v='<span class="pill bad">Negative edge</span> At a '+Math.round(win*100)+'% win rate and '+rr+'R target, each trade loses money on average. No daily target is reachable until win rate or R:R improves.';
+ else if(dayPct>2) v='<span class="pill bad">Unrealistic for this account</span> '+pct(dayPct,1)+' a day is far beyond what consistent professionals average. Chasing it pushes risk per trade up, which is how accounts blow up.';
+ else if(dayPct>0.5) v='<span class="pill warn">Very ambitious</span> '+pct(dayPct,2)+' a day compounds to triple-digit yearly returns. Possible in stretches, rare to sustain.';
+ else v='<span class="pill good">Plausible with a real edge</span> '+pct(dayPct,2)+' a day is demanding but within reach for a disciplined, profitable process.';
+ $("gVerdict").innerHTML=v;
+ $("goalBody").innerHTML=[100,200,300,400,1000,4000].map(g=>`<tr class="${g===goal?"hl":""}"><td>${usd(g)}</td><td>${usd(g*days)}</td><td>${usd(g/0.005)}</td></tr>`).join("");
+ const gn=["The post's arithmetic holds, but $4,000/day averaged across 250 days needs roughly an $800,000 account at 0.5% a day.",
+  "Expected trades/day uses your risk $, R target and win rate from above. Fees, spread and slippage reduce the edge further."];
+ $("goalNotes").innerHTML=gn.map(x=>"<li>"+x+"</li>").join("");
+}
+
+sel.addEventListener("change",loadInst);
+$("bal").addEventListener("input",()=>syncRisk("pct"));
+$("riskPct").addEventListener("input",()=>syncRisk("pct"));
+$("riskUsd").addEventListener("input",()=>syncRisk("usd"));
+["price","stop","rr","lev","win","tpd","days","goal"].forEach(id=>$(id).addEventListener("input",render));
+sel.value="XAUUSD";loadInst();syncRisk("pct");
+})();
+</script>
+</body>
+</html>
