@@ -1644,6 +1644,11 @@ function renderLineageStepper(chain,opts){
   h+=`</div>`;return h;
 }
 let lcTab='overview';
+const LC_BROKER_URL='https://members.livvglobal.com/client/register/6aba9100b19a3';
+function lcBrokerBanner(){return `<div class="card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-color:rgba(34,184,239,.35);background:linear-gradient(135deg,var(--surface),var(--accent-soft))">
+  <div><div style="font-weight:700;font-size:14px">Broker account</div><div class="hint" style="font-family:var(--ui);margin-top:4px">Register or sign in to your LivvFX live account.</div></div>
+  <a class="btn sm primary" href="${LC_BROKER_URL}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;white-space:nowrap">Open broker portal →</a>
+</div>`;}
 function lcBase(){return (session&&session.role==='client')?'/api/client/live-capital':'/api/admin/live-capital';}
 function lcMoney(n){return fmt$c(Number(n)||0);}
 function lcMonth(k){const [y,m]=String(k).split('-');const names=['January','February','March','April','May','June','July','August','September','October','November','December'];return (names[(+m||1)-1]||k)+' '+y;}
@@ -1759,7 +1764,8 @@ async function renderLiveCapital(){
     </div>`;
   }
   root.innerHTML=`<div style="margin-bottom:8px"><div style="font-family:var(--display);font-weight:800;font-size:28px">Live Capital</div>
-    <div class="hint" style="font-family:var(--ui)">Track capital, drawdown, contributions, and trading profit from your journal. Deposits are not counted as trading skill.</div></div>${tabH}${body}`;
+    <div class="hint" style="font-family:var(--ui)">Track capital, drawdown, contributions, and trading profit from your journal. Deposits are not counted as trading skill.</div></div>
+    ${lcBrokerBanner()}${tabH}${body}`;
 }
 function lcRulesBody(){
   const g=id=>document.getElementById(id);
