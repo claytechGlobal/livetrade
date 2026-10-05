@@ -201,10 +201,15 @@ body.client-mode .client-upload{display:flex!important;align-items:center;gap:10
 .lc-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 16px}
 .lc-tab{border:1px solid var(--line);background:var(--surface-2);color:var(--text-2);border-radius:999px;padding:8px 14px;font-weight:650;cursor:pointer;transition:.15s}
 .lc-tab.on{background:var(--accent);color:#041018;border-color:transparent}
-.lb-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:8px 0 16px}
-.lb-pill{border:1px solid var(--line);background:var(--surface-2);color:var(--text-2);border-radius:999px;padding:8px 14px;font-weight:650;cursor:pointer;transition:.18s}
-.lb-pill:hover{border-color:var(--accent);color:var(--text);transform:translateY(-1px)}
-.lb-pill.on{background:#c9a227;color:#1a1404;border-color:#e6c45a;box-shadow:0 0 16px rgba(201,162,39,.35)}
+.lb-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;padding:22px 22px;border-radius:22px;border:1px solid var(--line);background:linear-gradient(120deg,rgba(34,184,239,.12),rgba(201,162,39,.08) 55%,var(--surface))}
+.lb-hero h2{font-family:var(--display);font-weight:800;font-size:32px;line-height:1.05;margin:2px 0 8px;background:linear-gradient(90deg,#fff,#e6c45a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lb-kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-3);font-weight:700}
+.lb-trophy{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:rgba(230,196,90,.12);color:#e6c45a;border:1px solid rgba(230,196,90,.35);flex:none}
+.lb-filters{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+.lb-pills{display:flex;gap:6px;flex-wrap:wrap;margin:0;padding:6px;border-radius:999px;border:1px solid var(--line);background:rgba(0,0,0,.25)}
+.lb-pill{border:1px solid transparent;background:transparent;color:var(--text-2);border-radius:999px;padding:8px 14px;font-weight:650;cursor:pointer;transition:.18s}
+.lb-pill:hover{color:#e6c45a}
+.lb-pill.on{background:transparent;color:#e6c45a;border-color:rgba(230,196,90,.7);box-shadow:none}
 .lc-bar{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin:8px 0}
 .lc-bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .45s ease}
 .lc-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
@@ -448,7 +453,7 @@ body.home-open::after{opacity:.35}
     <div class="nav-item" data-view="trades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><span>Trade Log</span></div>
     <div class="nav-item" data-view="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Calendar</span></div>
     <div class="nav-item" data-view="playbook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 4v16"/></svg><span>Plays</span></div>
-    <div class="nav-item" data-view="playbook101"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg><span>PTT Playbook</span></div>
+    <div class="nav-item" data-view="playbook101" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg><span>PTT Playbook</span></div>
     <div class="nav-item" data-view="guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span>Technicals</span></div>
     <div class="nav-label">Business</div>
     <div class="nav-item" data-view="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Expense Tracker</span></div>
@@ -1671,12 +1676,21 @@ async function renderLeaderboard(){
   const table=rows.length?`<table><thead><tr><th>#</th><th>Trader</th><th>Profit</th><th>Win Rate</th><th>Avg Gain</th><th>Trades</th><th></th></tr></thead><tbody>
     ${rows.map(r=>`<tr><td class="num">${r.rank}</td><td>${esc(r.name)}</td><td class="num ${cls(r.profit)}">${fmt$c(r.profit)}</td><td class="num">${r.winRate.toFixed(1)}%</td><td class="num ${cls(r.avgGain)}">${fmt$c(r.avgGain)}</td><td class="num">${r.trades}</td><td>${lbMarks(r.marks)}</td></tr>`).join('')}
   </tbody></table>`:'<div class="hint" style="font-family:var(--ui);text-align:center;padding:28px 8px">No trades in this window yet.</div>';
-  root.innerHTML=`<div class="card" style="margin-bottom:16px;background:linear-gradient(135deg,var(--surface),var(--accent-soft))">
-    <div class="card-t" style="margin-bottom:6px"><span class="tick"></span>Global Leaderboard</div>
-    <div class="hint" style="font-family:var(--ui)">Active traders ranked from their real journal. Dollar marks mean a profitable last month, last 3 months, or last year.</div>
+  root.innerHTML=`<div class="lb-hero">
+    <div style="display:flex;gap:14px;align-items:flex-start">
+      <div class="lb-trophy"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 3M17 6h3a3 3 0 0 1-3 3"/></svg></div>
+      <div>
+        <div class="lb-kicker">Community</div>
+        <h2>Global Leaderboard</h2>
+        <div class="hint" style="font-family:var(--ui);max-width:560px">Traders ranked by their real journal results. Dollar marks show who stayed profitable last month, the last 3 months, and the last year.</div>
+      </div>
+    </div>
+    <button type="button" class="btn sm" onclick="document.getElementById('lbTable')&&document.getElementById('lbTable').scrollIntoView({behavior:'smooth'})">Discover traders</button>
   </div>
-  <div class="lb-pills">${pills(sorts,lbSort,'lbSort')}</div>
-  <div class="lb-pills">${pills(ranges,lbRange,'lbRange')}</div>
+  <div class="lb-filters">
+    <div class="lb-pills">${pills(sorts,lbSort,'lbSort')}</div>
+    <div class="lb-pills">${pills(ranges,lbRange,'lbRange')}</div>
+  </div>
   <div class="card" id="lbTable">${table}
     <div class="hint" style="font-family:var(--ui);margin-top:12px"><span style="color:#e6c45a">$</span> last month · <span style="color:#e6c45a">$$</span> also last 3 months · <span style="color:#e6c45a">$$$</span> also last year</div>
   </div>`;
