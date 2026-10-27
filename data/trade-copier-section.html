@@ -1,0 +1,244 @@
+<!-- Plan The Trade · Understanding Trade-Copier Technology (educational section)
+     Self-contained: all styles are scoped under .ace-tc so they won't clash with your site. -->
+<section class="ace-tc" aria-labelledby="ace-tc-title">
+  <style>
+    .ace-tc {
+      --tc-bg: #0a0b1a;
+      --tc-surface: rgba(255, 255, 255, 0.04);
+      --tc-border: rgba(255, 255, 255, 0.10);
+      --tc-text: #f3f4ff;
+      --tc-muted: #a9aecb;
+      --tc-accent: #22d3ee;      /* cyan */
+      --tc-accent-2: #a855f7;    /* violet */
+      --tc-accent-3: #ec4899;    /* pink */
+      --tc-accent-soft: rgba(34, 211, 238, 0.12);
+      --tc-warn: #fbbf24;
+      --tc-warn-bg: rgba(251, 191, 36, 0.10);
+      --tc-warn-border: rgba(251, 191, 36, 0.40);
+      background:
+        radial-gradient(900px 500px at 10% -10%, rgba(168, 85, 247, 0.28), transparent 60%),
+        radial-gradient(800px 500px at 100% 20%, rgba(34, 211, 238, 0.20), transparent 60%),
+        radial-gradient(700px 400px at 50% 110%, rgba(236, 72, 153, 0.18), transparent 60%),
+        var(--tc-bg);
+      color: var(--tc-text);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      padding: 64px 16px;
+    }
+    .ace-tc *, .ace-tc *::before, .ace-tc *::after { box-sizing: border-box; }
+    .ace-tc__inner { max-width: 1080px; margin: 0 auto; }
+
+    .ace-tc__eyebrow {
+      display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--tc-accent); background: var(--tc-accent-soft);
+      padding: 4px 10px; border-radius: 999px; margin-bottom: 16px;
+    }
+    .ace-tc__eyebrow { border: 1px solid rgba(34, 211, 238, 0.35); }
+    .ace-tc h2 {
+      font-size: clamp(28px, 4vw, 44px); line-height: 1.15; margin: 0 0 16px; letter-spacing: -.01em;
+      background: linear-gradient(90deg, #ffffff 0%, var(--tc-accent) 45%, var(--tc-accent-2) 75%, var(--tc-accent-3) 100%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .ace-tc__disclaimer {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: var(--tc-warn-bg); border: 1px solid var(--tc-warn-border); color: var(--tc-warn);
+      border-radius: 10px; padding: 12px 16px; font-size: 14px; margin: 0 0 40px; max-width: 720px;
+    }
+    .ace-tc__disclaimer svg { flex: none; margin-top: 3px; }
+
+    /* Intro + diagram */
+    .ace-tc__intro {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px;
+    }
+    .ace-tc__intro h3 { font-size: 20px; margin: 0 0 8px; }
+    .ace-tc__intro p { margin: 0; color: var(--tc-muted); }
+
+    /* Hub diagram: 4 followers | leader | 4 followers */
+    .ace-tc__diagram {
+      --line: 2px dashed rgba(34, 211, 238, 0.7);
+      --gap: 36px;       /* connector length */
+      --node-h: 68px;
+      background: var(--tc-surface); border: 1px solid var(--tc-border); border-radius: 18px;
+      padding: 40px 32px 28px; margin-bottom: 48px;
+      display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; row-gap: 28px;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.15), 0 24px 80px -24px rgba(168, 85, 247, 0.5);
+    }
+    .ace-tc__node {
+      border: 1px solid var(--tc-border); background: rgba(10, 11, 26, 0.7); border-radius: 12px;
+      height: var(--node-h); padding: 0 16px; font-size: 16px; font-weight: 600; text-align: center;
+      display: flex; flex-direction: column; justify-content: center; position: relative;
+    }
+    .ace-tc__node small { display: block; font-weight: 400; color: var(--tc-muted); font-size: 13px; }
+
+    .ace-tc__col { display: grid; gap: 14px; position: relative; }
+    .ace-tc__col--left { padding-right: var(--gap); }
+    .ace-tc__col--right { padding-left: var(--gap); }
+    /* vertical spine joining the follower connectors */
+    .ace-tc__col::after {
+      content: ""; position: absolute; top: calc(var(--node-h) / 2); bottom: calc(var(--node-h) / 2);
+      border-left: var(--line);
+    }
+    .ace-tc__col--left::after { right: 0; }
+    .ace-tc__col--right::after { left: 0; }
+    /* short connector from each follower to the spine */
+    .ace-tc__col .ace-tc__node::after {
+      content: ""; position: absolute; top: 50%; width: var(--gap); border-top: var(--line);
+    }
+    .ace-tc__col--left .ace-tc__node::after { left: 100%; }
+    .ace-tc__col--right .ace-tc__node::after { right: 100%; }
+
+    .ace-tc__hub { padding: 0 var(--gap); }
+    .ace-tc__node--leader {
+      height: auto; padding: 22px 30px; font-size: 20px;
+      border-color: transparent; color: #0a0b1a;
+      background: linear-gradient(135deg, var(--tc-accent), var(--tc-accent-2));
+      box-shadow: 0 0 36px rgba(34, 211, 238, 0.5);
+    }
+    .ace-tc__node--leader small { color: rgba(10, 11, 26, 0.75); font-size: 13px; }
+    /* connectors from leader out to both spines */
+    .ace-tc__node--leader::before, .ace-tc__node--leader::after {
+      content: ""; position: absolute; top: 50%; width: var(--gap); border-top: var(--line);
+    }
+    .ace-tc__node--leader::before { right: 100%; }
+    .ace-tc__node--leader::after { left: 100%; }
+
+    .ace-tc__caption { grid-column: 1 / -1; font-size: 13px; color: var(--tc-muted); text-align: center; margin: 0; }
+
+    @media (max-width: 760px) {
+      .ace-tc__diagram { grid-template-columns: 1fr 1fr; padding: 24px 16px; gap: 12px; }
+      .ace-tc__hub { grid-column: 1 / -1; grid-row: 1; padding: 0; justify-self: center; }
+      .ace-tc__col { padding: 0 !important; gap: 12px; }
+      .ace-tc__col::after, .ace-tc__node::after, .ace-tc__node::before { display: none; }
+      .ace-tc__node { --node-h: 60px; font-size: 14px; }
+    }
+
+    /* Topic grid */
+    .ace-tc__grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 48px;
+      list-style: none; padding: 0;
+    }
+    .ace-tc__card {
+      --c: var(--tc-accent);
+      background: var(--tc-surface); border: 1px solid var(--tc-border); border-radius: 12px; padding: 20px;
+      border-top: 3px solid var(--c);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .ace-tc__card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 40px -16px var(--c);
+    }
+    .ace-tc__card:nth-child(2) { --c: #a855f7; }
+    .ace-tc__card:nth-child(3) { --c: #ec4899; }
+    .ace-tc__card:nth-child(4) { --c: #f97316; }
+    .ace-tc__card:nth-child(5) { --c: #84cc16; }
+    .ace-tc__card:nth-child(6) { --c: #3b82f6; }
+    .ace-tc__num {
+      display: inline-flex; width: 30px; height: 30px; border-radius: 8px; align-items: center; justify-content: center;
+      background: var(--c); color: #0a0b1a; font-size: 13px; font-weight: 800; margin-bottom: 12px;
+      box-shadow: 0 0 16px -2px var(--c);
+    }
+    .ace-tc__notices { background: rgba(251, 191, 36, 0.05); }
+    .ace-tc__notices li::marker { color: var(--tc-warn); }
+    .ace-tc__card h4 { font-size: 16px; margin: 0 0 6px; }
+    .ace-tc__card p { font-size: 14px; margin: 0; color: var(--tc-muted); }
+
+    /* Notices */
+    .ace-tc__notices {
+      border: 1px solid var(--tc-border); border-left: 4px solid var(--tc-warn); border-radius: 12px;
+      padding: 24px; background: var(--tc-bg);
+    }
+    .ace-tc__notices h3 { font-size: 18px; margin: 0 0 12px; }
+    .ace-tc__notices ul { margin: 0; padding-left: 20px; }
+    .ace-tc__notices li { margin: 6px 0; font-size: 15px; }
+
+    @media (max-width: 760px) {
+      .ace-tc { padding: 48px 16px; }
+      .ace-tc__intro { grid-template-columns: 1fr; }
+    }
+  </style>
+
+  <div class="ace-tc__inner">
+    <span class="ace-tc__eyebrow">Education</span>
+    <h2 id="ace-tc-title">Understanding Trade-Copier Technology</h2>
+
+    <p class="ace-tc__disclaimer" role="note">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>This page is educational only. It does not offer, recommend, or configure any copier service.</span>
+    </p>
+
+    <div class="ace-tc__intro">
+      <div>
+        <h3>What Is Trade-Copier Technology?</h3>
+        <p>Trade-copier technology is software that replicates trade activity from one account to one or more other accounts, typically to keep positions aligned across accounts.</p>
+      </div>
+      <div>
+        <h3>Leader and Follower Account Structure</h3>
+        <p>A "leader" account generates trade activity; "follower" accounts attempt to mirror that activity, often at a proportional size.</p>
+      </div>
+    </div>
+
+    <div class="ace-tc__diagram" aria-label="Illustration: one leader account sending trade activity to eight follower accounts">
+      <div class="ace-tc__col ace-tc__col--left">
+        <div class="ace-tc__node">Follower A</div>
+        <div class="ace-tc__node">Follower B</div>
+        <div class="ace-tc__node">Follower C</div>
+        <div class="ace-tc__node">Follower D</div>
+      </div>
+      <div class="ace-tc__hub">
+        <div class="ace-tc__node ace-tc__node--leader">Leader<small>generates trades</small></div>
+      </div>
+      <div class="ace-tc__col ace-tc__col--right">
+        <div class="ace-tc__node">Follower E</div>
+        <div class="ace-tc__node">Follower F</div>
+        <div class="ace-tc__node">Follower G</div>
+        <div class="ace-tc__node">Follower H</div>
+      </div>
+      <p class="ace-tc__caption">Illustrative only. Replication is not guaranteed and results may differ per account.</p>
+    </div>
+
+    <ul class="ace-tc__grid">
+      <li class="ace-tc__card">
+        <span class="ace-tc__num">01</span>
+        <h4>How Orders May Be Replicated</h4>
+        <p>Orders are typically detected on the leader account and re-sent to follower accounts, subject to each platform's execution logic and latency.</p>
+      </li>
+      <li class="ace-tc__card">
+        <span class="ace-tc__num">02</span>
+        <h4>Compatible Account Considerations</h4>
+        <p>Not every broker, platform, or account type supports copier connections — compatibility should always be confirmed directly with the provider.</p>
+      </li>
+      <li class="ace-tc__card">
+        <span class="ace-tc__num">03</span>
+        <h4>Slippage &amp; Execution Differences</h4>
+        <p>Fills on follower accounts can differ from the leader account due to timing, liquidity, and market conditions at the moment of replication.</p>
+      </li>
+      <li class="ace-tc__card">
+        <span class="ace-tc__num">04</span>
+        <h4>Connectivity &amp; Platform Risks</h4>
+        <p>Internet interruptions, platform outages, or software issues can delay or prevent trade replication entirely.</p>
+      </li>
+      <li class="ace-tc__card">
+        <span class="ace-tc__num">05</span>
+        <h4>Account Rule Differences</h4>
+        <p>Leverage, margin, and risk rules can differ between accounts, which can change how an identical trade behaves on each one.</p>
+      </li>
+      <li class="ace-tc__card">
+        <span class="ace-tc__num">06</span>
+        <h4>Risk Settings &amp; Position Multipliers</h4>
+        <p>Some copier tools allow scaling trade size up or down between accounts — a setting that changes risk exposure and should be fully understood before use.</p>
+      </li>
+    </ul>
+
+    <aside class="ace-tc__notices" aria-labelledby="ace-tc-notices">
+      <h3 id="ace-tc-notices">Important Notices</h3>
+      <ul>
+        <li>Plan The Trade does not guarantee identical fills or outcomes between accounts.</li>
+        <li>Past results do not predict future results.</li>
+        <li>Technology can experience interruptions or delays.</li>
+        <li>Users remain fully responsible for their risk decisions to join.</li>
+        <li>Some brokers or prop firms may restrict or prohibit copier use — always review each provider's terms before connecting any account.</li>
+      </ul>
+    </aside>
+  </div>
+</section>
