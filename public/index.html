@@ -458,7 +458,7 @@ body.home-open::after{opacity:.35}
     <div class="nav-item" data-view="leaderboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 3M17 6h3a3 3 0 0 1-3 3"/></svg><span>Leaderboard</span></div>
     <div class="nav-label">Business</div>
     <div class="nav-item" data-view="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Expense Tracker</span></div>
-    <div class="nav-item" data-view="livecapital"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M7 8l5-5 5 5"/><path d="M4 21h16"/></svg><span>Live Capital</span></div>
+    <div class="nav-item" data-view="livecapital"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M7 8l5-5 5 5"/><path d="M4 21h16"/></svg><span>Live Brokerage</span></div>
     <div class="nav-item" data-view="packages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Trade Copier Services</span></div>
     <div class="nav-item" data-view="tcops"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8M8 11h8"/></svg><span>Trade Copier Education</span></div>
     <div class="nav-item" data-view="propfirms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg><span>Prop Firm Guide</span></div>
@@ -935,7 +935,7 @@ function esc(s){return(s==null?'':''+s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'
 const SUB={dashboard:"Here's where your edge stands today",trades:'Every position, with the futures math done for you',
   calendar:'Your profit & loss, day by day',playbook:'Which setups actually make you money',
   playbook101:'PTT Playbook — full training PDF',
-  accounts:'Fees, payouts & true business ROI',livecapital:'Live capital, drawdown, contributions, and risk buffer',leaderboard:'Traders ranked by real journal results',clients:'Central upload — copies to every client',packages:'Trade copier services and pricing',tcops:'How trade copier technology works',propfirms:'Top futures prop firm — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Technicals — A+ move charts & setups',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data'};
+  accounts:'Fees, payouts & true business ROI',livecapital:'Live brokerage account, sizing, and risk desk',leaderboard:'Traders ranked by real journal results',clients:'Central upload — copies to every client',packages:'Trade copier services and pricing',tcops:'How trade copier technology works',propfirms:'Top futures prop firm — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Technicals — A+ move charts & setups',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data'};
 let view='dashboard';
 function go(v){
   if(!v)return;
