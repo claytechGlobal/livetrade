@@ -1,7 +1,8 @@
 'use strict';
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { verifyAdmin, findActiveClientByCode, isClientAccessValid, signupClient, verifyClientPassword } = require('../db');
+const { verifyAdmin, isClientAccessValid, signupClient, loginClient } = require('../db');
+const { sendAccessCode, emailEnabled } = require('../email');
 const { sign, setCookie, clearCookie, authFromReq } = require('../auth');
 
 const router = express.Router();
@@ -9,10 +10,9 @@ const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHead
 
 router.post('/login', loginLimiter, (req, res) => {
   const body = req.body || {};
-  const username = String(body.username || '').trim();
-  const email = String(body.email || '').trim();
+  const ident = String(body.email || body.username || '').trim();
   const password = String(body.password || '');
-  const credential = String(body.credential || '').trim();
+  const accessCode = String(body.accessCode || '').trim();
 
   function clientSession(client) {
     const requireSub = process.env.REQUIRE_SUBSCRIPTION !== 'false';
@@ -32,34 +32,37 @@ router.post('/login', loginLimiter, (req, res) => {
     return res.json({ role: 'client', clientId: client.id, name: client.name, accessCode: client.access_code });
   }
 
-  if (email && password) {
-    const client = verifyClientPassword(email, password);
-    if (!client) return res.status(401).json({ error: 'Incorrect email or password.' });
-    return clientSession(client);
+  if (!ident || !password) return res.status(400).json({ error: 'Enter your email and password.' });
+
+  if (verifyAdmin(ident, password)) {
+    setCookie(res, sign({ role: 'admin' }), 'admin');
+    return res.json({ role: 'admin' });
   }
 
-  if (username && password) {
-    if (verifyAdmin(username, password)) {
-      setCookie(res, sign({ role: 'admin' }), 'admin');
-      return res.json({ role: 'admin' });
-    }
-    return res.status(401).json({ error: 'Incorrect username or password.' });
+  if (!accessCode) return res.status(400).json({ error: 'Enter the access code from your email.' });
+  const result = loginClient({ email: ident, password, accessCode });
+  if (!result.client) {
+    const status = /8 characters/.test(result.error || '') ? 400 : 401;
+    return res.status(status).json({ error: result.error || 'Incorrect email or password.' });
   }
-
-  if (credential) {
-    const client = findActiveClientByCode(credential);
-    if (client) return clientSession(client);
-    return res.status(401).json({ error: 'Invalid access code.' });
-  }
-
-  return res.status(400).json({ error: 'Enter your email and password, or an access code.' });
+  return clientSession(result.client);
 });
 
-router.post('/signup', loginLimiter, (req, res) => {
+router.post('/signup', loginLimiter, async (req, res) => {
   try {
     const client = signupClient(req.body || {});
-    setCookie(res, sign({ role: 'client', clientId: client.id, accessCode: client.access_code }), 'client');
-    res.json({ role: 'client', clientId: client.id, name: client.name, accessCode: client.access_code });
+    let emailed = false;
+    if (emailEnabled()) {
+      try {
+        await sendAccessCode(client, { force: true });
+        emailed = true;
+      } catch (err) {
+        console.error('[email] signup access code:', err.message);
+      }
+    }
+    const out = { ok: true, emailed };
+    if (!emailed) out.accessCode = client.access_code;
+    res.json(out);
   } catch (e) {
     res.status(400).json({ error: e.message || 'Could not create account.' });
   }

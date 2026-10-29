@@ -625,8 +625,12 @@ async function init(){
   if(me&&me.role==='client'){session=me;try{await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();bumpIdle();return;}catch(e){await forceClearSession();showScreen('home');renderHome();return;}}
   if(me&&me.role==='admin'){location.href='/admin';return;}
   const pc=new URLSearchParams(location.search).get('portal');
-  if(pc){try{const r2=await api('POST','/api/auth/login',{credential:pc});if(r2.role==='client'){session=r2;await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();bumpIdle();return;}}catch(e){}}
-  showScreen('home');renderHome();
+  showScreen('home');await renderHome();
+  if(pc){
+    const box=document.getElementById('lg_code');
+    if(box)box.value=pc;
+    try{history.replaceState({},'',location.pathname||'/');}catch(_){}
+  }
 }
 
 /* ===== auth / sessions ===== */
@@ -645,7 +649,6 @@ function authTab(m){window.__authMode=m;
   document.getElementById('admin-pane').style.display=m==='admin'?'block':'none';
   document.getElementById('client-pane').style.display=m==='client'?'block':'none';
   const e=document.getElementById('lg_err');if(e)e.textContent='';}
-let loginKind='email';
 function setAccountMode(mode){
   const up=mode==='up';
   const a=document.getElementById('paneIn'),b=document.getElementById('paneUp');
@@ -655,30 +658,12 @@ function setAccountMode(mode){
   if(i)i.classList.toggle('on',!up);
   if(u)u.classList.toggle('on',up);
 }
-function setLoginKind(kind){
-  loginKind=kind==='code'?'code':'email';
-  const e=document.getElementById('loginEmail'),c=document.getElementById('loginCode');
-  if(e)e.style.display=loginKind==='email'?'block':'none';
-  if(c)c.style.display=loginKind==='code'?'block':'none';
-  const a=document.getElementById('kindEmail'),b=document.getElementById('kindCode');
-  if(a)a.classList.toggle('on',loginKind==='email');
-  if(b)b.classList.toggle('on',loginKind==='code');
-}
 async function attemptLogin(){
-  const err=document.getElementById('lg_err');if(err)err.textContent='';
-  let payload;
-  if(isAdminRoute()){
-    const u=val('lg_user').trim(),p=val('lg_pass');
-    if(!u||!p){if(err)err.textContent='Enter your username and password.';return;}
-    payload={username:u,password:p};
-  }else if(loginKind==='code'){
-    const code=val('lg_code').trim();if(!code){if(err)err.textContent='Enter your access code.';return;}
-    payload={credential:code};
-  }else{
-    const email=val('lg_email').trim(),p=val('lg_client_pass');
-    if(!email||!p){if(err)err.textContent='Enter your email and password.';return;}
-    payload={email,password:p};
-  }
+  const err=document.getElementById('lg_err');if(err){err.style.color='';err.textContent='';}
+  const ident=val('lg_email').trim(),p=val('lg_client_pass'),code=val('lg_code').trim();
+  if(!ident||!p){if(err)err.textContent='Enter your email and password.';return;}
+  const payload={email:ident,username:ident,password:p};
+  if(code)payload.accessCode=code;
   try{
     await forceClearSession();
     const me=await api('POST','/api/auth/login',payload);session=me;
@@ -697,9 +682,15 @@ async function attemptSignup(){
   if(!name||!email||!password){if(err)err.textContent='Enter your name, email, and password.';return;}
   try{
     await forceClearSession();
-    const me=await api('POST','/api/auth/signup',{name,email,password});session=me;
-    await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();bumpIdle();
-    flash('Account created. Your access code is '+(me.accessCode||''));
+    const me=await api('POST','/api/auth/signup',{name,email,password});
+    setAccountMode('in');
+    const note=document.getElementById('lg_err');
+    if(note){
+      note.style.color='#e6c45a';
+      note.textContent=me.emailed
+        ?'Account created. Check your email for the access code, then sign in below.'
+        :'Account created. Your access code is '+(me.accessCode||'')+'. Enter it below to sign in.';
+    }
   }catch(e){if(err)err.textContent=e.message||'Could not create account.';}
 }
 async function logout(){
@@ -753,7 +744,7 @@ async function installApp(){
 function homeGoPortal(){
   const el=document.getElementById('home-portal');
   if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
-  const input=document.getElementById('lg_code');if(input)setTimeout(()=>input.focus(),350);
+  const input=document.getElementById('lg_email');if(input)setTimeout(()=>input.focus(),350);
 }
 function homeGoPricing(){
   const el=document.getElementById('home-pricing');
@@ -853,7 +844,7 @@ async function renderHome(needSub){
 
     <section class="home-sec">
       <h2 class="home-sec-h">Built for serious futures traders</h2>
-      <p class="home-sec-p">Everything in your portal after you sign in with your access code — no extra fluff.</p>
+      <p class="home-sec-p">Everything in your portal after you create an account and sign in — no extra fluff.</p>
       <div class="home-feat-grid">
         ${homeFeat(ic.dash,'Dashboard','Net P&amp;L, win rate, and mindset overview the moment you open the portal.')}
         ${homeFeat(ic.edge,'Edge Score','Behavioral gauge from your trade log — discipline and emotion in one score.')}
@@ -872,7 +863,7 @@ async function renderHome(needSub){
       <p class="home-sec-p">Three steps from package to daily performance reporting.</p>
       <div class="home-steps">
         <div class="home-step"><div class="n">1</div><h3>Get dashboard access</h3><p>$45/mo unlocks the journal. One-time Starter–Prime packages are for managed prop accounts — buy again anytime.</p></div>
-        <div class="home-step"><div class="n">2</div><h3>Open your portal</h3><p>After purchase you get an access code by email. Enter it below to reach your dashboard.</p></div>
+        <div class="home-step"><div class="n">2</div><h3>Open your portal</h3><p>Create an account, then sign in with your email, password, and the access code we email you.</p></div>
         <div class="home-step"><div class="n">3</div><h3>Track &amp; improve</h3><p>Log or upload trades, watch edge score and calendar, join live coaching, get the 5 PM ET report.</p></div>
       </div>
     </section>
@@ -896,7 +887,7 @@ async function renderHome(needSub){
     </section>
 
     <section class="home-sec" id="home-pricing" style="padding-left:0;padding-right:0">
-      ${needSub?`<div style="margin:0 auto 16px;max-width:640px;padding:12px 14px;border:1px solid var(--amber);border-radius:12px;background:var(--surface-2);color:var(--text-2);font-size:13px;line-height:1.5"><b style="color:var(--text)">Purchase required.</b> Buy dashboard access or a management package, then sign in with email or the access code emailed to you.</div>`:''}
+      ${needSub?`<div style="margin:0 auto 16px;max-width:640px;padding:12px 14px;border:1px solid var(--amber);border-radius:12px;background:var(--surface-2);color:var(--text-2);font-size:13px;line-height:1.5"><b style="color:var(--text)">Purchase required.</b> Buy dashboard access or a management package, then sign in with your email, password, and the access code we email you.</div>`:''}
       <iframe src="/pricing-html/Main.dc.html" title="Pricing" style="display:block;width:100%;height:1560px;border:0;background:#000"></iframe>
     </section>
 
@@ -908,24 +899,16 @@ async function renderHome(needSub){
         </div>
         <div id="paneIn" class="auth-pane">
           <h3>Enter your dashboard</h3>
-          <p>Sign in with the email you used to create your account, or with the access code from your purchase email.</p>
-          <div class="auth-modes">
-            <button type="button" id="kindEmail" class="on" onclick="setLoginKind('email')">Email</button>
-            <button type="button" id="kindCode" onclick="setLoginKind('code')">Access code</button>
-          </div>
-          <div id="loginEmail">
-            <div class="field"><label>Email</label><input id="lg_email" type="email" autocomplete="username" placeholder="you@email.com"></div>
-            <div class="field" style="margin-bottom:0"><label>Password</label><input id="lg_client_pass" type="password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')attemptLogin()"></div>
-          </div>
-          <div id="loginCode" style="display:none">
-            <div class="field" style="margin-bottom:0"><label>Access code</label><input id="lg_code" placeholder="ABCD-1234" autocomplete="one-time-code" onkeydown="if(event.key==='Enter')attemptLogin()"></div>
-          </div>
+          <p>Sign in with the email and password from your account, plus the access code we emailed you.</p>
+          <div class="field"><label>Email</label><input id="lg_email" type="text" autocomplete="username" placeholder="you@email.com"></div>
+          <div class="field"><label>Password</label><input id="lg_client_pass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+          <div class="field" style="margin-bottom:0"><label>Access code</label><input id="lg_code" placeholder="ABCD-1234" autocomplete="one-time-code" onkeydown="if(event.key==='Enter')attemptLogin()"></div>
           <div class="auth-err" id="lg_err"></div>
           <button class="btn primary home-cta" style="width:100%;margin-top:14px" onclick="attemptLogin()">Sign in →</button>
         </div>
         <div id="paneUp" class="auth-pane" style="display:none">
           <h3>Create your account</h3>
-          <p>Use this to sign in later. If you already bought a package, you can also sign in with the access code instead.</p>
+          <p>After this, we email your access code. Sign in with your email, password, and that code.</p>
           <div class="field"><label>Name</label><input id="su_name" autocomplete="name" placeholder="Your name"></div>
           <div class="field"><label>Email</label><input id="su_email" type="email" autocomplete="email" placeholder="you@email.com"></div>
           <div class="field" style="margin-bottom:0"><label>Password</label><input id="su_pass" type="password" autocomplete="new-password" placeholder="At least 8 characters" onkeydown="if(event.key==='Enter')attemptSignup()"></div>
@@ -952,13 +935,14 @@ async function renderLogin(needSub){
     const s=state.settings;
     document.getElementById('loginRoot').innerHTML=`<div class="auth" style="max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;padding:48px 20px">
       <div class="auth-brand"><div class="brand-mark"><img src="/images/logo.png" alt="Logo"></div></div>
-      <div class="auth-tag">Admin portal — manage trades, clients, and Trade Copier.</div>
+      <div class="auth-tag">Sign in to your portal.</div>
       <div class="auth-login">
-        <h3>Admin sign in</h3>
-        <div class="field"><label>Username</label><input id="lg_user" autocomplete="username" placeholder="admin"></div>
-        <div class="field" style="margin-bottom:0"><label>Password</label><input id="lg_pass" type="password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')attemptLogin()"></div>
+        <h3>Enter your dashboard</h3>
+        <div class="field"><label>Email</label><input id="lg_email" type="text" autocomplete="username" placeholder="you@email.com"></div>
+        <div class="field"><label>Password</label><input id="lg_client_pass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+        <div class="field" style="margin-bottom:0"><label>Access code</label><input id="lg_code" placeholder="ABCD-1234" autocomplete="one-time-code" onkeydown="if(event.key==='Enter')attemptLogin()"></div>
         <div class="auth-err" id="lg_err"></div>
-        <button class="btn primary" style="width:100%;margin-top:14px" onclick="attemptLogin()">Enter</button>
+        <button class="btn primary" style="width:100%;margin-top:14px" onclick="attemptLogin()">Sign in →</button>
       </div>
     </div>`;
     window.__authMode='admin';

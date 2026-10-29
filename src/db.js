@@ -910,6 +910,20 @@ function verifyClientPassword(email, password) {
   if (!bcrypt.compareSync(String(password || ''), row.password_hash)) return null;
   return row;
 }
+function loginClient({ email, password, accessCode }) {
+  const row = findClientByEmail(email);
+  if (!row) return { error: 'Incorrect email or password.' };
+  const codeOk = String(row.access_code || '').toUpperCase() === String(accessCode || '').trim().toUpperCase();
+  if (!codeOk) return { error: 'Access code does not match this account.' };
+  const pw = String(password || '');
+  if (!row.password_hash) {
+    if (pw.length < 8) return { error: 'Password must be at least 8 characters.' };
+    db.prepare('UPDATE clients SET password_hash=? WHERE id=?').run(bcrypt.hashSync(pw, 10), row.id);
+    return { client: db.prepare('SELECT * FROM clients WHERE id=?').get(row.id) };
+  }
+  if (!bcrypt.compareSync(pw, row.password_hash)) return { error: 'Incorrect email or password.' };
+  return { client: row };
+}
 function findActiveClientByCode(code) {
   if (!code) return null;
   return db.prepare('SELECT * FROM clients WHERE upper(access_code)=upper(?)').get(code) || null;
@@ -1228,7 +1242,7 @@ module.exports = {
   replacePlays, replaceTrades, replaceAccounts, replaceClients, replaceDayPnl, replaceAffiliates,
   handleCheckout, extendClientAccess, expireClientBySubscription, isClientAccessValid,
   isProcessed, markProcessed,
-  findActiveClientByCode, findClientByEmail, signupClient, verifyClientPassword, getClientRow,
+  findActiveClientByCode, findClientByEmail, signupClient, verifyClientPassword, loginClient, getClientRow,
   etToday, listActiveClients, buildDailyReport, isDailySent, markDailySent,
   ensureAdminShareToken, ensureClientShareToken, getShareDisplay
 };

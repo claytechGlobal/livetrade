@@ -186,7 +186,7 @@ async function sendAccessCode(client, opts) {
 Access code: ${client.access_code}
 Log in: ${url}${expLine}
 
-Enter this code on the login / Get Started screen to open your dashboard.
+Sign in with your email, password, and this access code.
 Keep this code private — it is your key to the portal.${live.text}`;
 
   const expHtml = monthly && client.access_expires_at
@@ -201,7 +201,7 @@ Keep this code private — it is your key to the portal.${live.text}`;
   <p style="font-size:22px;font-weight:700;letter-spacing:.08em">${client.access_code}</p>
   ${expHtml}
   <p><a href="${url}" style="background:#22b8ef;color:#04121a;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">Open client portal</a></p>
-  <p style="color:#666;font-size:13px">Keep this code private. Enter it under Get Started on the site.</p>
+  <p style="color:#666;font-size:13px">Keep this code private. Sign in with your email, password, and this code.</p>
   ${live.html}
 </div>`;
 
