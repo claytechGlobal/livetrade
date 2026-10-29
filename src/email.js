@@ -1,7 +1,7 @@
 'use strict';
 const { Resend } = require('resend');
 const nodemailer = require('nodemailer');
-const { getSettings } = require('./db');
+const { getSettings, portalUrl } = require('./db');
 
 let resend = null;
 let transport = null;
@@ -169,7 +169,7 @@ async function sendAccessCode(client, opts) {
     console.log('[email] skip access code — no email for', client.id || client.name);
     return;
   }
-  const url = process.env.APP_URL || 'https://www.planthetrade.co';
+  const url = portalUrl();
   const live = liveSessionBlock(false);
   const monthly = client.package === 'access' || !!client.access_expires_at;
   let expLine = '';
@@ -236,7 +236,7 @@ Month-to-date: ${money(r.mtd)} (${month.greenDays} green days · ${month.winRate
 Total to date: ${money(r.total)}
 Net to you (after ${r.split}% fee): ${money(r.net)}${streak.text}
 
-View your dashboard: ${r.appUrl || process.env.APP_URL || ''}${live.text}
+View your dashboard: ${r.appUrl || portalUrl()}${live.text}
 
 Sent automatically at 5:00 PM ET.`;
 
@@ -280,10 +280,10 @@ Sent automatically at 5:00 PM ET.`;
       </tr>
     </table>
     ${r.appUrl ? `<div style="text-align:center;margin-top:22px">
-      <a href="${r.appUrl}" style="display:inline-block;background:#22b8ef;color:#04121a;text-decoration:none;padding:12px 28px;border-radius:9px;font-weight:700;font-size:14px">View full dashboard</a>
+      <a href="${r.appUrl || portalUrl()}" style="display:inline-block;background:#22b8ef;color:#04121a;text-decoration:none;padding:12px 28px;border-radius:9px;font-weight:700;font-size:14px">View full dashboard</a>
     </div>` : ''}
     ${live.html}
-    <p style="color:#9ca3af;font-size:11px;text-align:center;margin:20px 0 0;line-height:1.5">Sent at 5:00 PM ET · <a href="https://www.planthetrade.co" style="color:#22b8ef;text-decoration:none">www.planthetrade.co</a><br>Performance figures reflect reported daily P&amp;L in your portal.</p>
+    <p style="color:#9ca3af;font-size:11px;text-align:center;margin:20px 0 0;line-height:1.5">Sent at 5:00 PM ET · <a href="https://planthetrade.co" style="color:#22b8ef;text-decoration:none">planthetrade.co</a><br>Performance figures reflect reported daily P&amp;L in your portal.</p>
   </td></tr>
 </table>
 </td></tr></table>

@@ -644,6 +644,11 @@ function showScreen(s){
   lr.classList.toggle('home-mode',s==='home'||s==='login');
 }
 function genCode(name){return (String(name||'').replace(/[^a-z]/gi,'').slice(0,4).toUpperCase()||'CLNT')+'-'+Math.floor(1000+Math.random()*9000);}
+function siteOrigin(){
+  const host=String(location.hostname||'').replace(/\.+$/,'').toLowerCase();
+  if(!host||host==='planthetrade.co'||host==='www.planthetrade.co') return 'https://planthetrade.co';
+  return location.protocol+'//'+host+(location.port?':'+location.port:'');
+}
 function authTab(m){window.__authMode=m;
   document.querySelectorAll('.auth-tab').forEach(t=>t.classList.toggle('on',t.dataset.m===m));
   document.getElementById('admin-pane').style.display=m==='admin'?'block':'none';
@@ -1372,7 +1377,7 @@ async function copyCalendarShareLink(rotate){
   try{
     const base=session&&session.role==='client'?'/api/client/share-link':'/api/admin/share-link';
     const d=await api(rotate?'POST':'GET',rotate?base+'/rotate':base);
-    const url=location.origin+(d.path||('/share/'+d.token));
+    const url=siteOrigin()+(d.path||('/share/'+d.token));
     if(navigator.clipboard&&navigator.clipboard.writeText)await navigator.clipboard.writeText(url);
     flash(rotate?'New share link copied — old link stops working':'Shareable calendar link copied');
     modal('Shareable calendar',`
@@ -2164,7 +2169,7 @@ function showTermsModal(){modal('Terms & Policy',termsHtml(),()=>{},'Close');}
 const AFFRATE=10;
 function affTotal(a){return (a.sales||[]).reduce((s,x)=>s+ +x.amount,0);}
 function affCommission(a){return affTotal(a)*AFFRATE/100;}
-function affLink(a){return location.origin+location.pathname+'?ref='+encodeURIComponent(a.code);}
+function affLink(a){return siteOrigin()+'/?ref='+encodeURIComponent(a.code);}
 function priceNum(k){const s=(state.settings.prices||{})[k]||'';const n=parseFloat(String(s).replace(/[^0-9.]/g,''));return isNaN(n)?0:n;}
 function copyText(t){navigator.clipboard&&navigator.clipboard.writeText(t);flash('Copied');}
 function renderAffiliates(){
@@ -2211,7 +2216,7 @@ function delAffiliate(id){if(!confirm('Remove this affiliate?'))return;state.aff
 function copyShareLink(cid){const c=state.clients.find(x=>x.id===cid);if(!c)return;
   if(c.status!=='active'){flash('Activate the client first');return;}
   if(!c.accessCode){flash('No access code yet');return;}
-  const url=location.origin+location.pathname+'?portal='+encodeURIComponent(c.accessCode);
+  const url=siteOrigin()+'/?portal='+encodeURIComponent(c.accessCode);
   navigator.clipboard&&navigator.clipboard.writeText(url);flash('Portal share link copied for '+c.name);}
 
 /* ===== Import daily P&L CSV -> calendar ===== */

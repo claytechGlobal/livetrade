@@ -1068,7 +1068,7 @@ function buildDailyReport(id, isoDate) {
     date, dateLabel: formatReportDate(date), todayPnl, hasToday: dayRows.length > 0 || dayMap[date] != null,
     mtd, total, split, fee, net: total - fee, accountCount: acctRow ? acctRow.n : 0,
     week, month, streak,
-    appUrl: process.env.APP_URL || ''
+    appUrl: portalUrl()
   };
 }
 const dailyKey = (id, date) => 'daily:' + id + ':' + date;
@@ -1231,8 +1231,24 @@ function getShareDisplay(token) {
   };
 }
 
+function portalUrl() {
+  const fallback = 'https://planthetrade.co';
+  const raw = String(process.env.APP_URL || '').trim();
+  if (!raw || raw === '.' || raw === './' || raw === '/') return fallback;
+  try {
+    const u = new URL(raw);
+    const host = String(u.hostname || '').replace(/\.+$/, '').toLowerCase();
+    if (!host) return fallback;
+    if (host === 'planthetrade.co' || host === 'www.planthetrade.co') return fallback;
+    const port = u.port ? ':' + u.port : '';
+    return u.protocol + '//' + host + port;
+  } catch (_) {
+    return fallback;
+  }
+}
+
 module.exports = {
-  db, initDb, uid, genCode,
+  db, initDb, uid, genCode, portalUrl,
   getSettings, patchSettings, setAdminPassword, setAdminCredentials, getAdminUsername, verifyAdmin,
   composeBootstrap, getClientPortal, composeClientApp, applyClientCsvUpload,
   saveClientTrades, saveClientAccounts, saveClientPlays, parseAcctSizeFromLabel,
