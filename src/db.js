@@ -158,6 +158,7 @@ function initDb() {
   if (!clientCols.includes('stripe_subscription_id')) db.exec('ALTER TABLE clients ADD COLUMN stripe_subscription_id TEXT');
   if (!clientCols.includes('daily_email')) db.exec('ALTER TABLE clients ADD COLUMN daily_email INTEGER DEFAULT 1');
   if (!clientCols.includes('share_token')) db.exec('ALTER TABLE clients ADD COLUMN share_token TEXT');
+  if (!clientCols.includes('password_hash')) db.exec('ALTER TABLE clients ADD COLUMN password_hash TEXT');
   ensureClientTradesTable();
   const tradeCols = db.prepare('PRAGMA table_info(trades)').all().map(c => c.name);
   if (!tradeCols.includes('play_name')) db.exec('ALTER TABLE trades ADD COLUMN play_name TEXT');
@@ -797,13 +798,13 @@ const replaceAffiliates = db.transaction(arr => {
 
 const replaceClients = db.transaction(arr => {
   const prev = {};
-  db.prepare('SELECT id, stripe_session_id, access_expires_at, stripe_subscription_id, daily_email, share_token FROM clients').all()
+  db.prepare('SELECT id, stripe_session_id, access_expires_at, stripe_subscription_id, daily_email, share_token, password_hash FROM clients').all()
     .forEach(r => { prev[r.id] = r; });
   db.prepare('DELETE FROM clients').run();
   db.prepare('DELETE FROM daily_pnl').run();
   const ic = db.prepare(`INSERT INTO clients
-    (id,name,email,package,status,split,access_code,stripe_session_id,joined,access_expires_at,stripe_subscription_id,daily_email,share_token)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (id,name,email,package,status,split,access_code,stripe_session_id,joined,access_expires_at,stripe_subscription_id,daily_email,share_token,password_hash)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   const idp = db.prepare('INSERT INTO daily_pnl(id,client_id,date,amount,note) VALUES(?,?,?,?,?)');
   (arr || []).forEach(c => {
     const cid = c.id || uid();
@@ -814,7 +815,8 @@ const replaceClients = db.transaction(arr => {
       c.accessExpiresAt || old.access_expires_at || null,
       c.stripeSubscriptionId || old.stripe_subscription_id || null,
       wantsEmail ? 1 : 0,
-      c.shareToken || old.share_token || null);
+      c.shareToken || old.share_token || null,
+      old.password_hash || null);
     (c.dailyPnl || []).forEach(d => idp.run(d.id || uid(), cid, d.date || today(), num(d.amount), d.note || ''));
   });
 });
@@ -884,6 +886,30 @@ function markProcessed(eventOrSessionId) {
 }
 
 /* ---------- auth lookups ---------- */
+function findClientByEmail(email) {
+  if (!email) return null;
+  return db.prepare('SELECT * FROM clients WHERE lower(email)=lower(?)').get(String(email).trim()) || null;
+}
+function signupClient({ name, email, password }) {
+  const em = String(email || '').trim().toLowerCase();
+  const nm = String(name || '').trim();
+  const pw = String(password || '');
+  if (!nm || nm.length < 2) throw new Error('Enter your name.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) throw new Error('Enter a valid email.');
+  if (pw.length < 8) throw new Error('Password must be at least 8 characters.');
+  if (findClientByEmail(em)) throw new Error('An account with that email already exists. Sign in instead.');
+  const id = uid();
+  const code = genCode(nm);
+  db.prepare(`INSERT INTO clients(id,name,email,package,status,split,access_code,joined,daily_email,password_hash)
+    VALUES(?,?,?,?,?,?,?,?,?,?)`).run(id, nm, em, 'access', 'active', 0, code, today(), 1, bcrypt.hashSync(pw, 10));
+  return db.prepare('SELECT * FROM clients WHERE id=?').get(id);
+}
+function verifyClientPassword(email, password) {
+  const row = findClientByEmail(email);
+  if (!row || !row.password_hash) return null;
+  if (!bcrypt.compareSync(String(password || ''), row.password_hash)) return null;
+  return row;
+}
 function findActiveClientByCode(code) {
   if (!code) return null;
   return db.prepare('SELECT * FROM clients WHERE upper(access_code)=upper(?)').get(code) || null;
@@ -1202,7 +1228,7 @@ module.exports = {
   replacePlays, replaceTrades, replaceAccounts, replaceClients, replaceDayPnl, replaceAffiliates,
   handleCheckout, extendClientAccess, expireClientBySubscription, isClientAccessValid,
   isProcessed, markProcessed,
-  findActiveClientByCode, getClientRow,
+  findActiveClientByCode, findClientByEmail, signupClient, verifyClientPassword, getClientRow,
   etToday, listActiveClients, buildDailyReport, isDailySent, markDailySent,
   ensureAdminShareToken, ensureClientShareToken, getShareDisplay
 };

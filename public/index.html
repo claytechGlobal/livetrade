@@ -97,6 +97,14 @@ body.client-mode .client-upload{display:flex!important;align-items:center;gap:10
 .nav-item:hover{background:var(--surface);color:var(--text)}
 .nav-item.active{background:linear-gradient(100deg,var(--accent-soft),transparent);color:var(--text);font-weight:600}
 .nav-item.active svg{color:var(--accent);opacity:1}
+.coach-list{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease;margin:0 6px 4px}
+.coach-list.open{grid-template-rows:1fr}
+.coach-list-in{overflow:hidden;display:flex;flex-direction:column;gap:4px}
+.coach-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid transparent;background:transparent;color:var(--text-2);border-radius:10px;padding:7px 8px;cursor:pointer;font-weight:600;font-size:13px;transition:.18s}
+.coach-row:hover{background:var(--surface);color:var(--text);transform:translateX(2px)}
+.coach-row.on{background:var(--accent-soft);color:#e6c45a;border-color:rgba(230,196,90,.35)}
+.coach-av{width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid #C9A45C;flex:none;background:#16241F}
+.coach-av.ph{display:grid;place-items:center;font-size:11px;font-weight:800;color:#C9A45C}
 .spacer{flex:1}
 .coach-card{margin:8px 6px 0;padding:13px;border-radius:13px;background:var(--surface);border:1px solid var(--line)}
 .coach-card .ti{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:700}
@@ -363,9 +371,14 @@ tbody tr{transition:.12s}tbody tr:hover{background:var(--surface-2)}
 .price-feats{list-style:none;margin:0 0 20px;padding:0;flex:1}
 .price-feats li{font-size:13px;color:var(--text);padding:7px 0;display:flex;gap:9px;align-items:flex-start}
 .price-feats li svg{width:15px;height:15px;color:var(--accent);flex:none;margin-top:2px}
-.auth-login{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:26px;width:100%;max-width:400px}
-.auth-login h3{font-family:var(--display);font-weight:700;font-size:17px;margin-bottom:5px}
-.auth-login p{color:var(--text-2);font-size:12.5px;margin-bottom:18px}
+.auth-login{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:26px;width:100%;max-width:440px;animation:authIn .35s ease}
+.auth-login h3{font-family:var(--display);font-weight:700;font-size:20px;margin-bottom:5px}
+.auth-login p{color:var(--text-2);font-size:12.5px;margin-bottom:14px}
+.auth-modes{display:flex;gap:6px;padding:4px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);margin-bottom:14px}
+.auth-modes button{flex:1;border:0;background:transparent;color:var(--text-2);border-radius:999px;padding:8px 10px;font-weight:700;cursor:pointer;transition:.18s}
+.auth-modes button.on{background:transparent;color:#e6c45a;box-shadow:inset 0 0 0 1px rgba(230,196,90,.7)}
+.auth-pane{animation:authIn .28s ease}
+@keyframes authIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .auth-err{color:var(--red);font-size:12.5px;margin-top:10px;min-height:16px}
 .auth-tabs{display:flex;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:4px;margin-bottom:18px}
 .auth-tab{flex:1;text-align:center;padding:9px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer;transition:.15s}
@@ -456,6 +469,13 @@ body.home-open::after{opacity:.35}
     <div class="nav-item" data-view="playbook101"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg><span>PTT Playbook</span></div>
     <div class="nav-item" data-view="guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span>Technicals</span></div>
     <div class="nav-item" data-view="leaderboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 3M17 6h3a3 3 0 0 1-3 3"/></svg><span>Leaderboard</span></div>
+    <div class="nav-item" data-action="coaches"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 19c1.2-3 3.4-4.5 7-4.5S17.8 16 19 19"/></svg><span>Coaches</span></div>
+    <div class="coach-list" id="coachList"><div class="coach-list-in">
+      <button type="button" class="coach-row" data-coach="ashley" onclick="openCoach('ashley')">
+        <img class="coach-av" src="/coaches/ashley/assets/ef9ab9b809a51b572b113f51312f2248.jpg" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'coach-av ph',textContent:'AB'}))">
+        <span>Ashley Brown</span>
+      </button>
+    </div></div>
     <div class="nav-label">Business</div>
     <div class="nav-item" data-view="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Expense Tracker</span></div>
     <div class="nav-item" data-view="livecapital"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M7 8l5-5 5 5"/><path d="M4 21h16"/></svg><span>Live Brokerage</span></div>
@@ -625,6 +645,25 @@ function authTab(m){window.__authMode=m;
   document.getElementById('admin-pane').style.display=m==='admin'?'block':'none';
   document.getElementById('client-pane').style.display=m==='client'?'block':'none';
   const e=document.getElementById('lg_err');if(e)e.textContent='';}
+let loginKind='email';
+function setAccountMode(mode){
+  const up=mode==='up';
+  const a=document.getElementById('paneIn'),b=document.getElementById('paneUp');
+  if(a)a.style.display=up?'none':'block';
+  if(b)b.style.display=up?'block':'none';
+  const i=document.getElementById('modeIn'),u=document.getElementById('modeUp');
+  if(i)i.classList.toggle('on',!up);
+  if(u)u.classList.toggle('on',up);
+}
+function setLoginKind(kind){
+  loginKind=kind==='code'?'code':'email';
+  const e=document.getElementById('loginEmail'),c=document.getElementById('loginCode');
+  if(e)e.style.display=loginKind==='email'?'block':'none';
+  if(c)c.style.display=loginKind==='code'?'block':'none';
+  const a=document.getElementById('kindEmail'),b=document.getElementById('kindCode');
+  if(a)a.classList.toggle('on',loginKind==='email');
+  if(b)b.classList.toggle('on',loginKind==='code');
+}
 async function attemptLogin(){
   const err=document.getElementById('lg_err');if(err)err.textContent='';
   let payload;
@@ -632,9 +671,13 @@ async function attemptLogin(){
     const u=val('lg_user').trim(),p=val('lg_pass');
     if(!u||!p){if(err)err.textContent='Enter your username and password.';return;}
     payload={username:u,password:p};
-  }else{
+  }else if(loginKind==='code'){
     const code=val('lg_code').trim();if(!code){if(err)err.textContent='Enter your access code.';return;}
     payload={credential:code};
+  }else{
+    const email=val('lg_email').trim(),p=val('lg_client_pass');
+    if(!email||!p){if(err)err.textContent='Enter your email and password.';return;}
+    payload={email,password:p};
   }
   try{
     await forceClearSession();
@@ -647,6 +690,17 @@ async function attemptLogin(){
       await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();bumpIdle();
     }
   }catch(e){const el=document.getElementById('lg_err');if(el)el.textContent=e.message||'Login failed.';}
+}
+async function attemptSignup(){
+  const err=document.getElementById('su_err');if(err)err.textContent='';
+  const name=val('su_name').trim(),email=val('su_email').trim(),password=val('su_pass');
+  if(!name||!email||!password){if(err)err.textContent='Enter your name, email, and password.';return;}
+  try{
+    await forceClearSession();
+    const me=await api('POST','/api/auth/signup',{name,email,password});session=me;
+    await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();bumpIdle();
+    flash('Account created. Your access code is '+(me.accessCode||''));
+  }catch(e){if(err)err.textContent=e.message||'Could not create account.';}
 }
 async function logout(){
   await forceClearSession();
@@ -841,20 +895,43 @@ async function renderHome(needSub){
       </div>
     </section>
 
-    <section class="home-sec" id="home-pricing">
-      <h2 class="home-sec-h">Pricing</h2>
-      <p class="home-sec-p">$45/mo for dashboard access. Starter, Pro, Elite, and Prime are one-time management fees — purchase again anytime.</p>
-      ${needSub?`<div style="margin:0 auto 16px;max-width:640px;padding:12px 14px;border:1px solid var(--amber);border-radius:12px;background:var(--surface-2);color:var(--text-2);font-size:13px;line-height:1.5"><b style="color:var(--text)">Subscription required.</b> Subscribe for $45/mo or purchase a package, then sign in with the access code emailed to you.</div>`:''}
-      <div class="price-grid">${priceCards(true)}</div>
+    <section class="home-sec" id="home-pricing" style="padding-left:0;padding-right:0">
+      ${needSub?`<div style="margin:0 auto 16px;max-width:640px;padding:12px 14px;border:1px solid var(--amber);border-radius:12px;background:var(--surface-2);color:var(--text-2);font-size:13px;line-height:1.5"><b style="color:var(--text)">Purchase required.</b> Buy dashboard access or a management package, then sign in with email or the access code emailed to you.</div>`:''}
+      <iframe src="/pricing-html/Main.dc.html" title="Pricing" style="display:block;width:100%;height:1560px;border:0;background:#000"></iframe>
     </section>
 
     <section class="home-sec" id="home-portal" style="display:flex;justify-content:center">
-      <div class="auth-login">
-        <h3>Enter your dashboard</h3>
-        <p>Use the access code emailed after purchase. To use a different account, enter that account’s code here.</p>
-        <div class="field" style="margin-bottom:0"><label>Access code</label><input id="lg_code" placeholder="ABCD-1234" autocomplete="one-time-code" onkeydown="if(event.key==='Enter')attemptLogin()"></div>
-        <div class="auth-err" id="lg_err"></div>
-        <button class="btn primary home-cta" style="width:100%;margin-top:14px" onclick="attemptLogin()">Get Started →</button>
+      <div class="auth-login" id="homeAuthCard">
+        <div class="auth-modes">
+          <button type="button" id="modeIn" class="on" onclick="setAccountMode('in')">Sign in</button>
+          <button type="button" id="modeUp" onclick="setAccountMode('up')">Create account</button>
+        </div>
+        <div id="paneIn" class="auth-pane">
+          <h3>Enter your dashboard</h3>
+          <p>Sign in with the email you used to create your account, or with the access code from your purchase email.</p>
+          <div class="auth-modes">
+            <button type="button" id="kindEmail" class="on" onclick="setLoginKind('email')">Email</button>
+            <button type="button" id="kindCode" onclick="setLoginKind('code')">Access code</button>
+          </div>
+          <div id="loginEmail">
+            <div class="field"><label>Email</label><input id="lg_email" type="email" autocomplete="username" placeholder="you@email.com"></div>
+            <div class="field" style="margin-bottom:0"><label>Password</label><input id="lg_client_pass" type="password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')attemptLogin()"></div>
+          </div>
+          <div id="loginCode" style="display:none">
+            <div class="field" style="margin-bottom:0"><label>Access code</label><input id="lg_code" placeholder="ABCD-1234" autocomplete="one-time-code" onkeydown="if(event.key==='Enter')attemptLogin()"></div>
+          </div>
+          <div class="auth-err" id="lg_err"></div>
+          <button class="btn primary home-cta" style="width:100%;margin-top:14px" onclick="attemptLogin()">Sign in →</button>
+        </div>
+        <div id="paneUp" class="auth-pane" style="display:none">
+          <h3>Create your account</h3>
+          <p>Use this to sign in later. If you already bought a package, you can also sign in with the access code instead.</p>
+          <div class="field"><label>Name</label><input id="su_name" autocomplete="name" placeholder="Your name"></div>
+          <div class="field"><label>Email</label><input id="su_email" type="email" autocomplete="email" placeholder="you@email.com"></div>
+          <div class="field" style="margin-bottom:0"><label>Password</label><input id="su_pass" type="password" autocomplete="new-password" placeholder="At least 8 characters" onkeydown="if(event.key==='Enter')attemptSignup()"></div>
+          <div class="auth-err" id="su_err"></div>
+          <button class="btn primary home-cta" style="width:100%;margin-top:14px" onclick="attemptSignup()">Create account →</button>
+        </div>
       </div>
     </section>
 
@@ -935,7 +1012,7 @@ function esc(s){return(s==null?'':''+s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'
 const SUB={dashboard:"Here's where your edge stands today",trades:'Every position, with the futures math done for you',
   calendar:'Your profit & loss, day by day',playbook:'Which setups actually make you money',
   playbook101:'PTT Playbook — full training PDF',
-  accounts:'Fees, payouts & true business ROI',livecapital:'Live brokerage account, sizing, and risk desk',leaderboard:'Traders ranked by real journal results',clients:'Central upload — copies to every client',packages:'Trade copier services and pricing',tcops:'How trade copier technology works',propfirms:'Top futures prop firm — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Technicals — A+ move charts & setups',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data'};
+  accounts:'Fees, payouts & true business ROI',livecapital:'Live brokerage account, sizing, and risk desk',leaderboard:'Traders ranked by real journal results',coaches:'Coach profile, session links, and certificates',clients:'Central upload — copies to every client',packages:'Trade copier services and pricing',tcops:'How trade copier technology works',propfirms:'Top futures prop firm — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Technicals — A+ move charts & setups',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data'};
 let view='dashboard';
 function go(v){
   if(!v)return;
@@ -946,10 +1023,27 @@ function go(v){
   const sub=document.getElementById('subline');if(sub)sub.textContent=SUB[v]||'';
   fn();
   document.querySelector('.main').scrollTo(0,0);}
+function toggleCoachList(){
+  const list=document.getElementById('coachList');
+  if(!list)return;
+  list.classList.toggle('open');
+  document.querySelector('[data-action="coaches"]').classList.toggle('active',list.classList.contains('open')||view==='coaches');
+}
+function openCoach(id){
+  view='coaches';
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.action==='coaches'));
+  document.querySelectorAll('.coach-row').forEach(r=>r.classList.toggle('on',r.dataset.coach===id));
+  const list=document.getElementById('coachList');if(list)list.classList.add('open');
+  const sub=document.getElementById('subline');if(sub)sub.textContent=SUB.coaches||'';
+  const src=id==='ashley'?'/coaches/ashley/Main.dc.html':'/coaches/ashley/Main.dc.html';
+  document.getElementById('content').innerHTML=`<div style="margin:-4px -4px 0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#0E1714"><iframe src="${src}" title="Coach profile" style="display:block;width:100%;height:1680px;border:0;background:#0E1714"></iframe></div>`;
+  document.querySelector('.main').scrollTo(0,0);
+}
 document.querySelectorAll('.nav-item').forEach(n=>{
   n.addEventListener('click',e=>{
     if(n.dataset.action==='logout'){e.preventDefault();logout();return;}
     if(n.dataset.action==='switch'){e.preventDefault();switchAccount();return;}
+    if(n.dataset.action==='coaches'){e.preventDefault();toggleCoachList();return;}
     if(n.dataset.view)go(n.dataset.view);
   });
 });
@@ -1906,7 +2000,7 @@ function renderPropFirms(){
   document.getElementById('content').innerHTML=`<div style="margin:-4px -4px 0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#0B0D10;min-height:calc(100vh - 140px)"><iframe src="/prop-firms-guide.html" title="Prop Firm Guide" style="display:block;width:100%;height:calc(100vh - 140px);min-height:640px;border:0;background:#0B0D10"></iframe></div>`;
 }
 function renderPackages(){
-  document.getElementById('content').innerHTML=`<div style="margin:-4px -4px 0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#000;min-height:calc(100vh - 140px)"><iframe src="/pricing-html/Main.dc.html" title="Trade Copier Services" style="display:block;width:100%;height:calc(100vh - 140px);min-height:720px;border:0;background:#000"></iframe></div>`;
+  document.getElementById('content').innerHTML=`<div style="margin:-4px -4px 0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#000"><iframe src="/pricing-html/Main.dc.html" title="Trade Copier Services" style="display:block;width:100%;height:1560px;border:0;background:#000"></iframe></div>`;
 }
 function renderTradeCopierEdu(){
   document.getElementById('content').innerHTML=`<div style="margin:-4px -4px 0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#0a0b1a;min-height:calc(100vh - 140px)"><iframe src="/trade-copier-education.html" title="Trade Copier Education" style="display:block;width:100%;height:calc(100vh - 140px);min-height:720px;border:0;background:#0a0b1a"></iframe></div>`;

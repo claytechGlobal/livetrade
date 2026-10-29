@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ashley Brown — Coach Profile</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E1714}
+a{color:#E9D7AE}a:hover{color:#FFFFFF}
+.link-card{display:flex;align-items:center;gap:16px;padding:20px 22px;min-height:44px;background:#131F1B;border:1px solid #2C3B35;border-radius:10px;text-decoration:none;color:#F4F5F2;transition:border-color .2s,transform .2s,background .2s}
+.link-card:hover{border-color:#C9A45C;background:#16241F;transform:translateY(-2px);color:#F4F5F2}
+.link-icon{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;border:1.5px solid #C9A45C;color:#C9A45C;flex:none}
+.cert{margin:0;display:flex;flex-direction:column;gap:10px;width:280px;flex:none}
+.cert img{width:280px;height:280px;object-fit:cover;display:block;border-radius:8px;border:1px solid #2C3B35;transition:border-color .2s}
+.cert:hover img{border-color:#C9A45C}
+.cert-marquee{width:100vw;margin-left:calc(50% - 50vw);overflow:hidden;padding:4px 0}
+.cert-track{display:flex;gap:24px;width:max-content;animation:cert-scroll 48s linear infinite}
+.cert-marquee:hover .cert-track{animation-play-state:paused}
+@keyframes cert-scroll{from{transform:translateX(0)}to{transform:translateX(calc(-50% - 12px))}}
+@media (max-width:640px){.cert,.cert img{width:210px}.cert img{height:210px}}
+@media (prefers-reduced-motion:reduce){.cert-track{animation:none}.cert-marquee{overflow-x:auto}}
+</style>
+</helmet>
+<div style="font-family: Inter, system-ui, sans-serif; color: #E7ECE9; background: #0E1714; font-size: 17px; line-height: 1.6; overflow-x: clip">
+<div style="max-width: 1040px; margin: 0 auto; padding: 72px 24px 56px; display: flex; flex-direction: column; gap: 72px">
+
+<!-- PROFILE HEADER -->
+<header style="display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center">
+<img src="./assets/ef9ab9b809a51b572b113f51312f2248.jpg" alt="Ashley Brown" style="width: 184px; height: 184px; border-radius: 50%; object-fit: cover; object-position: 55% 40%; border: 3px solid #C9A45C; box-shadow: 0 0 0 8px rgba(201,164,92,0.12); display: block">
+<p style="margin: 0; font-family: Sora, sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; color: #C9A45C">COACH</p>
+<h1 style="margin: 0; font-family: Sora, sans-serif; font-size: clamp(40px, 6vw, 64px); font-weight: 600; line-height: 1.05; letter-spacing: -0.02em; color: #F4F5F2">Ashley Brown</h1>
+</header>
+
+<!-- LINKS -->
+<section id="links" aria-label="Links" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px">
+<a class="link-card" href="https://aceenterpriseconsulting.com/" target="_blank" rel="noopener">
+<span class="link-icon"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"></path></svg></span>
+<span style="display: flex; flex-direction: column; min-width: 0"><span style="font-family: Sora, sans-serif; font-weight: 600; font-size: 17px">Website</span><span style="font-size: 14px; color: #9EA9A3">aceenterpriseconsulting.com</span></span>
+</a>
+<a class="link-card" href="#links">
+<span class="link-icon"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="13" height="12" rx="2.5"></rect><path d="M15.5 10.5l6-3.5v10l-6-3.5"></path></svg></span>
+<span style="display: flex; flex-direction: column; min-width: 0"><span style="font-family: Sora, sans-serif; font-weight: 600; font-size: 17px">Join on Zoom</span><span style="font-size: 14px; color: #9EA9A3">[YOUR ZOOM LINK]</span></span>
+</a>
+<a class="link-card" href="https://columis.com/en/register?ref=yp4ah7Ek" target="_blank" rel="noopener sponsored">
+<span class="link-icon"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5"></rect><path d="M2.5 10h19"></path><path d="M6.5 15h4"></path></svg></span>
+<span style="display: flex; flex-direction: column; min-width: 0"><span style="font-family: Sora, sans-serif; font-weight: 600; font-size: 17px">Crypto Wallet &amp; Mastercard</span><span style="font-size: 14px; color: #9EA9A3">Columis · referral link</span></span>
+</a>
+</section>
+
+<!-- VIDEO PLACEHOLDER -->
+<section aria-label="Video">
+<div style="aspect-ratio: 16 / 9; width: 100%; border: 1.5px dashed #3A4D46; border-radius: 12px; background: #111C18; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; padding: 24px; box-sizing: border-box">
+<span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 76px; height: 76px; border-radius: 50%; border: 2px solid #C9A45C; color: #C9A45C"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"></path></svg></span>
+<p style="margin: 0; font-family: Sora, sans-serif; font-weight: 600; font-size: 19px; color: #F4F5F2">Video coming soon</p>
+<p style="margin: 0; font-size: 14px; color: #9EA9A3">[VIDEO PLACEHOLDER]</p>
+</div>
+</section>
+
+<!-- CERTIFICATES -->
+<section aria-labelledby="certs-title" style="display: flex; flex-direction: column; gap: 28px">
+<div style="text-align: center">
+<p style="margin: 0 0 8px; font-family: Sora, sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.22em; color: #C9A45C">VERIFIED</p>
+<h2 id="certs-title" style="margin: 0; font-family: Sora, sans-serif; font-size: clamp(28px, 4vw, 40px); font-weight: 600; line-height: 1.15; color: #F4F5F2">Certificates</h2>
+</div>
+<div class="cert-marquee">
+<div class="cert-track">
+<figure class="cert"><img src="./assets/25f12e920a27a0a005dfce49b5400cbc.jpg" alt="FTMO Verification passed certificate for Ashley P Brown"><figcaption style="font-size: 14px; color: #B9C3BE; text-align: center">Passed Verification</figcaption></figure>
+<figure class="cert"><img src="./assets/ebc2f16940b0ebfe356c4bbf62fc6381.jpg" alt="FTMO Challenge passed certificate for Ashley P Brown"><figcaption style="font-size: 14px; color: #B9C3BE; text-align: center">Passed FTMO Challenge</figcaption></figure>
+<figure class="cert"><img src="./assets/b2b1a60749cf1b0bb699c81f0055d450.jpg" alt="FTMO reward certificate for Ashley P Brown, $4,188.65"><figcaption style="font-size: 14px; color: #B9C3BE; text-align: center">FTMO Reward Payout</figcaption></figure>
+<figure class="cert"><img src="./assets/644f3070e6a8af3240356d729c11b7e5.jpg" alt="FTMO Challenge passed certificate for Ashley P Brown"><figcaption style="font-size: 14px; color: #B9C3BE; text-align: center">Passed FTMO Challenge</figcaption></figure>
+<figure class="cert"><img src="./assets/8e3254df3422a871b28299d175be52f0.jpg" alt="FTMO Challenge passed certificate for Ashley P Brown"><figcaption style="font-size: 14px; color: #B9C3BE; text-align: center">Passed FTMO Challenge</figcaption></figure>
+<figure class="cert" aria-hidden="true"><img src="./assets/b2b1a60749cf1b0bb699c81f0055d450.jpg" alt=""><figcaption style="font-size: 14px; color: #B9C3BE; text-align: center">FTMO Reward Payout</figcaption></figure>
+<figure class="cert" aria-hidden="true"><img src="./assets/25f12e920a27a0a005dfce49b5400cbc.jpg" alt=""><figcaption style="font-size: 14px; color: #B9C3BE; text-align: center">Passed Verification</figcaption></figure>
+<figure class="cert" aria-hidden="true"><img src="./assets/ebc2f16940b0ebfe356c4bbf62fc6381.jpg" alt=""><figcaption style="font-size: 14px; color: #B9C3BE; text-align: center">Passed FTMO Challenge</figcaption></figure>
+<figure class="cert" aria-hidden="true"><img src="./assets/b2b1a60749cf1b0bb699c81f0055d450.jpg" alt=""><figcaption style="font-size: 14px; color: #B9C3BE; text-align: center">FTMO Reward Payout</figcaption></figure>
+<figure class="cert" aria-hidden="true"><img src="./assets/644f3070e6a8af3240356d729c11b7e5.jpg" alt=""><figcaption style="font-size: 14px; color: #B9C3BE; text-align: center">Passed FTMO Challenge</figcaption></figure>
+<figure class="cert" aria-hidden="true"><img src="./assets/8e3254df3422a871b28299d175be52f0.jpg" alt=""><figcaption style="font-size: 14px; color: #B9C3BE; text-align: center">Passed FTMO Challenge</figcaption></figure>
+<figure class="cert" aria-hidden="true"><img src="./assets/b2b1a60749cf1b0bb699c81f0055d450.jpg" alt=""><figcaption style="font-size: 14px; color: #B9C3BE; text-align: center">FTMO Reward Payout</figcaption></figure>
+</div>
+</div>
+</section>
+
+<footer style="padding-top: 24px; border-top: 1px solid #2C3B35; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; font-size: 13px; color: #9EA9A3">
+<span>Trading involves substantial risk. Past results do not guarantee future results.</span>
+<span>© 2026 Ashley Brown</span>
+</footer>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2300}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
