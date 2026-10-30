@@ -159,6 +159,19 @@ function initDb() {
   if (!clientCols.includes('daily_email')) db.exec('ALTER TABLE clients ADD COLUMN daily_email INTEGER DEFAULT 1');
   if (!clientCols.includes('share_token')) db.exec('ALTER TABLE clients ADD COLUMN share_token TEXT');
   if (!clientCols.includes('password_hash')) db.exec('ALTER TABLE clients ADD COLUMN password_hash TEXT');
+  if (!clientCols.includes('created_by')) db.exec('ALTER TABLE clients ADD COLUMN created_by TEXT');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS staff (
+      id TEXT PRIMARY KEY, name TEXT, username TEXT UNIQUE, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'coach'
+    );
+    CREATE TABLE IF NOT EXISTS support_tickets (
+      id TEXT PRIMARY KEY, client_id TEXT NOT NULL, subject TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'open', created_at TEXT, updated_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS ticket_messages (
+      id TEXT PRIMARY KEY, ticket_id TEXT NOT NULL, author_role TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT
+    );
+  `);
   ensureClientTradesTable();
   const tradeCols = db.prepare('PRAGMA table_info(trades)').all().map(c => c.name);
   if (!tradeCols.includes('play_name')) db.exec('ALTER TABLE trades ADD COLUMN play_name TEXT');
@@ -897,11 +910,10 @@ function signupClient({ name, email, password }) {
   if (!nm || nm.length < 2) throw new Error('Enter your name.');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) throw new Error('Enter a valid email.');
   if (pw.length < 8) throw new Error('Password must be at least 8 characters.');
-  if (findClientByEmail(em)) throw new Error('An account with that email already exists. Sign in instead.');
+  if (findClientByEmail(em)) throw new Error('An account with that email already exists. Sign in with your package access code.');
   const id = uid();
-  const code = genCode(nm);
   db.prepare(`INSERT INTO clients(id,name,email,package,status,split,access_code,joined,daily_email,password_hash)
-    VALUES(?,?,?,?,?,?,?,?,?,?)`).run(id, nm, em, 'access', 'active', 0, code, today(), 1, bcrypt.hashSync(pw, 10));
+    VALUES(?,?,?,?,?,?,?,?,?,?)`).run(id, nm, em, '', 'pending', 0, '', today(), 0, bcrypt.hashSync(pw, 10));
   return db.prepare('SELECT * FROM clients WHERE id=?').get(id);
 }
 function verifyClientPassword(email, password) {
@@ -911,18 +923,121 @@ function verifyClientPassword(email, password) {
   return row;
 }
 function loginClient({ email, password, accessCode }) {
-  const row = findClientByEmail(email);
-  if (!row) return { error: 'Incorrect email or password.' };
-  const codeOk = String(row.access_code || '').toUpperCase() === String(accessCode || '').trim().toUpperCase();
-  if (!codeOk) return { error: 'Access code does not match this account.' };
   const pw = String(password || '');
-  if (!row.password_hash) {
-    if (pw.length < 8) return { error: 'Password must be at least 8 characters.' };
+  const code = String(accessCode || '').trim();
+  if (pw.length < 8) return { error: 'Password must be at least 8 characters.' };
+  const row = findActiveClientByCode(code);
+  if (!row || !row.access_code) return { error: 'That access code is not on a package. Buy a package, or use the code already on your account.' };
+  if (row.password_hash) {
+    if (!bcrypt.compareSync(pw, row.password_hash)) return { error: 'Incorrect password for this access code.' };
+  } else {
     db.prepare('UPDATE clients SET password_hash=? WHERE id=?').run(bcrypt.hashSync(pw, 10), row.id);
-    return { client: db.prepare('SELECT * FROM clients WHERE id=?').get(row.id) };
   }
-  if (!bcrypt.compareSync(pw, row.password_hash)) return { error: 'Incorrect email or password.' };
-  return { client: row };
+  const em = String(email || '').trim().toLowerCase();
+  if (em && !row.email) {
+    const other = findClientByEmail(em);
+    if (!other || other.id === row.id) db.prepare('UPDATE clients SET email=? WHERE id=?').run(em, row.id);
+  }
+  return { client: db.prepare('SELECT * FROM clients WHERE id=?').get(row.id) };
+}
+function listStaff() {
+  return db.prepare('SELECT id,name,username,role FROM staff ORDER BY name').all();
+}
+function createStaff({ name, username, password }) {
+  const nm = String(name || '').trim();
+  const user = String(username || '').trim();
+  const pw = String(password || '');
+  if (nm.length < 2) throw new Error('Enter the coach name.');
+  if (user.length < 3) throw new Error('Username must be at least 3 characters.');
+  if (pw.length < 8) throw new Error('Password must be at least 8 characters.');
+  if (db.prepare('SELECT id FROM staff WHERE lower(username)=lower(?)').get(user)) throw new Error('That username is already used.');
+  const id = uid();
+  db.prepare('INSERT INTO staff(id,name,username,password_hash,role) VALUES(?,?,?,?,?)')
+    .run(id, nm, user, bcrypt.hashSync(pw, 10), 'coach');
+  return { id, name: nm, username: user, role: 'coach' };
+}
+function verifyStaff(username, password) {
+  const row = db.prepare('SELECT * FROM staff WHERE lower(username)=lower(?)').get(String(username || '').trim());
+  if (!row || !bcrypt.compareSync(String(password || ''), row.password_hash)) return null;
+  return { id: row.id, name: row.name, username: row.username, role: row.role || 'coach' };
+}
+function addClientManual({ name, email, package: pkg, split, createdBy }) {
+  const nm = String(name || '').trim();
+  const em = String(email || '').trim().toLowerCase();
+  const packages = ['access', 'starter', 'pro', 'elite', 'prime'];
+  if (nm.length < 2) throw new Error('Enter a name.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) throw new Error('Enter a valid email.');
+  if (!packages.includes(pkg)) throw new Error('Choose a package.');
+  if (findClientByEmail(em)) throw new Error('That email is already on an account.');
+  const id = uid();
+  const code = genCode(nm);
+  db.prepare(`INSERT INTO clients(id,name,email,package,status,split,access_code,joined,daily_email,created_by)
+    VALUES(?,?,?,?,?,?,?,?,?,?)`).run(id, nm, em, pkg, 'active', Number(split) || 0, code, today(), 1, createdBy || null);
+  return db.prepare('SELECT * FROM clients WHERE id=?').get(id);
+}
+function listClientsByCreator(createdBy) {
+  return db.prepare(`SELECT id,name,email,package,status,access_code,joined FROM clients WHERE created_by=? ORDER BY joined DESC`)
+    .all(createdBy).map(c => ({
+      id: c.id, name: c.name, email: c.email, package: c.package, status: c.status,
+      accessCode: c.access_code, joined: c.joined
+    }));
+}
+function mapTicket(row, messages) {
+  return {
+    id: row.id, clientId: row.client_id, clientName: row.client_name || '',
+    subject: row.subject, status: row.status, createdAt: row.created_at, updatedAt: row.updated_at,
+    messages: messages.map(m => ({ id: m.id, role: m.author_role, body: m.body, createdAt: m.created_at }))
+  };
+}
+function ticketMessages(id) {
+  return db.prepare('SELECT * FROM ticket_messages WHERE ticket_id=? ORDER BY created_at').all(id);
+}
+function listTicketsForClient(clientId) {
+  const rows = db.prepare(`SELECT t.*, c.name AS client_name FROM support_tickets t
+    LEFT JOIN clients c ON c.id=t.client_id WHERE t.client_id=? ORDER BY t.updated_at DESC`).all(clientId);
+  return rows.map(r => mapTicket(r, ticketMessages(r.id)));
+}
+function listAllTickets() {
+  const rows = db.prepare(`SELECT t.*, c.name AS client_name FROM support_tickets t
+    LEFT JOIN clients c ON c.id=t.client_id ORDER BY t.updated_at DESC`).all();
+  return rows.map(r => mapTicket(r, ticketMessages(r.id)));
+}
+function createTicket(clientId, subject, message) {
+  const sub = String(subject || '').trim();
+  const msg = String(message || '').trim();
+  if (sub.length < 3) throw new Error('Enter a subject.');
+  if (msg.length < 2) throw new Error('Enter a message.');
+  const id = uid();
+  const now = new Date().toISOString();
+  db.prepare('INSERT INTO support_tickets(id,client_id,subject,status,created_at,updated_at) VALUES(?,?,?,?,?,?)')
+    .run(id, clientId, sub.slice(0, 140), 'open', now, now);
+  db.prepare('INSERT INTO ticket_messages(id,ticket_id,author_role,body,created_at) VALUES(?,?,?,?,?)')
+    .run(uid(), id, 'client', msg.slice(0, 4000), now);
+  return listTicketsForClient(clientId).find(t => t.id === id);
+}
+function replyTicket({ ticketId, clientId, role, body, status }) {
+  const ticket = db.prepare('SELECT * FROM support_tickets WHERE id=?').get(ticketId);
+  if (!ticket) throw new Error('Ticket not found.');
+  if (role === 'client' && ticket.client_id !== clientId) throw new Error('Ticket not found.');
+  const msg = String(body || '').trim();
+  if (msg.length < 1) throw new Error('Enter a message.');
+  const now = new Date().toISOString();
+  let next = ticket.status;
+  if (role === 'client') next = 'open';
+  else if (['open', 'pending', 'closed'].includes(status)) next = status;
+  db.prepare('INSERT INTO ticket_messages(id,ticket_id,author_role,body,created_at) VALUES(?,?,?,?,?)')
+    .run(uid(), ticket.id, role === 'admin' ? 'admin' : 'client', msg.slice(0, 4000), now);
+  db.prepare('UPDATE support_tickets SET status=?, updated_at=? WHERE id=?').run(next, now, ticket.id);
+  return role === 'client'
+    ? listTicketsForClient(clientId).find(t => t.id === ticket.id)
+    : listAllTickets().find(t => t.id === ticket.id);
+}
+function setTicketStatus(ticketId, status) {
+  if (!['open', 'pending', 'closed'].includes(status)) throw new Error('Invalid status.');
+  const ticket = db.prepare('SELECT id FROM support_tickets WHERE id=?').get(ticketId);
+  if (!ticket) throw new Error('Ticket not found.');
+  db.prepare('UPDATE support_tickets SET status=?, updated_at=? WHERE id=?').run(status, new Date().toISOString(), ticketId);
+  return listAllTickets().find(t => t.id === ticketId);
 }
 function findActiveClientByCode(code) {
   if (!code) return null;
@@ -1259,6 +1374,8 @@ module.exports = {
   handleCheckout, extendClientAccess, expireClientBySubscription, isClientAccessValid,
   isProcessed, markProcessed,
   findActiveClientByCode, findClientByEmail, signupClient, verifyClientPassword, loginClient, getClientRow,
+  listStaff, createStaff, verifyStaff, addClientManual, listClientsByCreator,
+  listTicketsForClient, listAllTickets, createTicket, replyTicket, setTicketStatus,
   etToday, listActiveClients, buildDailyReport, isDailySent, markDailySent,
   ensureAdminShareToken, ensureClientShareToken, getShareDisplay
 };

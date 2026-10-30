@@ -39,6 +39,12 @@ function requireAdmin(req, res, next) {
   req.user = u;
   next();
 }
+function requireCoach(req, res, next) {
+  const u = authFromReq(req);
+  if (!u || u.role !== 'coach') return res.status(401).json({ error: 'Coach login required' });
+  req.user = u;
+  next();
+}
 function resolveClientUser(u, res) {
   if (!u || u.role !== 'client') return null;
   let row = u.clientId ? getClientRow(u.clientId) : null;
@@ -59,5 +65,5 @@ function requireClient(req, res, next) {
 }
 
 module.exports = {
-  sign, setCookie, clearCookie, authFromReq, requireAdmin, requireClient, resolveClientUser, COOKIE, CLIENT_IDLE_MS
+  sign, setCookie, clearCookie, authFromReq, requireAdmin, requireCoach, requireClient, resolveClientUser, COOKIE, CLIENT_IDLE_MS
 };

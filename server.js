@@ -60,6 +60,7 @@ app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/public', require('./src/routes/public'));
 app.use('/api/admin', require('./src/routes/admin'));
 app.use('/api/client', require('./src/routes/client'));
+app.use('/api/coach', require('./src/routes/coach'));
 
 const PUBLIC = path.join(__dirname, 'public');
 app.use(express.static(PUBLIC));

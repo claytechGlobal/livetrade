@@ -1,8 +1,7 @@
 'use strict';
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { verifyAdmin, isClientAccessValid, signupClient, loginClient } = require('../db');
-const { sendAccessCode, emailEnabled } = require('../email');
+const { verifyAdmin, verifyStaff, isClientAccessValid, signupClient, loginClient } = require('../db');
 const { sign, setCookie, clearCookie, authFromReq } = require('../auth');
 
 const router = express.Router();
@@ -39,6 +38,12 @@ router.post('/login', loginLimiter, (req, res) => {
     return res.json({ role: 'admin' });
   }
 
+  const staff = verifyStaff(ident, password);
+  if (staff) {
+    setCookie(res, sign({ role: 'coach', staffId: staff.id, name: staff.name }), 'admin');
+    return res.json({ role: 'coach', name: staff.name });
+  }
+
   if (!accessCode) return res.status(400).json({ error: 'Enter the access code from your email.' });
   const result = loginClient({ email: ident, password, accessCode });
   if (!result.client) {
@@ -48,21 +53,10 @@ router.post('/login', loginLimiter, (req, res) => {
   return clientSession(result.client);
 });
 
-router.post('/signup', loginLimiter, async (req, res) => {
+router.post('/signup', loginLimiter, (req, res) => {
   try {
-    const client = signupClient(req.body || {});
-    let emailed = false;
-    if (emailEnabled()) {
-      try {
-        await sendAccessCode(client, { force: true });
-        emailed = true;
-      } catch (err) {
-        console.error('[email] signup access code:', err.message);
-      }
-    }
-    const out = { ok: true, emailed };
-    if (!emailed) out.accessCode = client.access_code;
-    res.json(out);
+    signupClient(req.body || {});
+    res.json({ ok: true, pending: true });
   } catch (e) {
     res.status(400).json({ error: e.message || 'Could not create account.' });
   }

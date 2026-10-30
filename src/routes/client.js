@@ -1,7 +1,7 @@
 'use strict';
 const express = require('express');
 const { requireClient } = require('../auth');
-const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload, saveClientTrades, saveClientAccounts, saveClientPlays, getDayScreenshot, saveDayScreenshot, deleteDayScreenshot, listDayTradeEntries, getDayTradeEntry, addDayTradeEntry, updateDayTradeEntry, deleteDayTradeEntry, ensureClientShareToken } = require('../db');
+const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload, saveClientTrades, saveClientAccounts, saveClientPlays, getDayScreenshot, saveDayScreenshot, deleteDayScreenshot, listDayTradeEntries, getDayTradeEntry, addDayTradeEntry, updateDayTradeEntry, deleteDayTradeEntry, ensureClientShareToken, listTicketsForClient, createTicket, replyTicket } = require('../db');
 const { sendContractSubmission, emailEnabled, contractNotifyTo } = require('../email');
 
 const router = express.Router();
@@ -294,6 +294,27 @@ router.post('/share-link/rotate', (req, res) => {
   if (!assertSubscribed(row, res)) return;
   const token = ensureClientShareToken(row.id, true);
   res.json({ token, path: '/share/' + token });
+});
+
+router.get('/tickets', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  res.json(listTicketsForClient(row.id));
+});
+router.post('/tickets', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  try { res.json(createTicket(row.id, (req.body || {}).subject, (req.body || {}).message)); }
+  catch (e) { res.status(400).json({ error: e.message || 'Could not open ticket' }); }
+});
+router.post('/tickets/:id/reply', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  try { res.json(replyTicket({ ticketId: req.params.id, clientId: row.id, role: 'client', body: (req.body || {}).message })); }
+  catch (e) { res.status(400).json({ error: e.message || 'Could not reply' }); }
 });
 
 module.exports = router;

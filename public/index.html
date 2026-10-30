@@ -78,6 +78,14 @@ body.client-mode .admin-only{display:none!important}
 body.client-mode .admin-write{display:none!important}
 body.client-mode .client-write{display:flex!important;align-items:center;gap:10px}
 body.client-mode .client-upload{display:flex!important;align-items:center;gap:10px}
+.coach-only{display:none!important}
+body.coach-mode .coach-only{display:flex!important}
+body.coach-mode .nav-label.coach-only{display:block!important}
+body.coach-mode .nav-item:not(.coach-keep){display:none!important}
+body.coach-mode .nav-label:not(.coach-only){display:none!important}
+body.coach-mode .coach-card{display:none!important}
+.pay-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px}
+.pay-row span{font-size:11px;font-weight:700;letter-spacing:.03em;color:#e6e1d4;border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:5px 9px;background:rgba(255,255,255,.04)}
 .client-write,.client-upload{display:none;gap:10px;align-items:center}
 .lineage-card{margin-bottom:16px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 .lineage-head{font-family:var(--display);font-weight:700;font-size:14px;margin-bottom:12px;color:var(--text)}
@@ -483,6 +491,9 @@ body.home-open::after{opacity:.35}
     <div class="nav-item" data-view="tcops"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8M8 11h8"/></svg><span>Trade Copier Education</span></div>
     <div class="nav-item" data-view="propfirms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg><span>Prop Firm Guide</span></div>
     <div class="nav-item" data-view="contract"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><span>Contract</span></div>
+    <div class="nav-item" data-view="support"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Support</span></div>
+    <div class="nav-label coach-only">Coach</div>
+    <div class="nav-item coach-only coach-keep" data-view="addpeople"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M16 11h6"/></svg><span>Add client</span></div>
     <div class="nav-label admin-only">Management</div>
     <div class="nav-item admin-only" data-view="clients"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11"/></svg><span>Trade Copier</span></div>
     <div class="nav-item admin-only" data-view="affiliates"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg><span>Affiliates</span></div>
@@ -490,9 +501,9 @@ body.home-open::after{opacity:.35}
     <div class="spacer"></div>
     <div class="coach-card"><div class="ti">Coach</div><div class="tx" id="coachSide">Log trades to unlock your edge score.</div></div>
     <div class="nav-item" data-view="terms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg><span>Terms &amp; Policy</span></div>
-    <div class="nav-item" style="margin-top:6px" data-action="switch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M8 21H3v-5M21 3l-7 7M3 21l7-7"/></svg><span>Switch account</span></div>
+    <div class="nav-item coach-keep" style="margin-top:6px" data-action="switch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M8 21H3v-5M21 3l-7 7M3 21l7-7"/></svg><span>Switch account</span></div>
     <button type="button" class="btn sm install-glow" id="installAppBtnSide" style="display:none;margin:8px 6px 4px;justify-content:center" onclick="installApp()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14"/></svg>Install App</button>
-    <div class="nav-item" style="margin-top:2px" data-action="logout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Log out</span></div>
+    <div class="nav-item coach-keep" style="margin-top:2px" data-action="logout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Log out</span></div>
     </div>
   </aside>
 
@@ -583,6 +594,14 @@ async function save(k){
     if(k==='settings'){await api('PATCH','/api/admin/settings',state.settings);}
     else{await api('PUT','/api/admin/'+k,state[k]||[]);}
   }catch(e){flash('Could not save — '+(e.message||'server error'));}}
+async function loadCoach(){
+  document.body.classList.remove('client-mode');
+  document.body.classList.add('coach-mode');
+  const d=await api('GET','/api/coach/clients');
+  state.coachClients=d.clients||[];
+  const el=document.getElementById('hello');
+  if(el)el.innerHTML='Coach, <span>'+esc(session.name||'Coach')+'</span>';
+}
 async function loadAdmin(){const d=await api('GET','/api/admin/bootstrap');
   state.settings=d.settings||{};state.plays=d.plays||[];state.accounts=d.accounts||[];state.trades=d.trades||[];state.clients=d.clients||[];state.dayPnl=d.dayPnl||[];state.affiliates=d.affiliates||[];state.dayShots=d.dayShots||[];state.dayTrades=d.dayTrades||[];applyBranding();applyClientShell(false);}
 async function loadClientApp(){const d=await api('GET','/api/client/app');
@@ -592,7 +611,7 @@ async function loadClientApp(){const d=await api('GET','/api/client/app');
   applyBranding();applyClientShell(true);
   if(d.client&&d.client.name){const el=document.getElementById('hello');if(el)el.innerHTML='Welcome back, <span>'+esc(d.client.name)+'</span>';}
   return d.client&&d.client.id;}
-function applyClientShell(on){document.body.classList.toggle('client-mode',!!on);}
+function applyClientShell(on){document.body.classList.toggle('client-mode',!!on);document.body.classList.remove('coach-mode');}
 function isAdminRoute(){return location.pathname==='/admin'||location.pathname.indexOf('/admin/')===0;}
 function wantLanding(){
   const q=new URLSearchParams(location.search);
@@ -619,11 +638,12 @@ async function init(){
   let me=null;try{const r=await fetch('/api/auth/me',{credentials:'same-origin'});if(r.ok)me=await r.json();}catch(e){}
   if(adminSide){
     if(me&&me.role==='admin'){session=me;try{await loadAdmin();showScreen('admin');go('dashboard');return;}catch(e){}}
+    if(me&&me.role==='coach'){session=me;try{await loadCoach();showScreen('admin');go('addpeople');return;}catch(e){}}
     showScreen('login');renderLogin();return;
   }
   registerPwa();
   if(me&&me.role==='client'){session=me;try{await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();bumpIdle();return;}catch(e){await forceClearSession();showScreen('home');renderHome();return;}}
-  if(me&&me.role==='admin'){location.href='/admin';return;}
+  if(me&&me.role==='admin'||me&&me.role==='coach'){location.href='/admin';return;}
   const pc=new URLSearchParams(location.search).get('portal');
   showScreen('home');await renderHome();
   if(pc){
@@ -675,6 +695,9 @@ async function attemptLogin(){
     if(me.role==='admin'){
       if(!isAdminRoute()){location.href='/admin';return;}
       await loadAdmin();showScreen('admin');go('dashboard');
+    }else if(me.role==='coach'){
+      if(!isAdminRoute()){location.href='/admin';return;}
+      await loadCoach();showScreen('admin');go('addpeople');
     }else{
       if(isAdminRoute()){location.href='/';return;}
       await loadClientApp();showScreen('admin');go('dashboard');syncInstallButtons();bumpIdle();
@@ -692,9 +715,7 @@ async function attemptSignup(){
     const note=document.getElementById('lg_err');
     if(note){
       note.style.color='#e6c45a';
-      note.textContent=me.emailed
-        ?'Account created. Check your email for the access code, then sign in below.'
-        :'Account created. Your access code is '+(me.accessCode||'')+'. Enter it below to sign in.';
+      note.textContent='Account saved. It does not open the portal. Buy a package, or sign in with the access code already on your account. Your accounts stay on that code.';
     }
   }catch(e){if(err)err.textContent=e.message||'Could not create account.';}
 }
@@ -845,6 +866,7 @@ async function renderHome(needSub){
         <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Edge score updates with your trades</span>
         <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Live coaching sessions included</span>
       </div>
+      <div class="pay-row" aria-label="Payment methods"><span>Visa</span><span>Mastercard</span><span>Amex</span><span>PayPal</span><span>Apple Pay</span><span>Google Pay</span><span>Stripe</span></div>
     </section>
 
     <section class="home-sec">
@@ -868,7 +890,7 @@ async function renderHome(needSub){
       <p class="home-sec-p">Three steps from package to daily performance reporting.</p>
       <div class="home-steps">
         <div class="home-step"><div class="n">1</div><h3>Get dashboard access</h3><p>$45/mo unlocks the journal. One-time Starter–Prime packages are for managed prop accounts — buy again anytime.</p></div>
-        <div class="home-step"><div class="n">2</div><h3>Open your portal</h3><p>Create an account, then sign in with your email, password, and the access code we email you.</p></div>
+        <div class="home-step"><div class="n">2</div><h3>Open your portal</h3><p>Buy a package first. Then sign in with your email, password, and the access code from that purchase. An old code opens the same account.</p></div>
         <div class="home-step"><div class="n">3</div><h3>Track &amp; improve</h3><p>Log or upload trades, watch edge score and calendar, join live coaching, get the 5 PM ET report.</p></div>
       </div>
     </section>
@@ -904,7 +926,7 @@ async function renderHome(needSub){
         </div>
         <div id="paneIn" class="auth-pane">
           <h3>Enter your dashboard</h3>
-          <p>Sign in with the email and password from your account, plus the access code we emailed you.</p>
+          <p>Buy a package first. Sign in with your email, password, and the access code for that package. An old code opens the same accounts.</p>
           <div class="field"><label>Email</label><input id="lg_email" type="text" autocomplete="username" placeholder="you@email.com"></div>
           <div class="field"><label>Password</label><input id="lg_client_pass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
           <div class="field" style="margin-bottom:0"><label>Access code</label><input id="lg_code" placeholder="ABCD-1234" autocomplete="one-time-code" onkeydown="if(event.key==='Enter')attemptLogin()"></div>
@@ -913,7 +935,7 @@ async function renderHome(needSub){
         </div>
         <div id="paneUp" class="auth-pane" style="display:none">
           <h3>Create your account</h3>
-          <p>After this, we email your access code. Sign in with your email, password, and that code.</p>
+          <p>This saves your login only. The portal stays locked until you buy a package or sign in with an access code you already have.</p>
           <div class="field"><label>Name</label><input id="su_name" autocomplete="name" placeholder="Your name"></div>
           <div class="field"><label>Email</label><input id="su_email" type="email" autocomplete="email" placeholder="you@email.com"></div>
           <div class="field" style="margin-bottom:0"><label>Password</label><input id="su_pass" type="password" autocomplete="new-password" placeholder="At least 8 characters" onkeydown="if(event.key==='Enter')attemptSignup()"></div>
@@ -1001,12 +1023,13 @@ function esc(s){return(s==null?'':''+s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'
 const SUB={dashboard:"Here's where your edge stands today",trades:'Every position, with the futures math done for you',
   calendar:'Your profit & loss, day by day',playbook:'Which setups actually make you money',
   playbook101:'PTT Playbook — full training PDF',
-  accounts:'Fees, payouts & true business ROI',livecapital:'Live brokerage account, sizing, and risk desk',leaderboard:'Traders ranked by real journal results',coaches:'Coach profile, session links, and certificates',clients:'Central upload — copies to every client',packages:'Trade copier services and pricing',tcops:'How trade copier technology works',propfirms:'Top futures prop firm — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Technicals — A+ move charts & setups',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data'};
+  accounts:'Fees, payouts & true business ROI',livecapital:'Live brokerage account, sizing, and risk desk',leaderboard:'Traders ranked by real journal results',coaches:'Coach profile, session links, and certificates',clients:'Central upload — copies to every client',packages:'Trade copier services and pricing',tcops:'How trade copier technology works',propfirms:'Top futures prop firm — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Technicals — A+ move charts & setups',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data',support:'Questions for the admin',addpeople:'Add a client on a package'};
 let view='dashboard';
 function go(v){
   if(!v)return;
-  if(session&&session.role==='client'&&(v==='clients'||v==='affiliates'||v==='settings')){v='dashboard';}
-  const fn={dashboard:renderDash,trades:renderTrades,calendar:renderCalendar,playbook:renderPlaybook,playbook101:renderPlaybook101,accounts:renderAccounts,livecapital:renderLiveCapital,leaderboard:renderLeaderboard,clients:renderClients,packages:renderPackages,tcops:renderTradeCopierEdu,propfirms:renderPropFirms,contract:renderContract,guide:renderGuide,affiliates:renderAffiliates,terms:renderTerms,settings:renderSettings}[v];
+  if(session&&session.role==='client'&&(v==='clients'||v==='affiliates'||v==='settings'||v==='addpeople')){v='dashboard';}
+  if(session&&session.role==='coach'){v='addpeople';}
+  const fn={dashboard:renderDash,trades:renderTrades,calendar:renderCalendar,playbook:renderPlaybook,playbook101:renderPlaybook101,accounts:renderAccounts,livecapital:renderLiveCapital,leaderboard:renderLeaderboard,clients:renderClients,packages:renderPackages,tcops:renderTradeCopierEdu,propfirms:renderPropFirms,contract:renderContract,guide:renderGuide,affiliates:renderAffiliates,terms:renderTerms,settings:renderSettings,support:renderSupport,addpeople:renderAddPeople}[v];
   if(!fn)return;
   view=v;document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===v));
   const sub=document.getElementById('subline');if(sub)sub.textContent=SUB[v]||'';
@@ -2380,6 +2403,81 @@ function renderPortal(cid){
 }
 
 /* ===== SETTINGS ===== */
+function ticketBadge(st){
+  const map={open:['Open','b-funded'],pending:['Waiting','b-eval'],closed:['Closed','b-failed']};
+  const x=map[st]||map.open;
+  return `<span class="badge ${x[1]}">${x[0]}</span>`;
+}
+async function renderSupport(){
+  const admin=session&&session.role==='admin';
+  let tickets=[];
+  try{tickets=await api('GET',admin?'/api/admin/tickets':'/api/client/tickets');}catch(e){tickets=[];}
+  if(!Array.isArray(tickets))tickets=[];
+  const open=document.getElementById('tk_open')&&document.getElementById('tk_open').value;
+  let h=`<div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:12px"><span class="tick"></span>${admin?'Support queue':'Support'}</div>
+    <p class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:12px">${admin?'Reply, mark waiting, or close. A client reply puts it back to Open.':'Send a question. The admin replies here. You only see your own tickets.'}</p>
+    ${admin?'':`<div class="field"><label>Subject</label><input id="tk_sub" placeholder="What do you need help with?"></div>
+    <div class="field"><label>Message</label><textarea id="tk_msg" style="min-height:80px" placeholder="Describe the issue"></textarea></div>
+    <button class="btn primary" onclick="submitTicket()">Open ticket</button>`}
+  </div>`;
+  if(!tickets.length)h+=`<div class="empty">No tickets yet.</div>`;
+  tickets.forEach(t=>{
+    const msgs=(t.messages||[]).map(m=>`<div style="padding:8px 0;border-top:1px solid var(--line-soft)"><div class="hint" style="font-family:var(--ui)">${m.role==='admin'?'Admin':'You'} · ${esc((m.createdAt||'').slice(0,16).replace('T',' '))}</div><div style="margin-top:4px;white-space:pre-wrap">${esc(m.body)}</div></div>`).join('');
+    h+=`<div class="card" style="margin-bottom:12px"><div class="card-h"><div class="card-t">${esc(t.subject)}</div><div style="display:flex;gap:8px;align-items:center">${admin?`<span class="hint">${esc(t.clientName||'')}</span>`:''}${ticketBadge(t.status)}</div></div>
+      ${msgs}
+      <div class="field" style="margin-top:10px"><label>Reply</label><textarea id="tk_r_${t.id}" style="min-height:64px"></textarea></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn sm primary" onclick="replyTicket('${t.id}','${admin?'open':''}')">Send</button>
+        ${admin?`<button class="btn sm" onclick="replyTicket('${t.id}','pending')">Send and mark waiting</button><button class="btn sm" onclick="setTicketStatus('${t.id}','closed')">Close</button>`:''}
+      </div></div>`;
+  });
+  document.getElementById('content').innerHTML=h;
+  if(open){const box=document.getElementById('tk_open');if(box)box.value=open;}
+}
+async function submitTicket(){
+  const subject=val('tk_sub').trim(),message=val('tk_msg').trim();
+  if(!subject||!message){flash('Enter a subject and a message');return;}
+  try{await api('POST','/api/client/tickets',{subject,message});flash('Ticket sent');renderSupport();}
+  catch(e){flash(e.message||'Could not send');}
+}
+async function replyTicket(id,status){
+  const message=val('tk_r_'+id).trim();
+  if(!message){flash('Enter a reply');return;}
+  const admin=session&&session.role==='admin';
+  try{
+    await api('POST',(admin?'/api/admin/tickets/':'/api/client/tickets/')+id+'/reply',{message,status:status||undefined});
+    flash('Reply sent');renderSupport();
+  }catch(e){flash(e.message||'Could not reply');}
+}
+async function setTicketStatus(id,status){
+  try{await api('POST','/api/admin/tickets/'+id+'/status',{status});flash(status==='closed'?'Ticket closed':'Updated');renderSupport();}
+  catch(e){flash(e.message||'Could not update');}
+}
+async function renderAddPeople(){
+  let rows=[];
+  try{const d=await api('GET','/api/coach/clients');rows=d.clients||[];}catch(e){rows=[];}
+  const opts=Object.entries(PACKAGES).map(([k,p])=>`<option value="${k}">${p.name}</option>`).join('');
+  let h=`<div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:12px"><span class="tick"></span>Add a client</div>
+    <p class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:12px">This adds a person on a package and emails their access code. It does not change anyone else's accounts.</p>
+    <div class="field"><label>Name</label><input id="np_name" placeholder="Client name"></div>
+    <div class="field"><label>Email</label><input id="np_email" type="email" placeholder="client@email.com"></div>
+    <div class="field"><label>Package</label><select id="np_pkg">${opts}</select></div>
+    <button class="btn primary" onclick="coachAddClient()">Add client</button></div>`;
+  if(!rows.length)h+=`<div class="empty">No clients added from this coach login yet.</div>`;
+  else{
+    h+=`<div class="card"><table><thead><tr><th>Name</th><th>Email</th><th>Package</th><th>Code</th></tr></thead><tbody>`;
+    rows.forEach(c=>{h+=`<tr><td class="r-name">${esc(c.name)}</td><td>${esc(c.email||'')}</td><td>${pkgBadge(c.package)}</td><td class="num">${esc(c.accessCode||'')}</td></tr>`;});
+    h+=`</tbody></table></div>`;
+  }
+  document.getElementById('content').innerHTML=h;
+}
+async function coachAddClient(){
+  try{
+    const r=await api('POST','/api/coach/clients',{name:val('np_name').trim(),email:val('np_email').trim(),package:val('np_pkg')});
+    flash(r.emailed?'Client added. Access code emailed.':'Client added. Code: '+(r.client&&r.client.accessCode||''));
+    renderAddPeople();
+  }catch(e){flash(e.message||'Could not add');}
+}
 function renderSettings(){
   const accents=['#22b8ef','#3bd0c4','#34d399','#f5b942','#fb5e7e','#b06cf0','#ff8b4a'];
   let h=`<div class="dash-mid"><div>
@@ -2406,6 +2504,15 @@ function renderSettings(){
       <div class="field"><label>Admin Username</label><input id="set_user" autocomplete="username" value="${esc(state.settings.adminUser||'admin')}"></div>
       <div class="field"><label>New Password <span style="text-transform:none;color:var(--text-3)">(leave blank to keep current)</span></label><input id="set_pass" type="password" placeholder="••••••••"></div>
       <button class="btn sm" onclick="updateCredentials()">Update Credentials</button>
+      <div class="card-t" style="margin:22px 0 14px"><span class="tick"></span>Coach logins</div>
+      <div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:10px">A coach signs in on the same page with their username and password, and can only add clients. They do not get this admin screen.</div>
+      <div id="coachStaff"></div>
+      <div class="f3">
+        <div class="field"><label>Coach name</label><input id="st_name" placeholder="Ashley Brown"></div>
+        <div class="field"><label>Username</label><input id="st_user" placeholder="ashley"></div>
+        <div class="field"><label>Password</label><input id="st_pass" type="password" placeholder="At least 8 characters"></div>
+      </div>
+      <button class="btn sm" onclick="addCoachLogin()">Add coach login</button>
       <div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-top:8px">Stored hashed on the server; passwords never round-trip in plain text.</div>
       <div class="card-t" style="margin:22px 0 14px"><span class="tick"></span>Package Pricing <span class="hint" style="font-family:var(--ui);font-weight:400">(shown on the public pricing page)</span></div>
       <div class="f3">
@@ -2422,6 +2529,22 @@ function renderSettings(){
   document.querySelectorAll('#set_sw .sw').forEach(s=>s.onclick=()=>{document.querySelectorAll('#set_sw .sw').forEach(x=>x.classList.remove('on'));s.classList.add('on');pick=s.dataset.c;document.getElementById('set_custom').value=pick;window.__ac=pick;previewAccent(pick);});
   document.getElementById('set_custom').oninput=e=>{pick=e.target.value;window.__ac=pick;document.querySelectorAll('#set_sw .sw').forEach(x=>x.classList.remove('on'));previewAccent(pick);};
   window.__ac=pick;
+  loadCoachStaff();
+}
+async function loadCoachStaff(){
+  const box=document.getElementById('coachStaff');
+  if(!box)return;
+  let rows=[];
+  try{rows=await api('GET','/api/admin/staff');}catch(e){rows=[];}
+  if(!Array.isArray(rows)||!rows.length){box.innerHTML='<div class="hint" style="font-family:var(--ui);margin-bottom:10px">No coach logins yet.</div>';return;}
+  box.innerHTML='<div class="hint" style="font-family:var(--ui);margin-bottom:10px">'+rows.map(r=>esc(r.name)+' · '+esc(r.username)).join('<br>')+'</div>';
+}
+async function addCoachLogin(){
+  try{
+    await api('POST','/api/admin/staff',{name:val('st_name').trim(),username:val('st_user').trim(),password:val('st_pass')});
+    flash('Coach login added');
+    renderSettings();
+  }catch(e){flash(e.message||'Could not add coach');}
 }
 function previewAccent(c){document.documentElement.style.setProperty('--accent',c);document.documentElement.style.setProperty('--accent-soft',hexA(c,.16));}
 function updateCredentials(){const u=val('set_user').trim();const p=val('set_pass').trim();

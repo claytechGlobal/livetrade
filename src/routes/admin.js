@@ -8,7 +8,8 @@ const {
   buildDailyReport, etToday, markDailySent,
   getDayScreenshot, saveDayScreenshot, deleteDayScreenshot,
   listDayTradeEntries, getDayTradeEntry, addDayTradeEntry, updateDayTradeEntry, deleteDayTradeEntry,
-  ensureAdminShareToken
+  ensureAdminShareToken,
+  listStaff, createStaff, listAllTickets, replyTicket, setTicketStatus
 } = require('../db');
 const { sendDailyReport } = require('../email');
 const { runDailySend } = require('../scheduler');
@@ -175,6 +176,23 @@ router.patch('/live-capital/txns/:id', (req, res) => {
   try { res.json(patchTxn('admin', req.params.id, req.body || {})); }
   catch (e) { res.status(400).json({ error: e.message || 'Could not update' }); }
 });
+router.get('/staff', (req, res) => res.json(listStaff()));
+router.post('/staff', (req, res) => {
+  try { res.json(createStaff(req.body || {})); }
+  catch (e) { res.status(400).json({ error: e.message || 'Could not add coach' }); }
+});
+router.get('/tickets', (req, res) => res.json(listAllTickets()));
+router.post('/tickets/:id/reply', (req, res) => {
+  try {
+    const body = req.body || {};
+    res.json(replyTicket({ ticketId: req.params.id, role: 'admin', body: body.message, status: body.status }));
+  } catch (e) { res.status(400).json({ error: e.message || 'Could not reply' }); }
+});
+router.post('/tickets/:id/status', (req, res) => {
+  try { res.json(setTicketStatus(req.params.id, (req.body || {}).status)); }
+  catch (e) { res.status(400).json({ error: e.message || 'Could not update' }); }
+});
+
 router.delete('/live-capital/txns/:id', (req, res) => {
   try { res.json(deleteTxn('admin', req.params.id)); }
   catch (e) { res.status(400).json({ error: e.message || 'Could not delete' }); }
