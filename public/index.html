@@ -65,6 +65,7 @@ body::after{content:"";position:fixed;top:-25%;left:30%;width:55vw;height:55vh;z
 @media(prefers-reduced-motion:reduce){
   .install-glow{animation:none}
   .side-trace{display:none}
+  .pay-row span,.pay-row img{animation:none}
 }
 .brand{display:flex;align-items:center;justify-content:center;gap:0;padding:4px 0 10px}
 .brand-mark{width:192px;height:192px;border-radius:14px;flex:none;position:relative;display:grid;place-items:center;
@@ -84,8 +85,23 @@ body.coach-mode .nav-label.coach-only{display:block!important}
 body.coach-mode .nav-item:not(.coach-keep){display:none!important}
 body.coach-mode .nav-label:not(.coach-only){display:none!important}
 body.coach-mode .coach-card{display:none!important}
-.pay-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px}
-.pay-row span{font-size:11px;font-weight:700;letter-spacing:.03em;color:#e6e1d4;border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:5px 9px;background:rgba(255,255,255,.04)}
+.pay-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px 14px;margin:28px auto 4px;max-width:720px}
+.pay-row span{width:104px;height:58px;border-radius:12px;overflow:hidden;background:#fff;flex:none;
+  box-shadow:0 10px 22px rgba(0,0,0,.38);animation:payRise .65s cubic-bezier(.22,.8,.24,1) both,payFloat 5.6s ease-in-out infinite;
+  transition:box-shadow .28s ease}
+.pay-row img{width:114%;height:114%;object-fit:cover;object-position:center;display:block;margin:-7% 0 0 -7%;pointer-events:none}
+.pay-row span:nth-child(1){animation-delay:.04s,0s}
+.pay-row span:nth-child(2){animation-delay:.12s,.5s}
+.pay-row span:nth-child(3){animation-delay:.2s,1s}
+.pay-row span:nth-child(4){animation-delay:.28s,1.5s}
+.pay-row span:nth-child(5){animation-delay:.36s,2s}
+.pay-row span:hover{animation:none;transform:translateY(-6px) scale(1.06);box-shadow:0 16px 30px rgba(0,0,0,.5)}
+@keyframes payRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes payFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@media(max-width:640px){
+  .pay-row{gap:8px}
+  .pay-row span{width:86px;height:48px;border-radius:10px}
+}
 .client-write,.client-upload{display:none;gap:10px;align-items:center}
 .lineage-card{margin-bottom:16px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 .lineage-head{font-family:var(--display);font-weight:700;font-size:14px;margin-bottom:12px;color:var(--text)}
@@ -866,7 +882,6 @@ async function renderHome(needSub){
         <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Edge score updates with your trades</span>
         <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Live coaching sessions included</span>
       </div>
-      <div class="pay-row" aria-label="Payment methods"><span>Visa</span><span>Mastercard</span><span>Amex</span><span>PayPal</span><span>Apple Pay</span><span>Google Pay</span><span>Stripe</span></div>
     </section>
 
     <section class="home-sec">
@@ -949,6 +964,7 @@ async function renderHome(needSub){
       <a href="#" onclick="showTermsModal();return false" style="color:var(--text-3);text-decoration:none">Terms &amp; Policy</a>
       <span style="margin:0 10px">·</span>
       <span>${name}</span>
+      <div class="pay-row" aria-label="Payment methods"><span><img src="/icons/apple_pay_icon.png" alt="Apple Pay"></span><span><img src="/icons/google_pay_icon.png" alt="Google Pay"></span><span><img src="/icons/shop_pay_icon.png" alt="Shop Pay"></span><span><img src="/icons/klarna_icon.png" alt="Klarna"></span><span><img src="/icons/afterpay_icon.png" alt="Afterpay"></span></div>
     </div>
   </div>`;
   window.__authMode='client';
