@@ -283,7 +283,7 @@ Sent automatically at 5:00 PM ET.`;
       <a href="${r.appUrl || portalUrl()}" style="display:inline-block;background:#22b8ef;color:#04121a;text-decoration:none;padding:12px 28px;border-radius:9px;font-weight:700;font-size:14px">View full dashboard</a>
     </div>` : ''}
     ${live.html}
-    <p style="color:#9ca3af;font-size:11px;text-align:center;margin:20px 0 0;line-height:1.5">Sent at 5:00 PM ET · <a href="https://planthetrade.co" style="color:#22b8ef;text-decoration:none">planthetrade.co</a><br>Performance figures reflect reported daily P&amp;L in your portal.</p>
+    <p style="color:#9ca3af;font-size:11px;text-align:center;margin:20px 0 0;line-height:1.5">Sent at 5:00 PM ET · <a href="https://www.planthetrade.co" style="color:#22b8ef;text-decoration:none">www.planthetrade.co</a><br>Performance figures reflect reported daily P&amp;L in your portal.</p>
   </td></tr>
 </table>
 </td></tr></table>

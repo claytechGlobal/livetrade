@@ -1,5 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
@@ -104,7 +105,7 @@ body.coach-looking .top-actions .btn.primary,body.coach-looking .admin-write,bod
   .pay-row{gap:8px}
   .pay-row span{width:68px;height:38px;border-radius:8px}
 }
-.client-write,.client-upload{display:none;gap:10px;align-items:center}
+.client-write,.client-upload{display:none!important;gap:10px;align-items:center}
 .lineage-card{margin-bottom:16px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 .lineage-head{font-family:var(--display);font-weight:700;font-size:14px;margin-bottom:12px;color:var(--text)}
 .lineage-stepper{display:flex;align-items:center;flex-wrap:wrap;gap:4px 0;margin-bottom:10px}
@@ -699,7 +700,7 @@ function showScreen(s){
 function genCode(name){return (String(name||'').replace(/[^a-z]/gi,'').slice(0,4).toUpperCase()||'CLNT')+'-'+Math.floor(1000+Math.random()*9000);}
 function siteOrigin(){
   const host=String(location.hostname||'').replace(/\.+$/,'').toLowerCase();
-  if(!host||host==='planthetrade.co'||host==='www.planthetrade.co') return 'https://planthetrade.co';
+  if(!host||host==='planthetrade.co'||host==='www.planthetrade.co') return 'https://www.planthetrade.co';
   return location.protocol+'//'+host+(location.port?':'+location.port:'');
 }
 function authTab(m){window.__authMode=m;
@@ -2146,7 +2147,7 @@ function downloadContract(){
   const payload=collectContractPayload();
   if(!payload){flash('Contract form not found');return;}
   const rows=payload.answers.map(a=>'<tr><td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#6b7280;width:40%">'+esc(a.label)+'</td><td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-weight:600">'+esc(a.value)+'</td></tr>').join('');
-  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Trade Copier Participation Contract</title></head><body style="font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 20px;color:#111;line-height:1.6"><h1 style="font-size:22px">Trade Copier Participation Contract</h1><p style="color:#555;font-size:14px">Client: <strong>'+esc(payload.clientName||'—')+'</strong> · '+esc(payload.clientEmail||'—')+'<br>Downloaded: '+esc(payload.signedAt)+'</p><table style="width:100%;border-collapse:collapse;margin-top:18px;font-family:Segoe UI,Arial,sans-serif;font-size:14px">'+rows+'</table><p style="margin-top:28px;font-size:12px;color:#888">This file is a copy of your filled contract answers from planthetrade.co. You can print it to PDF from your browser.</p></body></html>';
+  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Trade Copier Participation Contract</title></head><body style="font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 20px;color:#111;line-height:1.6"><h1 style="font-size:22px">Trade Copier Participation Contract</h1><p style="color:#555;font-size:14px">Client: <strong>'+esc(payload.clientName||'—')+'</strong> · '+esc(payload.clientEmail||'—')+'<br>Downloaded: '+esc(payload.signedAt)+'</p><table style="width:100%;border-collapse:collapse;margin-top:18px;font-family:Segoe UI,Arial,sans-serif;font-size:14px">'+rows+'</table><p style="margin-top:28px;font-size:12px;color:#888">This file is a copy of your filled contract answers from www.planthetrade.co. You can print it to PDF from your browser.</p></body></html>';
   const blob=new Blob([html],{type:'text/html'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);

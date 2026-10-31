@@ -1528,7 +1528,7 @@ function getCoachJournal(staffId, clientId) {
   return app;
 }
 function portalUrl() {
-  const fallback = 'https://planthetrade.co';
+  const fallback = 'https://www.planthetrade.co';
   const raw = String(process.env.APP_URL || '').trim();
   if (!raw || raw === '.' || raw === './' || raw === '/') return fallback;
   try {
