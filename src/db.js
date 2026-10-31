@@ -175,6 +175,7 @@ function initDb() {
   ensureClientTradesTable();
   const tradeCols = db.prepare('PRAGMA table_info(trades)').all().map(c => c.name);
   if (!tradeCols.includes('play_name')) db.exec('ALTER TABLE trades ADD COLUMN play_name TEXT');
+  ensureFeatureSchema();
   migrateAccountLineage();
   migrateDayTradeEntries();
   require('./liveCapital').ensureTables();
@@ -184,10 +185,59 @@ function initDb() {
     console.log('[db] Loaded demo data (SEED_DEMO=true).');
   }
 }
+function cleanExit(v) {
+  const s = String(v || '');
+  return ['planned', 'early', 'late_win', 'late_loss'].includes(s) ? s : null;
+}
+function cleanSession(v) {
+  const s = String(v || '');
+  return ['ny', 'lunch', 'power'].includes(s) ? s : null;
+}
+function cleanMoney(v) {
+  if (v == null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+function ensureFeatureSchema() {
+  const tradeCols = db.prepare('PRAGMA table_info(trades)').all().map(c => c.name);
+  if (!tradeCols.includes('exit_type')) db.exec('ALTER TABLE trades ADD COLUMN exit_type TEXT');
+  if (!tradeCols.includes('session')) db.exec('ALTER TABLE trades ADD COLUMN session TEXT');
+  const ctCols = db.prepare('PRAGMA table_info(client_trades)').all().map(c => c.name);
+  if (ctCols.length) {
+    if (!ctCols.includes('exit_type')) db.exec('ALTER TABLE client_trades ADD COLUMN exit_type TEXT');
+    if (!ctCols.includes('session')) db.exec('ALTER TABLE client_trades ADD COLUMN session TEXT');
+  }
+  const accCols = db.prepare('PRAGMA table_info(accounts)').all().map(c => c.name);
+  if (!accCols.includes('daily_loss')) db.exec('ALTER TABLE accounts ADD COLUMN daily_loss REAL');
+  if (!accCols.includes('max_dd')) db.exec('ALTER TABLE accounts ADD COLUMN max_dd REAL');
+  if (!accCols.includes('profit_target')) db.exec('ALTER TABLE accounts ADD COLUMN profit_target REAL');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS weekly_notes (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL,
+      week_start TEXT NOT NULL,
+      went_well TEXT,
+      rule_broke TEXT,
+      next_plan TEXT,
+      updated_at TEXT,
+      UNIQUE(owner_id, week_start)
+    );
+    CREATE TABLE IF NOT EXISTS trade_charts (
+      trade_id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL,
+      mime TEXT NOT NULL,
+      filename TEXT NOT NULL,
+      updated_at TEXT
+    );
+  `);
+}
 function mapAccountRow(a) {
   return {
     id: a.id, firm: a.firm, label: a.label, status: a.status, clientId: a.client_id,
     accountSize: a.account_size || '', parentAccountId: a.parent_account_id || null,
+    dailyLoss: a.daily_loss == null ? null : a.daily_loss,
+    maxDd: a.max_dd == null ? null : a.max_dd,
+    profitTarget: a.profit_target == null ? null : a.profit_target,
     expenses: db.prepare('SELECT * FROM account_expenses WHERE account_id=?').all(a.id)
       .map(e => ({ id: e.id, type: e.type, amount: e.amount, date: e.date })),
     payouts: db.prepare('SELECT * FROM account_payouts WHERE account_id=?').all(a.id)
@@ -198,8 +248,10 @@ function insertAccountRow(a) {
   const st = String(a.status || 'evaluation').toLowerCase();
   const status = ['evaluation', 'funded', 'payout', 'failed'].includes(st) ? st : 'evaluation';
   const size = a.accountSize || parseAcctSizeFromLabel(a.label) || '';
-  db.prepare('INSERT INTO accounts(id,client_id,firm,label,status,account_size,parent_account_id) VALUES(?,?,?,?,?,?,?)')
-    .run(a.id || uid(), a.clientId || null, a.firm || '', a.label || 'Account', status, size, a.parentAccountId || null);
+  db.prepare(`INSERT INTO accounts(id,client_id,firm,label,status,account_size,parent_account_id,daily_loss,max_dd,profit_target)
+    VALUES(?,?,?,?,?,?,?,?,?,?)`)
+    .run(a.id || uid(), a.clientId || null, a.firm || '', a.label || 'Account', status, size, a.parentAccountId || null,
+      cleanMoney(a.dailyLoss), cleanMoney(a.maxDd), cleanMoney(a.profitTarget));
 }
 function parseAcctSizeFromLabel(label) {
   const m = String(label || '').match(/(\d+)\s*K/i);
@@ -318,12 +370,8 @@ function composeBootstrap() {
   const plays = db.prepare('SELECT * FROM plays').all()
     .map(p => ({ id: p.id, name: p.name, color: p.color, desc: p.description }));
   const accounts = db.prepare('SELECT * FROM accounts').all().map(mapAccountRow);
-  const trades = db.prepare('SELECT * FROM trades').all().map(t => ({
-    id: t.id, accountId: t.account_id, playId: t.play_id, playName: t.play_name || '',
-    symbol: t.symbol, date: t.date,
-    direction: t.direction, entry: t.entry, exit: t.exit, stop: t.stop, contracts: t.contracts,
-    emotion: t.emotion, plan: !!t.plan, notes: t.notes
-  }));
+  const adminCharts = chartFlags('admin');
+  const trades = db.prepare('SELECT * FROM trades').all().map(t => mapTradeRow(t, adminCharts));
   const clients = db.prepare('SELECT * FROM clients').all().map(clientOut);
   db.exec(`CREATE TABLE IF NOT EXISTS admin_day_pnl (id TEXT PRIMARY KEY, date TEXT, amount REAL, note TEXT)`);
   const dayPnl = db.prepare('SELECT * FROM admin_day_pnl ORDER BY date DESC').all()
@@ -363,15 +411,26 @@ function ensureClientTradesTable() {
   if (!cols.includes('plan')) db.exec('ALTER TABLE client_trades ADD COLUMN plan INTEGER');
   if (!cols.includes('play_name')) db.exec('ALTER TABLE client_trades ADD COLUMN play_name TEXT');
 }
-function listClientTrades(clientId) {
-  ensureClientTradesTable();
-  return db.prepare('SELECT * FROM client_trades WHERE client_id=? ORDER BY date DESC').all(clientId).map(t => ({
+function mapTradeRow(t, charts) {
+  return {
     id: t.id, accountId: t.account_id || null, playId: t.play_id || null, playName: t.play_name || '',
     symbol: t.symbol, date: t.date,
-    direction: t.direction, entry: t.entry, exit: t.exit, stop: t.stop,
-    contracts: t.contracts, emotion: t.emotion || null, plan: t.plan !== 0, notes: t.notes || '',
-    csvPnl: t.pnl
-  }));
+    direction: t.direction, entry: t.entry, exit: t.exit, stop: t.stop, contracts: t.contracts,
+    emotion: t.emotion || null, plan: t.plan !== 0 && t.plan !== false, notes: t.notes || '',
+    exitType: t.exit_type || null, session: t.session || null,
+    hasChart: !!(charts && charts.has(t.id)),
+    csvPnl: t.pnl != null ? t.pnl : undefined
+  };
+}
+function listClientTrades(clientId) {
+  ensureClientTradesTable();
+  ensureFeatureSchema();
+  const charts = chartFlags(clientId);
+  return db.prepare('SELECT * FROM client_trades WHERE client_id=? ORDER BY date DESC').all(clientId).map(t => {
+    const row = mapTradeRow(t, charts);
+    row.csvPnl = t.pnl;
+    return row;
+  });
 }
 const replaceClientDailyPnl = db.transaction((clientId, entries) => {
   db.prepare('DELETE FROM daily_pnl WHERE client_id=?').run(clientId);
@@ -382,18 +441,22 @@ const replaceClientTrades = db.transaction((clientId, trades) => {
   ensureClientTradesTable();
   db.prepare('DELETE FROM client_trades WHERE client_id=?').run(clientId);
   const ins = db.prepare(`INSERT INTO client_trades
-    (id,client_id,symbol,date,direction,entry,exit,stop,contracts,pnl,notes,play_id,account_id,emotion,plan,play_name)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (id,client_id,symbol,date,direction,entry,exit,stop,contracts,pnl,notes,play_id,account_id,emotion,plan,play_name,exit_type,session)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  const ids = [];
   (trades || []).forEach(t => {
     const pnl = t.csvPnl != null && t.csvPnl !== '' ? nullableNum(t.csvPnl) : nullableNum(t.pnl);
+    const id = t.id || uid();
+    ids.push(id);
     ins.run(
-      t.id || uid(), clientId, t.symbol || '', t.date || today(),
+      id, clientId, t.symbol || '', t.date || today(),
       t.direction || 'Long', num(t.entry), num(t.exit), nullableNum(t.stop),
       num(t.contracts) || 1, pnl, t.notes || '',
       t.playId || null, t.accountId || null, t.emotion || null, t.plan === false ? 0 : 1,
-      t.playName || null
+      t.playName || null, cleanExit(t.exitType), cleanSession(t.session)
     );
   });
+  pruneTradeCharts(clientId, ids);
 });
 const replaceClientAccounts = db.transaction((clientId, accounts) => {
   const old = db.prepare('SELECT id FROM accounts WHERE client_id=?').all(clientId);
@@ -768,12 +831,19 @@ const replacePlays = db.transaction(arr => {
 const replaceTrades = db.transaction(arr => {
   db.prepare('DELETE FROM trades').run();
   const ins = db.prepare(`INSERT INTO trades
-    (id,account_id,play_id,symbol,date,direction,entry,exit,stop,contracts,emotion,plan,notes,play_name)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-  (arr || []).forEach(t => ins.run(
-    t.id || uid(), t.accountId || null, t.playId || null, t.symbol || '', t.date || today(),
-    t.direction || 'Long', num(t.entry), num(t.exit), nullableNum(t.stop), num(t.contracts) || 1,
-    t.emotion || null, t.plan ? 1 : 0, t.notes || '', t.playName || null));
+    (id,account_id,play_id,symbol,date,direction,entry,exit,stop,contracts,emotion,plan,notes,play_name,exit_type,session)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  const ids = [];
+  (arr || []).forEach(t => {
+    const id = t.id || uid();
+    ids.push(id);
+    ins.run(
+      id, t.accountId || null, t.playId || null, t.symbol || '', t.date || today(),
+      t.direction || 'Long', num(t.entry), num(t.exit), nullableNum(t.stop), num(t.contracts) || 1,
+      t.emotion || null, t.plan ? 1 : 0, t.notes || '', t.playName || null,
+      cleanExit(t.exitType), cleanSession(t.session));
+  });
+  pruneTradeCharts('admin', ids);
 });
 const replaceAccounts = db.transaction(arr => {
   db.prepare('DELETE FROM accounts').run();
@@ -1346,6 +1416,117 @@ function getShareDisplay(token) {
   };
 }
 
+function tradeChartsRoot() {
+  return path.join(path.dirname(DB_PATH), 'trade-charts');
+}
+function chartFlags(ownerId) {
+  ensureFeatureSchema();
+  const oid = safeShotOwner(ownerId);
+  return new Set(db.prepare('SELECT trade_id FROM trade_charts WHERE owner_id=?').all(oid).map(r => r.trade_id));
+}
+function pruneTradeCharts(ownerId, keepIds) {
+  ensureFeatureSchema();
+  const oid = safeShotOwner(ownerId);
+  const keep = new Set(keepIds || []);
+  db.prepare('SELECT * FROM trade_charts WHERE owner_id=?').all(oid).forEach(r => {
+    if (keep.has(r.trade_id)) return;
+    try { fs.unlinkSync(path.join(tradeChartsRoot(), oid, r.filename)); } catch (_) {}
+    db.prepare('DELETE FROM trade_charts WHERE trade_id=?').run(r.trade_id);
+  });
+}
+function saveTradeChart(ownerId, tradeId, { mime, buffer }) {
+  const allowed = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+  const ext = allowed[mime];
+  if (!ext) throw new Error('Use JPEG, PNG, or WebP');
+  if (!buffer || buffer.length > 3.5 * 1024 * 1024) throw new Error('Image must be under 3.5 MB');
+  const oid = safeShotOwner(ownerId);
+  const tid = String(tradeId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80);
+  if (!tid) throw new Error('Trade not found');
+  ensureFeatureSchema();
+  const owns = oid === 'admin'
+    ? db.prepare('SELECT id FROM trades WHERE id=?').get(tid)
+    : db.prepare('SELECT id FROM client_trades WHERE id=? AND client_id=?').get(tid, ownerId);
+  if (!owns) throw new Error('Save the trade first.');
+  const dir = path.join(tradeChartsRoot(), oid);
+  fs.mkdirSync(dir, { recursive: true });
+  const prev = db.prepare('SELECT filename FROM trade_charts WHERE trade_id=?').get(tid);
+  if (prev && prev.filename) {
+    try { fs.unlinkSync(path.join(dir, prev.filename)); } catch (_) {}
+  }
+  const filename = tid + '.' + ext;
+  fs.writeFileSync(path.join(dir, filename), buffer);
+  const now = new Date().toISOString();
+  db.prepare(`INSERT INTO trade_charts(trade_id,owner_id,mime,filename,updated_at) VALUES(?,?,?,?,?)
+    ON CONFLICT(trade_id) DO UPDATE SET owner_id=excluded.owner_id, mime=excluded.mime, filename=excluded.filename, updated_at=excluded.updated_at`)
+    .run(tid, oid, mime, filename, now);
+  return { ok: true };
+}
+function getTradeChart(ownerId, tradeId) {
+  ensureFeatureSchema();
+  const oid = safeShotOwner(ownerId);
+  const row = db.prepare('SELECT * FROM trade_charts WHERE trade_id=? AND owner_id=?').get(String(tradeId || ''), oid);
+  if (!row) return null;
+  const filePath = path.join(tradeChartsRoot(), oid, row.filename);
+  if (!fs.existsSync(filePath)) return null;
+  return { mime: row.mime, filePath };
+}
+function mondayOf(iso) {
+  const d = new Date(String(iso || '').slice(0, 10) + 'T12:00:00Z');
+  if (isNaN(d.getTime())) return null;
+  const diff = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - diff);
+  return d.toISOString().slice(0, 10);
+}
+function mapNote(r) {
+  if (!r) return null;
+  return {
+    id: r.id, ownerId: r.owner_id, weekStart: r.week_start,
+    wentWell: r.went_well || '', ruleBroke: r.rule_broke || '', nextPlan: r.next_plan || '',
+    updatedAt: r.updated_at || '', name: r.client_name || (r.owner_id === 'admin' ? 'Admin journal' : '')
+  };
+}
+function listNotesForOwner(ownerId) {
+  ensureFeatureSchema();
+  return db.prepare('SELECT * FROM weekly_notes WHERE owner_id=? ORDER BY week_start DESC').all(ownerId).map(mapNote);
+}
+function saveWeeklyNote(ownerId, body) {
+  ensureFeatureSchema();
+  const week = mondayOf((body && body.weekStart) || new Date().toISOString().slice(0, 10));
+  if (!week) throw new Error('Pick a week.');
+  const clip = s => String(s || '').trim().slice(0, 2000);
+  const went = clip(body && body.wentWell);
+  const rule = clip(body && body.ruleBroke);
+  const next = clip(body && body.nextPlan);
+  const now = new Date().toISOString();
+  const existing = db.prepare('SELECT id FROM weekly_notes WHERE owner_id=? AND week_start=?').get(ownerId, week);
+  if (existing) {
+    db.prepare('UPDATE weekly_notes SET went_well=?, rule_broke=?, next_plan=?, updated_at=? WHERE id=?')
+      .run(went, rule, next, now, existing.id);
+  } else {
+    db.prepare('INSERT INTO weekly_notes(id,owner_id,week_start,went_well,rule_broke,next_plan,updated_at) VALUES(?,?,?,?,?,?,?)')
+      .run(uid(), ownerId, week, went, rule, next, now);
+  }
+  return mapNote(db.prepare('SELECT * FROM weekly_notes WHERE owner_id=? AND week_start=?').get(ownerId, week));
+}
+function listAllWeeklyNotes() {
+  ensureFeatureSchema();
+  return db.prepare(`SELECT n.*, c.name AS client_name FROM weekly_notes n
+    LEFT JOIN clients c ON c.id=n.owner_id
+    ORDER BY n.week_start DESC, n.updated_at DESC`).all().map(mapNote);
+}
+function listCoachWeeklyNotes(staffId) {
+  ensureFeatureSchema();
+  return db.prepare(`SELECT n.*, c.name AS client_name FROM weekly_notes n
+    JOIN clients c ON c.id=n.owner_id AND c.created_by=?
+    ORDER BY n.week_start DESC, n.updated_at DESC`).all(staffId).map(mapNote);
+}
+function getCoachJournal(staffId, clientId) {
+  const row = db.prepare('SELECT id FROM clients WHERE id=? AND created_by=?').get(clientId, staffId);
+  if (!row) return null;
+  const app = composeClientApp(clientId);
+  app.notes = listNotesForOwner(clientId);
+  return app;
+}
 function portalUrl() {
   const fallback = 'https://planthetrade.co';
   const raw = String(process.env.APP_URL || '').trim();
@@ -1376,6 +1557,7 @@ module.exports = {
   findActiveClientByCode, findClientByEmail, signupClient, verifyClientPassword, loginClient, getClientRow,
   listStaff, createStaff, verifyStaff, addClientManual, listClientsByCreator,
   listTicketsForClient, listAllTickets, createTicket, replyTicket, setTicketStatus,
+  saveTradeChart, getTradeChart, saveWeeklyNote, listNotesForOwner, listAllWeeklyNotes, listCoachWeeklyNotes, getCoachJournal, mondayOf,
   etToday, listActiveClients, buildDailyReport, isDailySent, markDailySent,
   ensureAdminShareToken, ensureClientShareToken, getShareDisplay
 };

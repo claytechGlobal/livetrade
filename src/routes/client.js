@@ -1,7 +1,7 @@
 'use strict';
 const express = require('express');
 const { requireClient } = require('../auth');
-const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload, saveClientTrades, saveClientAccounts, saveClientPlays, getDayScreenshot, saveDayScreenshot, deleteDayScreenshot, listDayTradeEntries, getDayTradeEntry, addDayTradeEntry, updateDayTradeEntry, deleteDayTradeEntry, ensureClientShareToken, listTicketsForClient, createTicket, replyTicket } = require('../db');
+const { getClientPortal, getClientRow, getSettings, composeClientApp, applyClientCsvUpload, saveClientTrades, saveClientAccounts, saveClientPlays, getDayScreenshot, saveDayScreenshot, deleteDayScreenshot, listDayTradeEntries, getDayTradeEntry, addDayTradeEntry, updateDayTradeEntry, deleteDayTradeEntry, ensureClientShareToken, listTicketsForClient, createTicket, replyTicket, saveTradeChart, getTradeChart, saveWeeklyNote, listNotesForOwner } = require('../db');
 const { sendContractSubmission, emailEnabled, contractNotifyTo } = require('../email');
 
 const router = express.Router();
@@ -315,6 +315,41 @@ router.post('/tickets/:id/reply', (req, res) => {
   if (!assertSubscribed(row, res)) return;
   try { res.json(replyTicket({ ticketId: req.params.id, clientId: row.id, role: 'client', body: (req.body || {}).message })); }
   catch (e) { res.status(400).json({ error: e.message || 'Could not reply' }); }
+});
+
+router.get('/review', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  res.json({ notes: listNotesForOwner(row.id) });
+});
+router.put('/review', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  try { res.json({ note: saveWeeklyNote(row.id, req.body || {}) }); }
+  catch (e) { res.status(400).json({ error: e.message || 'Could not save note' }); }
+});
+router.get('/trades/:id/chart', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  const shot = getTradeChart(row.id, req.params.id);
+  if (!shot) return res.status(404).json({ error: 'No chart' });
+  res.setHeader('Content-Type', shot.mime);
+  res.setHeader('Cache-Control', 'private, max-age=3600');
+  res.sendFile(shot.filePath);
+});
+router.post('/trades/:id/chart', (req, res) => {
+  const row = req.clientRow || getClientRow(req.user.clientId);
+  if (!row) return res.status(404).json({ error: 'Client not found' });
+  if (!assertSubscribed(row, res)) return;
+  const parsed = parseDataUrl((req.body || {}).dataUrl);
+  if (!parsed) return res.status(400).json({ error: 'Use a JPEG, PNG, or WebP image' });
+  try {
+    saveTradeChart(row.id, req.params.id, parsed);
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ error: e.message || 'Could not save chart' }); }
 });
 
 module.exports = router;

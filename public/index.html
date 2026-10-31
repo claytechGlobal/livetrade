@@ -66,6 +66,7 @@ body::after{content:"";position:fixed;top:-25%;left:30%;width:55vw;height:55vh;z
   .install-glow{animation:none}
   .side-trace{display:none}
   .pay-row span,.pay-row img{animation:none}
+  .exit-row,.meter i{animation:none}
 }
 .brand{display:flex;align-items:center;justify-content:center;gap:0;padding:4px 0 10px}
 .brand-mark{width:192px;height:192px;border-radius:14px;flex:none;position:relative;display:grid;place-items:center;
@@ -85,6 +86,7 @@ body.coach-mode .nav-label.coach-only{display:block!important}
 body.coach-mode .nav-item:not(.coach-keep){display:none!important}
 body.coach-mode .nav-label:not(.coach-only){display:none!important}
 body.coach-mode .coach-card{display:none!important}
+body.coach-looking .top-actions .btn.primary,body.coach-looking .admin-write,body.coach-looking .client-write{display:none!important}
 .pay-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 12px;margin:28px auto 4px;max-width:640px}
 .pay-row span{width:82px;height:46px;border-radius:10px;overflow:hidden;background:#fff;flex:none;
   box-shadow:0 10px 22px rgba(0,0,0,.38);animation:payRise .65s cubic-bezier(.22,.8,.24,1) both,payFloat 5.6s ease-in-out infinite;
@@ -250,6 +252,17 @@ body.coach-mode .coach-card{display:none!important}
 /* mindset bars */
 .emo-row{display:flex;align-items:center;gap:11px;margin-bottom:12px}
 .emo-name{width:96px;font-size:12.5px;font-weight:500;flex:none}
+.exit-picks,.sess-picks{display:flex;flex-wrap:wrap;gap:8px}
+.exit-picks button,.sess-picks button{border:1px solid var(--line);background:var(--surface-2);color:var(--text-2);border-radius:999px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:650;cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease}
+.exit-picks button.on,.sess-picks button.on{color:#04121a;background:linear-gradient(120deg,#34d399,#22b8ef);border-color:transparent;transform:translateY(-1px)}
+.exit-card{display:grid;gap:10px}
+.exit-row{display:grid;grid-template-columns:132px 1fr 88px;gap:10px;align-items:center;animation:payRise .55s ease both}
+.meter{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.meter i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#22b8ef,#34d399);transform-origin:left center;animation:meterIn .8s ease both}
+@keyframes meterIn{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.prop-meters{display:grid;gap:8px;margin:10px 0 4px}
+.look-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding:12px 14px;border:1px solid rgba(34,184,239,.4);border-radius:12px;background:rgba(34,184,239,.08);animation:payRise .45s ease both}
+.chart-thumb{width:46px;height:30px;object-fit:cover;border-radius:6px;border:1px solid var(--line);vertical-align:middle;background:#fff}
 .emo-bar{flex:1;height:9px;border-radius:5px;background:var(--surface-2);overflow:hidden;position:relative}
 .emo-bar i{position:absolute;top:0;bottom:0;border-radius:5px}
 .emo-val{width:78px;text-align:right;font-family:var(--mono);font-size:12.5px;font-weight:600;flex:none}
@@ -486,9 +499,9 @@ body.home-open::after{opacity:.35}
       <div class="brand-mark"><img src="/images/logo.png" alt="Logo"></div>
     </div>
     <div class="nav-label">Trading</div>
-    <div class="nav-item active" data-view="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Dashboard</span></div>
-    <div class="nav-item" data-view="trades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><span>Trade Log</span></div>
-    <div class="nav-item" data-view="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Calendar</span></div>
+    <div class="nav-item active coach-keep" data-view="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Dashboard</span></div>
+    <div class="nav-item coach-keep" data-view="trades"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><span>Trade Log</span></div>
+    <div class="nav-item coach-keep" data-view="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Calendar</span></div>
     <div class="nav-item" data-view="playbook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 4v16"/></svg><span>Plays</span></div>
     <div class="nav-item" data-view="playbook101"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg><span>PTT Playbook</span></div>
     <div class="nav-item" data-view="guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span>Technicals</span></div>
@@ -501,12 +514,13 @@ body.home-open::after{opacity:.35}
       </button>
     </div></div>
     <div class="nav-label">Business</div>
-    <div class="nav-item" data-view="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Expense Tracker</span></div>
+    <div class="nav-item coach-keep" data-view="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Expense Tracker</span></div>
     <div class="nav-item" data-view="livecapital"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M7 8l5-5 5 5"/><path d="M4 21h16"/></svg><span>Live Brokerage</span></div>
     <div class="nav-item" data-view="packages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Trade Copier Services</span></div>
     <div class="nav-item" data-view="tcops"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8M8 11h8"/></svg><span>Trade Copier Education</span></div>
     <div class="nav-item" data-view="propfirms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg><span>Prop Firm Guide</span></div>
     <div class="nav-item" data-view="contract"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><span>Contract</span></div>
+    <div class="nav-item coach-keep" data-view="review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 14h5M8 18h8"/></svg><span>Friday Note</span></div>
     <div class="nav-item" data-view="support"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Support</span></div>
     <div class="nav-label coach-only">Coach</div>
     <div class="nav-item coach-only coach-keep" data-view="addpeople"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M16 11h6"/></svg><span>Add client</span></div>
@@ -560,6 +574,8 @@ function spec(s){return CONTRACTS[s]||{name:s,tickSize:0.25,tickValue:12.5};}
 function pointValue(s){const c=spec(s);return c.tickValue/c.tickSize;}
 
 const EMOTIONS={Disciplined:'good',Calm:'good',Confident:'good',Patient:'good',FOMO:'bad',Revenge:'bad',Anxious:'bad',Greedy:'bad',Bored:'bad'};
+const EXITS=[['planned','On plan'],['early','Too early'],['late_win','Late winner'],['late_loss','Late loser']];
+const SESSIONS=[['ny','New York open'],['lunch','Lunch'],['power','Power hour']];
 
 /* ===== managed-account packages (one-time) + dashboard subscription ===== */
 const PACKAGES={
@@ -595,6 +611,7 @@ async function api(method,url,body){
   const ct=r.headers.get('content-type')||'';return ct.includes('json')?r.json():null;
 }
 async function save(k){
+  if(state.lookOnly){flash('Look only. This journal cannot be changed.');return;}
   if(session&&session.role==='client'){
     if(k!=='accounts'&&k!=='trades'&&k!=='plays'){flash('That area is managed by your coach');return;}
     try{
@@ -1039,13 +1056,24 @@ function esc(s){return(s==null?'':''+s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'
 const SUB={dashboard:"Here's where your edge stands today",trades:'Every position, with the futures math done for you',
   calendar:'Your profit & loss, day by day',playbook:'Which setups actually make you money',
   playbook101:'PTT Playbook — full training PDF',
-  accounts:'Fees, payouts & true business ROI',livecapital:'Live brokerage account, sizing, and risk desk',leaderboard:'Traders ranked by real journal results',coaches:'Coach profile, session links, and certificates',clients:'Central upload — copies to every client',packages:'Trade copier services and pricing',tcops:'How trade copier technology works',propfirms:'Top futures prop firm — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Technicals — A+ move charts & setups',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data',support:'Questions for the admin',addpeople:'Add a client on a package'};
+  accounts:'Fees, payouts & true business ROI',livecapital:'Live brokerage account, sizing, and risk desk',leaderboard:'Traders ranked by real journal results',coaches:'Coach profile, session links, and certificates',clients:'Central upload — copies to every client',packages:'Trade copier services and pricing',tcops:'How trade copier technology works',propfirms:'Top futures prop firm — rules, payouts & comparisons',contract:'Trade Copier Participation Contract',guide:'Technicals — A+ move charts & setups',affiliates:'Partners earn 10% per package sold',terms:'Program policies & risk disclosures',settings:'Branding, contracts & data',support:'Questions for the admin',addpeople:'Add a client on a package',review:'What went well, what broke, and the plan for next week'};
 let view='dashboard';
 function go(v){
   if(!v)return;
   if(session&&session.role==='client'&&(v==='clients'||v==='affiliates'||v==='settings'||v==='addpeople')){v='dashboard';}
-  if(session&&session.role==='coach'){v='addpeople';}
-  const fn={dashboard:renderDash,trades:renderTrades,calendar:renderCalendar,playbook:renderPlaybook,playbook101:renderPlaybook101,accounts:renderAccounts,livecapital:renderLiveCapital,leaderboard:renderLeaderboard,clients:renderClients,packages:renderPackages,tcops:renderTradeCopierEdu,propfirms:renderPropFirms,contract:renderContract,guide:renderGuide,affiliates:renderAffiliates,terms:renderTerms,settings:renderSettings,support:renderSupport,addpeople:renderAddPeople}[v];
+  if(session&&session.role==='coach'){
+    const ok={addpeople:1,dashboard:1,trades:1,calendar:1,accounts:1,review:1};
+    if(!ok[v])v='addpeople';
+    if(v==='addpeople'&&state.lookOnly){state.lookOnly=false;state.lookClient=null;state.trades=[];state.accounts=[];state.dayPnl=[];state.dayTrades=[];state.dayShots=[];document.body.classList.remove('coach-looking');}
+    if(!state.lookOnly&&(v==='dashboard'||v==='trades'||v==='calendar'||v==='accounts')){
+      view=v;document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===v));
+      const sub=document.getElementById('subline');if(sub)sub.textContent=SUB[v]||'';
+      renderCoachPick();
+      document.querySelector('.main').scrollTo(0,0);
+      return;
+    }
+  }
+  const fn={dashboard:renderDash,trades:renderTrades,calendar:renderCalendar,playbook:renderPlaybook,playbook101:renderPlaybook101,accounts:renderAccounts,livecapital:renderLiveCapital,leaderboard:renderLeaderboard,clients:renderClients,packages:renderPackages,tcops:renderTradeCopierEdu,propfirms:renderPropFirms,contract:renderContract,guide:renderGuide,affiliates:renderAffiliates,terms:renderTerms,settings:renderSettings,support:renderSupport,addpeople:renderAddPeople,review:renderReview}[v];
   if(!fn)return;
   view=v;document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===v));
   const sub=document.getElementById('subline');if(sub)sub.textContent=SUB[v]||'';
@@ -1143,6 +1171,8 @@ function renderDash(){
     ${stat('Best Day',fmt$(bestDay(),true),cls(bestDay()),'single session')}
     ${stat('Avg / Trade',fmt$(m.n?m.net/m.n:0,true),cls(m.net),'per position')}
   </div>`;
+  if(state.lookOnly)h=lookBanner()+h;
+  h+=exitHabitsCard();
   if(session&&session.role==='client')h+=renderLiveSessionCard();
   h+=`<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px"><button class="btn sm" onclick="copyCalendarShareLink()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg> Share calendar</button></div>`;
   /* calendar + mindset */
@@ -1173,7 +1203,7 @@ function renderDash(){
   state.accounts.forEach(a=>{const nt=acctPay(a)-acctExp(a);
     h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line-soft)">
       <div><div style="font-weight:600;font-size:13.5px">${esc(a.label)}</div><div class="hint" style="font-family:var(--ui)">${esc(a.firm)}</div></div>
-      <div style="text-align:right">${badge(a.status)}<div class="num ${cls(nt)}" style="font-size:14px;font-weight:600;margin-top:5px">${fmt$(nt,true)}</div></div></div>`;});
+      <div style="text-align:right">${badge(a.status)}<div class="num ${cls(nt)}" style="font-size:14px;font-weight:600;margin-top:5px">${fmt$(nt,true)}</div></div></div>${propMeter(a)}`;});
   h+=`</div></div>`;
   /* managed clients portal summary */
   const active=state.clients.filter(c=>c.status==='active');
@@ -1252,7 +1282,20 @@ function calDaySub(iso){
   return '';
 }
 function drawCalendar(){renderCalGrid(pnlByDay(),calRef,'calBody','calMo',calDaySub,view!=='calendar');}
-function dayTradesApiBase(){return (session&&session.role==='client')?'/api/client/day-trades':'/api/admin/day-trades';}
+function dayTradesApiBase(){
+  if(state.lookOnly&&state.lookClient)return '/api/coach/clients/'+state.lookClient+'/day-trades';
+  return (session&&session.role==='client')?'/api/client/day-trades':'/api/admin/day-trades';
+}
+function tradeChartUrl(id){
+  const rev=(state.chartRev&&state.chartRev[id])||0;
+  let base;
+  if(state.lookOnly&&state.lookClient)base='/api/coach/clients/'+state.lookClient+'/chart/'+id;
+  else if(session&&session.role==='client')base='/api/client/trades/'+id+'/chart';
+  else base='/api/admin/trades/'+id+'/chart';
+  return base+(rev?'?v='+rev:'');
+}
+function exitLabel(k){const f=EXITS.find(x=>x[0]===k);return f?f[1]:'';}
+function sessionLabel(k){const f=SESSIONS.find(x=>x[0]===k);return f?f[1]:'';}
 function dayTradesForDate(iso){return (state.dayTrades||[]).filter(t=>t.date===iso).sort((a,b)=>(a.sortNum||0)-(b.sortNum||0)||String(a.createdAt||'').localeCompare(String(b.createdAt||'')));}
 function dayTradeImageUrl(iso,id){const rev=(state.dayShotRev&&state.dayShotRev[id])||0;return dayTradesApiBase()+'/'+iso+'/'+id+(rev?'?v='+rev:'');}
 function hasDayShot(iso){return dayTradesForDate(iso).length>0;}
@@ -1275,12 +1318,12 @@ function renderTradeShotCards(iso){
         <img class="day-shot-preview" src="${dayTradeImageUrl(iso,e.id)}" alt="Trade ${i+1}">
         <div>
           <div class="field" style="margin-bottom:8px"><label>P&amp;L (USD)</label>
-            <input class="num" type="number" step="any" value="${e.pnl!=null?e.pnl:''}" placeholder="e.g. 420 or -150"
+            <input class="num" type="number" step="any" value="${e.pnl!=null?e.pnl:''}" placeholder="e.g. 420 or -150" ${state.lookOnly?'disabled':''}
               onchange="saveTradePnl('${iso}','${e.id}',this.value)"></div>
-          <div class="day-shot-actions" style="margin-top:0">
+          ${state.lookOnly?'':`<div class="day-shot-actions" style="margin-top:0">
             <label class="btn sm ghost" style="cursor:pointer"><input type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="replaceTradeShot('${iso}','${e.id}',this)">Replace</label>
             <button type="button" class="btn sm ghost" onclick="removeTradeShot('${iso}','${e.id}')">Remove</button>
-          </div>
+          </div>`}
         </div>
       </div>
     </div>`).join('');
@@ -1301,7 +1344,7 @@ function openDayDetail(iso){
       </div>
     </div>
     <div id="tradeShotList">${renderTradeShotCards(iso)}</div>
-    <div class="trade-shot-card" style="border-style:dashed;background:var(--surface-2)">
+    ${state.lookOnly?'':`<div class="trade-shot-card" style="border-style:dashed;background:var(--surface-2)">
       <div class="trade-shot-head">Add trade</div>
       <div class="f2" style="margin-bottom:10px">
         <div class="field"><label>P&amp;L (USD)</label><input id="new_trade_pnl" class="num" type="number" step="any" placeholder="e.g. 420 or -150"></div>
@@ -1309,7 +1352,7 @@ function openDayDetail(iso){
       </div>
       <button type="button" class="btn sm primary" onclick="addTradeShot('${iso}')">+ Add trade</button>
       <div class="hint" style="font-family:var(--ui);margin-top:8px">JPEG / PNG / WebP · max 3.5 MB per trade</div>
-    </div>
+    </div>`}
   `,()=>true,'Done');
 }
 async function addTradeShot(iso){
@@ -1394,7 +1437,7 @@ function renderCalendar(){
   const days=pnlByDay();const y=calRef.getFullYear(),mo=calRef.getMonth();
   let monthNet=0,td=0,wd=0;
   Object.entries(days).forEach(([iso,v])=>{const dt=new Date(iso);if(dt.getFullYear()===y&&dt.getMonth()===mo){monthNet+=v;td++;if(v>0)wd++;}});
-  let h=`<div class="stat-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+  let h=`${state.lookOnly?lookBanner():''}<div class="stat-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
     ${stat('Month P&L',fmt$(monthNet,true),cls(monthNet),'realized')}
     ${stat('Trading Days',td,'','this month')}
     ${stat('Green Days',td?pct(wd/td*100):'—','',`${wd} of ${td}`)}</div>
@@ -1516,18 +1559,21 @@ async function showShareView(token){
 /* ===== TRADES ===== */
 function renderTrades(){
   const trades=state.trades.map(t=>({...t,c:calc(t)})).sort((a,b)=>b.date.localeCompare(a.date));
-  let h=`<div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>${trades.length} Trades</div></div>`;
+  let h=`${state.lookOnly?lookBanner():''}<div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>${trades.length} Trades</div></div>`;
   if(!trades.length){h+=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><div>No trades yet. Add one or import a CSV.</div></div></div>`;document.getElementById('content').innerHTML=h;return;}
-  h+=`<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Symbol</th><th>Setup</th><th>Side</th><th>Mindset</th><th>Ticks</th><th>R</th><th style="text-align:right">P&L</th><th></th></tr></thead><tbody>`;
+  h+=`<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Symbol</th><th>Setup</th><th>Side</th><th>Exit</th><th>Session</th><th>Chart</th><th>Mindset</th><th>Ticks</th><th>R</th><th style="text-align:right">P&L</th><th></th></tr></thead><tbody>`;
   trades.forEach(t=>{const pl=state.plays.find(p=>p.id===t.playId);const eg=EMOTIONS[t.emotion];
     h+=`<tr><td class="num muted">${t.date}</td><td class="num" style="font-weight:600">${esc(t.symbol)}</td>
       <td>${t.playName?esc(t.playName):(pl?`<span style="display:inline-flex;align-items:center;gap:7px"><span class="dotc" style="background:${pl.color}"></span>${esc(pl.name)}</span>`:'<span class="muted">—</span>')}</td>
       <td><span class="tag ${t.direction==='Short'?'dir-short':'dir-long'}">${t.direction}</span></td>
+      <td>${t.exitType?esc(exitLabel(t.exitType)):'<span class="muted">—</span>'}</td>
+      <td>${t.session?esc(sessionLabel(t.session)):'<span class="muted">—</span>'}</td>
+      <td>${t.hasChart?`<img class="chart-thumb" src="${tradeChartUrl(t.id)}" alt="">`:'<span class="muted">—</span>'}</td>
       <td>${t.emotion?`<span class="emo-tag ${eg||''}">${esc(t.emotion)}</span>`:'<span class="muted">—</span>'}</td>
       <td class="num ${cls(t.c.ticks)}">${t.c.ticks>0?'+':''}${t.c.ticks.toFixed(1)}</td>
       <td class="num ${t.c.r!=null?cls(t.c.r):'muted'}">${t.c.r!=null?(t.c.r>=0?'+':'')+t.c.r.toFixed(2)+'R':'—'}</td>
       <td class="num ${cls(t.c.pnl)}" style="text-align:right;font-weight:600">${fmt$c(t.c.pnl)}</td>
-      <td style="text-align:right;white-space:nowrap"><button class="btn sm ghost" style="padding:4px 8px;margin-right:4px" onclick="openTrade('${t.id}')">Edit</button><span class="x" style="display:inline-grid;vertical-align:middle" onclick="delTrade('${t.id}')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span></td></tr>`;});
+      <td style="text-align:right;white-space:nowrap">${state.lookOnly?'':`<button class="btn sm ghost" style="padding:4px 8px;margin-right:4px" onclick="openTrade('${t.id}')">Edit</button><span class="x" style="display:inline-grid;vertical-align:middle" onclick="delTrade('${t.id}')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span>`}</td></tr>`;});
   h+=`</tbody></table></div></div>`;document.getElementById('content').innerHTML=h;
 }
 function delTrade(id){state.trades=state.trades.filter(t=>t.id!==id);save('trades');renderTrades();flash('Trade deleted');}
@@ -1554,13 +1600,17 @@ function openTrade(editId){
       <div class="field"><label>Account</label><select id="f_acct"><option value="">— none —</option>${acctOpts}</select></div></div>
     <div class="f2"><div class="field"><label>Mindset / Emotion</label><select id="f_emo"><option value="">— none —</option>${emoOpts}</select></div>
       <div class="field"><label>Followed your plan?</label><div class="toggle" id="f_plan"><div class="opt ${planOn?'on':''}" data-v="1">Yes</div><div class="opt ${planOn?'':'on'}" data-v="0">No</div></div></div></div>
+    <div class="field"><label>How did you get out?</label><div class="exit-picks" id="f_exit_type">${EXITS.map(([k,lab])=>`<button type="button" data-v="${k}" class="${existing&&existing.exitType===k?'on':''}">${lab}</button>`).join('')}</div></div>
+    <div class="field"><label>Session</label><div class="sess-picks" id="f_session">${SESSIONS.map(([k,lab])=>`<button type="button" data-v="${k}" class="${existing&&existing.session===k?'on':''}">${lab}</button>`).join('')}</div></div>
+    <div class="field"><label>Chart screenshot</label>${existing&&existing.hasChart?`<img class="chart-thumb" src="${tradeChartUrl(existing.id)}" alt="" style="width:120px;height:72px;margin-bottom:8px;display:block">`:''}<input id="f_chart" type="file" accept="image/jpeg,image/png,image/webp"></div>
     <div class="field"><label>Notes</label><textarea id="f_notes" placeholder="Why you took it, how it felt, what you'd do differently…">${existing?esc(existing.notes||''):''}</textarea></div>
-  `,()=>{const playSel=val('f_play');let playId=null,playName='';
+  `,async ()=>{const playSel=val('f_play');let playId=null,playName='';
     if(playSel==='__other__'){playName=(val('f_play_custom')||'').trim();if(!playName){flash('Enter a setup name');return false;}}
     else if(playSel)playId=playSel;
     const payload={symbol:val('f_sym'),date:val('f_date'),direction:val('f_dir'),contracts:+val('f_qty')||1,
       entry:+val('f_entry'),exit:+val('f_exit'),stop:val('f_stop')||null,playId,playName,accountId:val('f_acct')||null,
-      emotion:val('f_emo')||null,plan:window.__plan!==0,notes:val('f_notes')};
+      emotion:val('f_emo')||null,plan:window.__plan!==0,notes:val('f_notes'),
+      exitType:window.__exitType||null,session:window.__session||null};
     if(isNaN(payload.entry)||isNaN(payload.exit)){flash('Entry and exit are required');return false;}
     const bare={symbol:payload.symbol,direction:payload.direction,entry:payload.entry,exit:payload.exit,contracts:payload.contracts,stop:payload.stop};
     if(existing&&existing.csvPnl!=null&&existing.csvPnl!==''&&!isNaN(+existing.csvPnl)){
@@ -1569,16 +1619,21 @@ function openTrade(editId){
     }else{
       payload.csvPnl=calc(bare).pnl;
     }
-    if(existing){
-      Object.assign(existing,payload);
-      save('trades');flash('Trade updated');
-      if(view==='trades')renderTrades();else go('trades');
-    }else{
-      payload.id=uid();
-      state.trades.push(payload);save('trades');flash('Trade logged');go(view==='dashboard'?'dashboard':'trades');
-    }
+    const id=existing?existing.id:uid();
+    payload.id=id;
+    const file=document.getElementById('f_chart')&&document.getElementById('f_chart').files[0];
+    if(existing)Object.assign(existing,payload);
+    else state.trades.push(payload);
+    await save('trades');
+    if(file)await uploadTradeChart(id,file);
+    flash(existing?'Trade updated':'Trade logged');
+    go(view==='dashboard'?'dashboard':'trades');
   },existing?'Save changes':'Save Trade');
   window.__plan=planOn?1:0;
+  window.__exitType=existing&&existing.exitType||null;
+  window.__session=existing&&existing.session||null;
+  document.querySelectorAll('#f_exit_type button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#f_exit_type button').forEach(x=>x.classList.remove('on'));b.classList.add('on');window.__exitType=b.dataset.v;});
+  document.querySelectorAll('#f_session button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#f_session button').forEach(x=>x.classList.remove('on'));b.classList.add('on');window.__session=b.dataset.v;});
   document.querySelectorAll('#f_plan .opt').forEach(o=>o.onclick=()=>{document.querySelectorAll('#f_plan .opt').forEach(x=>x.classList.remove('on'));o.classList.add('on');window.__plan=+o.dataset.v;});
   const upd=()=>{const e=+val('f_entry'),x=+val('f_exit');const el=document.getElementById('f_prev');
     if(isNaN(e)||isNaN(x)){el.innerHTML='<span class="muted">Enter prices to preview P&L…</span>';return;}
@@ -1765,12 +1820,12 @@ function renderLineageStepper(chain,opts){
   let h=`<div class="lineage-card"><div class="lineage-head">[ ${esc(firm)} · ${esc(size)} ]</div><div class="lineage-stepper">${steps}</div><div class="lineage-total ${cls(net)}">${fmt$(net,true)} total</div>`;
   if(opts.detail){
     chain.forEach(a=>{const exp=acctExp(a),pay=acctPay(a);
-      h+=`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><div style="font-weight:600;font-size:13px">${esc(a.label)}</div><div class="hint" style="font-family:var(--ui)">${badge(a.status)}</div></div><div class="num ${cls(pay-exp)}" style="font-weight:600">${fmt$(pay-exp,true)}</div></div>`;
+      h+=`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><div style="font-weight:600;font-size:13px">${esc(a.label)}</div><div class="hint" style="font-family:var(--ui)">${badge(a.status)}</div></div><div class="num ${cls(pay-exp)}" style="font-weight:600">${fmt$(pay-exp,true)}</div></div>${propMeter(a,true)}`;
       if(opts.showLedger){
         const items=[...a.expenses.map(e=>({...e,kind:'exp'})),...a.payouts.map(p=>({...p,kind:'pay'}))].sort((x,y)=>y.date.localeCompare(x.date));
-        items.forEach(it=>{h+=`<div class="ledger-row"><span>${it.kind==='pay'?'<span class="pos">▲ Payout</span>':'<span class="muted">▼ '+esc(it.type)+'</span>'} <span class="hint" style="font-family:var(--ui)">${it.date}</span></span><span class="num ${it.kind==='pay'?'pos':'neg'}">${it.kind==='pay'?'+':'−'}${fmt$(it.amount)} <span class="x" style="display:inline-grid;vertical-align:middle" onclick="delLedger('${a.id}','${it.kind}','${it.id}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></span></span></div>`;});
+        items.forEach(it=>{h+=`<div class="ledger-row"><span>${it.kind==='pay'?'<span class="pos">▲ Payout</span>':'<span class="muted">▼ '+esc(it.type)+'</span>'} <span class="hint" style="font-family:var(--ui)">${it.date}</span></span><span class="num ${it.kind==='pay'?'pos':'neg'}">${it.kind==='pay'?'+':'−'}${fmt$(it.amount)}${state.lookOnly?'':` <span class="x" style="display:inline-grid;vertical-align:middle" onclick="delLedger('${a.id}','${it.kind}','${it.id}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></span>`}</span></div>`;});
         if(!items.length)h+=`<div class="hint" style="font-family:var(--ui);padding:4px 0">No entries yet.</div>`;
-        h+=`<div class="mini-btns"><button class="btn sm" onclick="openLedger('${a.id}','exp')">+ Fee</button><button class="btn sm" onclick="openLedger('${a.id}','pay')">+ Payout</button><button class="btn sm" onclick="openStatus('${a.id}')">Status</button><button class="btn sm danger" onclick="delAcct('${a.id}')">Delete</button></div>`;
+        if(!state.lookOnly)h+=`<div class="mini-btns"><button class="btn sm" onclick="openLedger('${a.id}','exp')">+ Fee</button><button class="btn sm" onclick="openLedger('${a.id}','pay')">+ Payout</button><button class="btn sm" onclick="openAcctRules('${a.id}')">Scoreboard</button><button class="btn sm" onclick="openStatus('${a.id}')">Status</button><button class="btn sm danger" onclick="delAcct('${a.id}')">Delete</button></div>`;
       }
       h+=`</div>`;});
   }
@@ -1824,11 +1879,11 @@ function renderLiveCapital(){
 }
 function renderAccounts(){
   const tE=state.accounts.reduce((s,a)=>s+acctExp(a),0),tP=state.accounts.reduce((s,a)=>s+acctPay(a),0),roi=tP-tE;
-  let h=`<div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
+  let h=`${state.lookOnly?lookBanner():''}<div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
     ${stat('Total Payouts',fmt$(tP),'pos','withdrawn')}${stat('Total Fees',fmt$(tE),'neg','evals · resets · activations')}${stat('Net Business ROI',fmt$(roi,true),cls(roi),'payouts − fees')}</div>
     <div class="card"><div class="card-h"><div class="card-t"><span class="tick"></span>Accounts</div>
-      <button class="btn sm primary admin-write" onclick="openAcct()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Account</button>
-      <button class="btn sm primary client-write" onclick="openAcct()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Account</button></div>`;
+      ${state.lookOnly?'':`<button class="btn sm primary admin-write" onclick="openAcct()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Account</button>
+      <button class="btn sm primary client-write" onclick="openAcct()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add Account</button>`}</div>`;
   if(!state.accounts.length){h+=`<div class="empty">No accounts yet.</div></div>`;document.getElementById('content').innerHTML=h;return;}
   buildAcctChains(state.accounts).forEach(chain=>{h+=renderLineageStepper(chain,{detail:true,showLedger:true});});
   h+=`</div>`;document.getElementById('content').innerHTML=h;
@@ -2481,8 +2536,8 @@ async function renderAddPeople(){
     <button class="btn primary" onclick="coachAddClient()">Add client</button></div>`;
   if(!rows.length)h+=`<div class="empty">No clients added from this coach login yet.</div>`;
   else{
-    h+=`<div class="card"><table><thead><tr><th>Name</th><th>Email</th><th>Package</th><th>Code</th></tr></thead><tbody>`;
-    rows.forEach(c=>{h+=`<tr><td class="r-name">${esc(c.name)}</td><td>${esc(c.email||'')}</td><td>${pkgBadge(c.package)}</td><td class="num">${esc(c.accessCode||'')}</td></tr>`;});
+    h+=`<div class="card"><table><thead><tr><th>Name</th><th>Email</th><th>Package</th><th>Code</th><th></th></tr></thead><tbody>`;
+    rows.forEach(c=>{h+=`<tr><td class="r-name">${esc(c.name)}</td><td>${esc(c.email||'')}</td><td>${pkgBadge(c.package)}</td><td class="num">${esc(c.accessCode||'')}</td><td><button class="btn sm" onclick="openCoachJournal('${c.id}')">Open journal</button></td></tr>`;});
     h+=`</tbody></table></div>`;
   }
   document.getElementById('content').innerHTML=h;
@@ -2588,11 +2643,151 @@ async function wipe(){if(!confirm('Erase all trades, plays, accounts and clients
 
 /* ===== helpers ===== */
 function val(id){const el=document.getElementById(id);return el?el.value:'';}
+function ymd(d){const z=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate());}
+function weekMonday(iso){const x=iso?new Date(iso+'T12:00:00'):new Date();const day=(x.getDay()+6)%7;x.setDate(x.getDate()-day);return ymd(x);}
+function lookBanner(){
+  return `<div class="look-banner"><div><b>Looking at ${esc(state.lookName||'this client')}</b><div class="hint" style="font-family:var(--ui)">You can see the dashboard, calendar, and trades. You cannot change them.</div></div><button class="btn sm" onclick="closeCoachJournal()">Back</button></div>`;
+}
+function exitHabitsCard(){
+  const groups={};EXITS.forEach(([k])=>groups[k]={n:0,net:0});
+  let tagged=0;
+  state.trades.forEach(t=>{if(!groups[t.exitType])return;tagged++;groups[t.exitType].n++;groups[t.exitType].net+=calc(t).pnl;});
+  if(!tagged)return `<div class="card" style="margin-bottom:16px"><div class="card-h"><div class="card-t"><span class="tick"></span>How you got out</div></div><div class="empty">Mark how you exited on a trade. The dashboard will show which habit makes money.</div></div>`;
+  const max=Math.max(1,...EXITS.map(([k])=>Math.abs(groups[k].net)));
+  let worst=null;
+  const rows=EXITS.map(([k,lab],i)=>{const g=groups[k];if(g.n&&g.net<0&&(!worst||g.net<worst.net))worst={lab,net:g.net,n:g.n};
+    const w=Math.round(Math.abs(g.net)/max*100);
+    return `<div class="exit-row" style="animation-delay:${i*70}ms"><div>${lab} <span class="hint">· ${g.n}</span></div><div class="meter"><i style="width:${g.n?Math.max(w,6):0}%;background:${g.net<0?'var(--red)':''}"></i></div><div class="num ${cls(g.net)}" style="text-align:right">${g.n?fmt$(g.net,true):'—'}</div></div>`;
+  }).join('');
+  const tip=worst?`Your <b>${esc(worst.lab)}</b> exits have cost <b class="neg">${fmt$(worst.net)}</b> across ${worst.n} trades. That is the habit to fix.`:'On-plan exits are holding up. Keep marking every trade.';
+  return `<div class="card" style="margin-bottom:16px"><div class="card-h"><div class="card-t"><span class="tick"></span>How you got out</div></div><div class="exit-card">${rows}</div><div class="coach-line" style="margin-top:12px"><div>${tip}</div></div></div>`;
+}
+function meterLine(label,value,pctWidth,bad){
+  return `<div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>${label}</span><b class="${bad?'neg':''}">${value}</b></div><div class="meter"><i style="width:${pctWidth}%;background:${bad?'var(--red)':''}"></i></div></div>`;
+}
+function propMeter(a, hintEmpty){
+  if(a.dailyLoss==null&&a.maxDd==null&&a.profitTarget==null)return hintEmpty&&!state.lookOnly?`<div class="hint" style="font-family:var(--ui);margin-top:6px">No scoreboard yet. Use Scoreboard to set daily loss, drawdown, and the profit target.</div>`:'';
+  const rows=state.trades.filter(t=>t.accountId===a.id).map(t=>({date:t.date,pnl:calc(t).pnl})).sort((x,y)=>String(x.date).localeCompare(String(y.date)));
+  const today=dayISO(0);
+  const dayNet=rows.filter(t=>t.date===today).reduce((s,t)=>s+t.pnl,0);
+  let cum=0,peak=0,dd=0;
+  rows.forEach(t=>{cum+=t.pnl;if(cum>peak)peak=cum;dd=Math.max(dd,peak-cum);});
+  let h='<div class="prop-meters">';
+  if(a.dailyLoss!=null){const left=a.dailyLoss-Math.max(0,-dayNet);const p=a.dailyLoss?Math.max(0,Math.min(100,left/a.dailyLoss*100)):0;h+=meterLine('Daily loss left',fmt$(left,true),p,left<0);}
+  if(a.maxDd!=null){const left=a.maxDd-dd;const p=a.maxDd?Math.max(0,Math.min(100,left/a.maxDd*100)):0;h+=meterLine('Drawdown left',fmt$(left,true),p,left<0);}
+  if(a.profitTarget!=null){const p=a.profitTarget?Math.max(0,Math.min(100,Math.max(0,cum)/a.profitTarget*100)):0;h+=meterLine('Profit target',fmt$(Math.max(0,cum),true)+' / '+fmt$(a.profitTarget),p,false);}
+  const stage=a.status==='failed'?'Blown':(a.status==='funded'||a.status==='payout'?'Funded':'Eval');
+  h+=`<div class="hint" style="font-family:var(--ui)">Stage: ${stage}</div></div>`;
+  return h;
+}
+function openAcctRules(id){
+  const a=state.accounts.find(x=>x.id===id);if(!a||state.lookOnly)return;
+  modal('Account scoreboard',`<div class="hint" style="font-family:var(--ui);margin-bottom:10px">Rules for ${esc(a.label)}. Leave a box empty if you do not use that rule.</div>
+    <div class="field"><label>Daily loss limit (USD)</label><input id="r_day" class="num" type="number" min="0" step="any" value="${a.dailyLoss!=null?a.dailyLoss:''}"></div>
+    <div class="field"><label>Max drawdown (USD)</label><input id="r_dd" class="num" type="number" min="0" step="any" value="${a.maxDd!=null?a.maxDd:''}"></div>
+    <div class="field"><label>Profit target (USD)</label><input id="r_tg" class="num" type="number" min="0" step="any" value="${a.profitTarget!=null?a.profitTarget:''}"></div>`,
+  ()=>{const numOr=id=>{const raw=val(id);if(raw==='')return null;const n=+raw;return isNaN(n)||n<0?null:n;};
+    a.dailyLoss=numOr('r_day');a.maxDd=numOr('r_dd');a.profitTarget=numOr('r_tg');
+    save('accounts');flash('Scoreboard saved');renderAccounts();},'Save');
+}
+function noteCard(n){
+  return `<div class="card" style="margin-bottom:10px"><div class="card-h"><div class="card-t"><span class="tick"></span>${esc(n.name||'Friday note')}</div><span class="hint" style="font-family:var(--ui)">${esc(n.weekStart||'')}</span></div>
+    <div class="hint" style="font-family:var(--ui);line-height:1.6;color:var(--text-2)"><b style="color:var(--text)">Went well.</b> ${esc(n.wentWell||'—')}<br><b style="color:var(--text)">Rule that broke.</b> ${esc(n.ruleBroke||'—')}<br><b style="color:var(--text)">Next week.</b> ${esc(n.nextPlan||'—')}</div></div>`;
+}
+async function renderReview(){
+  const root=document.getElementById('content');
+  root.innerHTML='<div class="hint" style="font-family:var(--ui)">Loading Friday note…</div>';
+  const week=weekMonday();
+  try{
+    let notes=[],mine=[];
+    if(state.lookOnly){notes=state.coachNotes||[];}
+    else if(session&&session.role==='coach'){notes=(await api('GET','/api/coach/reviews')).notes||[];}
+    else if(session&&session.role==='client'){mine=(await api('GET','/api/client/review')).notes||[];}
+    else{const d=await api('GET','/api/admin/reviews');notes=d.notes||[];mine=d.mine||[];}
+    const cur=(state.lookOnly?notes:mine).find(n=>n.weekStart===week)||{};
+    const canWrite=!state.lookOnly&&!(session&&session.role==='coach');
+    let h=state.lookOnly?lookBanner():'';
+    if(canWrite){
+      h+=`<div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:8px"><span class="tick"></span>This week</div>
+        <p class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:12px">Week of ${esc(week)}. Your coach can read this.</p>
+        <div class="field"><label>What went well</label><textarea id="rv_well">${esc(cur.wentWell||'')}</textarea></div>
+        <div class="field"><label>Which rule broke</label><textarea id="rv_rule">${esc(cur.ruleBroke||'')}</textarea></div>
+        <div class="field"><label>Plan for next week</label><textarea id="rv_next">${esc(cur.nextPlan||'')}</textarea></div>
+        <button class="btn primary" onclick="saveReview('${week}')">Save Friday note</button></div>`;
+    }
+    const list=state.lookOnly?notes:(session&&session.role==='coach'?notes:notes.filter(n=>n.ownerId!=='admin'));
+    if(session&&session.role==='client'){
+      const past=mine.filter(n=>n.weekStart!==week);
+      h+=past.length?past.map(noteCard).join(''):'';
+    }else{
+      h+=`<div class="card-t" style="margin:4px 0 10px"><span class="tick"></span>${session&&session.role==='coach'&&!state.lookOnly?'Client notes':'Notes'}</div>`;
+      h+=list.length?list.map(noteCard).join(''):`<div class="empty">No Friday note yet.</div>`;
+    }
+    root.innerHTML=h;
+  }catch(e){root.innerHTML='<div class="card">Could not load Friday notes.</div>';}
+}
+async function saveReview(week){
+  const body={weekStart:week,wentWell:val('rv_well'),ruleBroke:val('rv_rule'),nextPlan:val('rv_next')};
+  const url=(session&&session.role==='client')?'/api/client/review':'/api/admin/review';
+  try{await api('PUT',url,body);flash('Friday note saved');renderReview();}
+  catch(e){flash(e.message||'Could not save');}
+}
+function renderCoachPick(){
+  const rows=state.coachClients||[];
+  let h=`<div class="card"><div class="card-t" style="margin-bottom:8px"><span class="tick"></span>Pick a client</div>
+    <p class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:12px">Open a journal to see the dashboard, calendar, and trades. You cannot change them.</p>`;
+  if(!rows.length)h+=`<div class="empty">Add a client first.</div>`;
+  else rows.forEach(c=>{h+=`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line-soft)"><div><b>${esc(c.name)}</b><div class="hint" style="font-family:var(--ui)">${esc(c.email||'')}</div></div><button class="btn sm" onclick="openCoachJournal('${c.id}')">Open journal</button></div>`;});
+  h+=`</div>`;
+  document.getElementById('content').innerHTML=h;
+}
+async function openCoachJournal(id){
+  try{
+    const d=await api('GET','/api/coach/clients/'+id+'/journal');
+    state.lookOnly=true;
+    state.lookClient=id;
+    state.lookName=(d.client&&d.client.name)||'Client';
+    state.plays=d.plays||[];
+    state.accounts=d.accounts||[];
+    state.trades=d.trades||[];
+    state.dayPnl=d.dayPnl||[];
+    state.dayShots=d.dayShots||[];
+    state.dayTrades=d.dayTrades||[];
+    state.coachNotes=d.notes||[];
+    state.clients=d.client?[d.client]:[];
+    document.body.classList.add('coach-looking');
+    go('dashboard');
+  }catch(e){flash(e.message||'Could not open journal');}
+}
+function closeCoachJournal(){
+  state.lookOnly=false;state.lookClient=null;state.lookName='';
+  state.trades=[];state.accounts=[];state.dayPnl=[];state.dayTrades=[];state.dayShots=[];state.coachNotes=[];
+  document.body.classList.remove('coach-looking');
+  go('addpeople');
+}
+function uploadTradeChart(id,file){
+  return new Promise((resolve)=>{
+    if(!file)return resolve();
+    if(file.size>3.5*1024*1024){flash('Chart image must be under 3.5 MB');return resolve();}
+    const reader=new FileReader();
+    reader.onload=async()=>{
+      try{
+        const url=(session&&session.role==='client')?'/api/client/trades/'+id+'/chart':'/api/admin/trades/'+id+'/chart';
+        await api('POST',url,{dataUrl:reader.result});
+        const t=state.trades.find(x=>x.id===id);if(t)t.hasChart=true;
+        state.chartRev=state.chartRev||{};state.chartRev[id]=Date.now();
+      }catch(e){flash(e.message||'Chart was not saved');}
+      resolve();
+    };
+    reader.onerror=()=>resolve();
+    reader.readAsDataURL(file);
+  });
+}
 function modal(title,body,onSave,label){const root=document.getElementById('modalRoot');
   root.innerHTML=`<div class="modal-bg" id="mbg"><div class="modal"><div class="modal-head"><h3>${title}</h3>
     <div class="x" onclick="closeModal()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
     <div class="modal-body">${body}<div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" id="mSave">${label||'Save'}</button></div></div></div></div>`;
-  document.getElementById('mSave').onclick=()=>{const r=onSave();if(r!==false)closeModal();};
+  document.getElementById('mSave').onclick=async()=>{const r=onSave();const out=r&&typeof r.then==='function'?await r:r;if(out!==false)closeModal();};
   document.getElementById('mbg').onclick=e=>{if(e.target.id==='mbg')closeModal();};}
 function closeModal(){document.getElementById('modalRoot').innerHTML='';}
 let tT;function flash(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('show'),2200);}

@@ -9,7 +9,8 @@ const {
   getDayScreenshot, saveDayScreenshot, deleteDayScreenshot,
   listDayTradeEntries, getDayTradeEntry, addDayTradeEntry, updateDayTradeEntry, deleteDayTradeEntry,
   ensureAdminShareToken,
-  listStaff, createStaff, listAllTickets, replyTicket, setTicketStatus
+  listStaff, createStaff, listAllTickets, replyTicket, setTicketStatus,
+  saveTradeChart, getTradeChart, saveWeeklyNote, listAllWeeklyNotes, listNotesForOwner
 } = require('../db');
 const { sendDailyReport } = require('../email');
 const { runDailySend } = require('../scheduler');
@@ -180,6 +181,26 @@ router.get('/staff', (req, res) => res.json(listStaff()));
 router.post('/staff', (req, res) => {
   try { res.json(createStaff(req.body || {})); }
   catch (e) { res.status(400).json({ error: e.message || 'Could not add coach' }); }
+});
+router.get('/reviews', (req, res) => res.json({ notes: listAllWeeklyNotes(), mine: listNotesForOwner('admin') }));
+router.put('/review', (req, res) => {
+  try { res.json({ note: saveWeeklyNote('admin', req.body || {}) }); }
+  catch (e) { res.status(400).json({ error: e.message || 'Could not save note' }); }
+});
+router.get('/trades/:id/chart', (req, res) => {
+  const shot = getTradeChart('admin', req.params.id);
+  if (!shot) return res.status(404).json({ error: 'No chart' });
+  res.setHeader('Content-Type', shot.mime);
+  res.setHeader('Cache-Control', 'private, max-age=3600');
+  res.sendFile(shot.filePath);
+});
+router.post('/trades/:id/chart', (req, res) => {
+  const parsed = parseDataUrl((req.body || {}).dataUrl);
+  if (!parsed) return res.status(400).json({ error: 'Use a JPEG, PNG, or WebP image' });
+  try {
+    saveTradeChart('admin', req.params.id, parsed);
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ error: e.message || 'Could not save chart' }); }
 });
 router.get('/tickets', (req, res) => res.json(listAllTickets()));
 router.post('/tickets/:id/reply', (req, res) => {
