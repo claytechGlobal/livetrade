@@ -63,9 +63,16 @@ app.use('/api/client', require('./src/routes/client'));
 app.use('/api/coach', require('./src/routes/coach'));
 
 const PUBLIC = path.join(__dirname, 'public');
-app.use(express.static(PUBLIC));
+app.use(express.static(PUBLIC, {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith(`${path.sep}index.html`) || filePath.endsWith(`${path.sep}sw.js`)) {
+      res.setHeader('Cache-Control', 'no-store');
+    }
+  }
+}));
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
+  res.setHeader('Cache-Control', 'no-store');
   res.sendFile(path.join(PUBLIC, 'index.html'));
 });
 

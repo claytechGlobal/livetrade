@@ -1,5 +1,5 @@
-const CACHE = 'livetrades-v1';
-const PRECACHE = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
+const CACHE = 'livetrades-v2';
+const PRECACHE = ['/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -17,11 +17,14 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
+  const fresh = req.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html') || url.pathname === '/sw.js';
   event.respondWith(
-    fetch(req).then(res => {
-      const copy = res.clone();
-      caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+    fetch(req, fresh ? { cache: 'no-store' } : {}).then(res => {
+      if (!fresh && res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+      }
       return res;
-    }).catch(() => caches.match(req).then(r => r || caches.match('/')))
+    }).catch(() => fresh ? Response.error() : caches.match(req).then(hit => hit || Response.error()))
   );
 });
