@@ -191,7 +191,7 @@ function cleanExit(v) {
 }
 function cleanSession(v) {
   const s = String(v || '');
-  return ['ny', 'lunch', 'power'].includes(s) ? s : null;
+  return ['london', 'ny', 'power', 'asia'].includes(s) ? s : null;
 }
 function cleanMoney(v) {
   if (v == null || v === '') return null;
