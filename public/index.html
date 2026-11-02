@@ -939,7 +939,7 @@ async function renderHome(needSub){
       <h2 class="home-sec-h">How it works</h2>
       <p class="home-sec-p">Three steps from package to daily performance reporting.</p>
       <div class="home-steps">
-        <div class="home-step"><div class="n">1</div><h3>Get dashboard access</h3><p>$45/mo unlocks the journal. One-time Starter–Prime packages are for managed prop accounts — buy again anytime.</p></div>
+        <div class="home-step"><div class="n">1</div><h3>Get dashboard access</h3><p>${esc((s.prices||{}).access||'$45/mo')} unlocks the journal. One-time Starter–Prime packages are for managed prop accounts — buy again anytime.</p></div>
         <div class="home-step"><div class="n">2</div><h3>Open your portal</h3><p>Buy a package first. Then sign in with your email, password, and the access code from that purchase. An old code opens the same account.</p></div>
         <div class="home-step"><div class="n">3</div><h3>Track &amp; improve</h3><p>Log or upload trades, watch edge score and calendar, join live coaching, get the 5 PM ET report.</p></div>
       </div>
@@ -2629,7 +2629,8 @@ function renderSettings(){
         <div class="field"><label>Elite (one-time)</label><input id="set_p_elite" value="${esc((state.settings.prices||{}).elite||'')}" placeholder="$1500"></div>
         <div class="field"><label>Prime (one-time)</label><input id="set_p_prime" value="${esc((state.settings.prices||{}).prime||'')}" placeholder="$2500"></div>
       </div>
-      <div class="hint" style="font-family:var(--ui);color:var(--text-2)">Only $45 is monthly. The four management packages are one-time fees.</div>
+      <div class="hint" style="font-family:var(--ui);color:var(--text-2)">Only the dashboard price is monthly. The four management packages are one-time fees. Saving here updates the public pricing page.</div>
+      <button class="btn primary" style="margin-top:12px" onclick="savePrices()">Save prices</button>
       </div></div>`;
   document.getElementById('content').innerHTML=h;
   let pick=state.settings.accent||'#22b8ef';
@@ -2663,6 +2664,10 @@ function updateCredentials(){const u=val('set_user').trim();const p=val('set_pas
 function saveLiveSession(){state.settings.liveSessionUrl=val('set_live_url').trim();
   state.settings.liveSessionEnabled=!!document.getElementById('set_live_on').checked;
   save('settings');flash('Live session saved');}
+function savePrices(){
+  state.settings.prices={access:val('set_p_access').trim()||'$45/mo',starter:val('set_p_starter').trim()||'$500',pro:val('set_p_pro').trim()||'$1000',elite:val('set_p_elite').trim()||'$1500',prime:val('set_p_prime').trim()||'$2500'};
+  save('settings');flash('Prices saved. They now show on the public pricing page.');
+}
 function saveBranding(){state.settings.appName=val('set_name').trim()||'LIVE TRADES';state.settings.trader=val('set_trader').trim()||'Trader';
   state.settings.accent=window.__ac||state.settings.accent||'#22b8ef';
   state.settings.prices={access:val('set_p_access').trim()||'$45/mo',starter:val('set_p_starter').trim()||'$—',pro:val('set_p_pro').trim()||'$—',elite:val('set_p_elite').trim()||'$—',prime:val('set_p_prime').trim()||'$—'};
