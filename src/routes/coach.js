@@ -1,8 +1,8 @@
 'use strict';
 const express = require('express');
 const { requireCoach } = require('../auth');
-const { addClientManual, listClientsByCreator, getCoachJournal, listCoachWeeklyNotes, getTradeChart, getDayTradeEntry } = require('../db');
-const { sendAccessCode } = require('../email');
+const { addClientManual, listClientsByCreator, getCoachJournal, listCoachWeeklyNotes, getTradeChart, getDayTradeEntry, listCoachCopier, saveCoachCopier, buildDailyReport, markDailySent, etToday } = require('../db');
+const { sendAccessCode, sendDailyReport } = require('../email');
 
 const router = express.Router();
 router.use(requireCoach);
@@ -39,6 +39,34 @@ router.get('/clients/:id/day-trades/:date/:entryId', (req, res) => {
   res.setHeader('Content-Type', shot.mime);
   res.setHeader('Cache-Control', 'private, max-age=3600');
   res.sendFile(shot.filePath);
+});
+
+router.get('/copier', (req, res) => {
+  res.json({ clients: listCoachCopier(req.user.staffId) });
+});
+
+router.put('/copier', (req, res) => {
+  try {
+    const clients = saveCoachCopier(req.user.staffId, req.body);
+    res.json({ ok: true, clients });
+  } catch (e) {
+    res.status(400).json({ error: e.message || 'Could not save.' });
+  }
+});
+
+router.post('/clients/:id/send', async (req, res) => {
+  const mine = listCoachCopier(req.user.staffId).some(c => c.id === req.params.id);
+  if (!mine) return res.status(404).json({ error: 'Client not found' });
+  const date = (req.body && req.body.date) || null;
+  const report = buildDailyReport(req.params.id, date);
+  if (!report) return res.status(404).json({ error: 'Client not found' });
+  try {
+    await sendDailyReport(report);
+    if (report.date === etToday()) markDailySent(report.clientId, report.date);
+    res.json({ ok: true, report });
+  } catch (e) {
+    res.status(500).json({ error: 'Send failed: ' + e.message });
+  }
 });
 
 router.post('/clients', async (req, res) => {

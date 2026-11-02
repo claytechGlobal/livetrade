@@ -360,7 +360,7 @@ function clientWantsDailyEmail(c) {
 function clientOut(c) {
   return {
     id: c.id, name: c.name, email: c.email, package: c.package, status: c.status,
-    split: c.split, accessCode: c.access_code, joined: c.joined,
+    split: c.split, accessCode: c.access_code, joined: c.joined, createdBy: c.created_by || null,
     dailyEmail: clientWantsDailyEmail(c),
     dailyPnl: db.prepare('SELECT * FROM daily_pnl WHERE client_id=? ORDER BY date').all(c.id)
       .map(d => ({ id: d.id, date: d.date, amount: d.amount, note: d.note }))
@@ -881,13 +881,13 @@ const replaceAffiliates = db.transaction(arr => {
 
 const replaceClients = db.transaction(arr => {
   const prev = {};
-  db.prepare('SELECT id, stripe_session_id, access_expires_at, stripe_subscription_id, daily_email, share_token, password_hash FROM clients').all()
+  db.prepare('SELECT id, stripe_session_id, access_expires_at, stripe_subscription_id, daily_email, share_token, password_hash, created_by FROM clients').all()
     .forEach(r => { prev[r.id] = r; });
   db.prepare('DELETE FROM clients').run();
   db.prepare('DELETE FROM daily_pnl').run();
   const ic = db.prepare(`INSERT INTO clients
-    (id,name,email,package,status,split,access_code,stripe_session_id,joined,access_expires_at,stripe_subscription_id,daily_email,share_token,password_hash)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    (id,name,email,package,status,split,access_code,stripe_session_id,joined,access_expires_at,stripe_subscription_id,daily_email,share_token,password_hash,created_by)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   const idp = db.prepare('INSERT INTO daily_pnl(id,client_id,date,amount,note) VALUES(?,?,?,?,?)');
   (arr || []).forEach(c => {
     const cid = c.id || uid();
@@ -899,7 +899,8 @@ const replaceClients = db.transaction(arr => {
       c.stripeSubscriptionId || old.stripe_subscription_id || null,
       wantsEmail ? 1 : 0,
       c.shareToken || old.share_token || null,
-      old.password_hash || null);
+      old.password_hash || null,
+      c.createdBy || old.created_by || null);
     (c.dailyPnl || []).forEach(d => idp.run(d.id || uid(), cid, d.date || today(), num(d.amount), d.note || ''));
   });
 });
@@ -1044,6 +1045,41 @@ function addClientManual({ name, email, package: pkg, split, createdBy }) {
   db.prepare(`INSERT INTO clients(id,name,email,package,status,split,access_code,joined,daily_email,created_by)
     VALUES(?,?,?,?,?,?,?,?,?,?)`).run(id, nm, em, pkg, 'active', Number(split) || 0, code, today(), 1, createdBy || null);
   return db.prepare('SELECT * FROM clients WHERE id=?').get(id);
+}
+function listCoachCopier(staffId) {
+  return db.prepare('SELECT * FROM clients WHERE created_by=? ORDER BY joined DESC').all(staffId).map(clientOut);
+}
+function saveCoachCopier(staffId, arr) {
+  const owned = db.prepare('SELECT id FROM clients WHERE created_by=?').all(staffId).map(r => r.id);
+  const ownedSet = new Set(owned);
+  const incoming = Array.isArray(arr) ? arr : [];
+  const keep = new Set();
+  const packages = ['access', 'starter', 'pro', 'elite', 'prime'];
+  const tx = db.transaction(() => {
+    incoming.forEach(c => {
+      if (!c || !ownedSet.has(c.id)) return;
+      keep.add(c.id);
+      const pkg = packages.includes(c.package) ? c.package : 'starter';
+      const code = String(c.accessCode || '').trim();
+      if (code) {
+        const clash = db.prepare('SELECT id FROM clients WHERE access_code=? AND id<>?').get(code, c.id);
+        if (clash) throw new Error('That access code is already used.');
+      }
+      db.prepare(`UPDATE clients SET name=?, email=?, package=?, status=?, split=?, access_code=?, daily_email=? WHERE id=? AND created_by=?`)
+        .run(String(c.name || '').trim(), String(c.email || '').trim(), pkg, c.status === 'active' ? 'active' : 'pending',
+          Number(c.split) || 0, code || null, clientWantsDailyEmail({ dailyEmail: c.dailyEmail }) ? 1 : 0, c.id, staffId);
+      db.prepare('DELETE FROM daily_pnl WHERE client_id=?').run(c.id);
+      const idp = db.prepare('INSERT INTO daily_pnl(id,client_id,date,amount,note) VALUES(?,?,?,?,?)');
+      (c.dailyPnl || []).forEach(d => idp.run(d.id || uid(), c.id, d.date || today(), Number(d.amount) || 0, d.note || ''));
+    });
+    owned.forEach(id => {
+      if (keep.has(id)) return;
+      db.prepare('DELETE FROM daily_pnl WHERE client_id=?').run(id);
+      db.prepare('DELETE FROM clients WHERE id=? AND created_by=?').run(id, staffId);
+    });
+  });
+  tx();
+  return listCoachCopier(staffId);
 }
 function listClientsByCreator(createdBy) {
   return db.prepare(`SELECT id,name,email,package,status,access_code,joined FROM clients WHERE created_by=? ORDER BY joined DESC`)
@@ -1555,7 +1591,7 @@ module.exports = {
   handleCheckout, extendClientAccess, expireClientBySubscription, isClientAccessValid,
   isProcessed, markProcessed,
   findActiveClientByCode, findClientByEmail, signupClient, verifyClientPassword, loginClient, getClientRow,
-  listStaff, createStaff, verifyStaff, addClientManual, listClientsByCreator,
+  listStaff, createStaff, verifyStaff, addClientManual, listClientsByCreator, listCoachCopier, saveCoachCopier,
   listTicketsForClient, listAllTickets, createTicket, replyTicket, setTicketStatus,
   saveTradeChart, getTradeChart, saveWeeklyNote, listNotesForOwner, listAllWeeklyNotes, listCoachWeeklyNotes, getCoachJournal, mondayOf,
   etToday, listActiveClients, buildDailyReport, isDailySent, markDailySent,

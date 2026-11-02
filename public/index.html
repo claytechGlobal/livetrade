@@ -526,7 +526,7 @@ body.home-open::after{opacity:.35}
     <div class="nav-label coach-only">Coach</div>
     <div class="nav-item coach-only coach-keep" data-view="addpeople"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M16 11h6"/></svg><span>Add client</span></div>
     <div class="nav-label admin-only">Management</div>
-    <div class="nav-item admin-only" data-view="clients"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11"/></svg><span>Trade Copier</span></div>
+    <div class="nav-item admin-only coach-keep" data-view="clients"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11"/></svg><span>Trade Copier</span></div>
     <div class="nav-item admin-only" data-view="affiliates"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg><span>Affiliates</span></div>
     <div class="nav-item admin-only" data-view="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0 1.6 1.6 0 0 0-2.6-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3 13.4a2 2 0 1 1 0-4 1.6 1.6 0 0 0 1.5-2.7 2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 10 4.6V4a2 2 0 1 1 4 0 1.6 1.6 0 0 0 2.7 1.1 2 2 0 1 1 2.8 2.8 1.6 1.6 0 0 0 1.1 2.7 2 2 0 1 1 0 4 1.6 1.6 0 0 0-1.2 1z"/></svg><span>Settings</span></div>
     <div class="spacer"></div>
@@ -624,6 +624,15 @@ async function save(k){
     }catch(e){flash('Could not save — '+(e.message||'server error'));}
     return;
   }
+  if(session&&session.role==='coach'){
+    if(k!=='clients'){flash('That area stays with the main admin');return;}
+    try{
+      const r=await api('PUT','/api/coach/copier',state.clients||[]);
+      state.clients=r&&r.clients?r.clients:[];
+      state.coachCopierReady=true;
+    }catch(e){flash('Could not save — '+(e.message||'server error'));}
+    return;
+  }
   try{
     if(k==='settings'){await api('PATCH','/api/admin/settings',state.settings);}
     else{await api('PUT','/api/admin/'+k,state[k]||[]);}
@@ -633,6 +642,7 @@ async function loadCoach(){
   document.body.classList.add('coach-mode');
   const d=await api('GET','/api/coach/clients');
   state.coachClients=d.clients||[];
+  state.coachCopierReady=false;
   const el=document.getElementById('hello');
   if(el)el.innerHTML='Coach, <span>'+esc(session.name||'Coach')+'</span>';
 }
@@ -1070,7 +1080,7 @@ function go(v){
   if(!v)return;
   if(session&&session.role==='client'&&(v==='clients'||v==='affiliates'||v==='settings'||v==='addpeople')){v='dashboard';}
   if(session&&session.role==='coach'){
-    const ok={addpeople:1,dashboard:1,trades:1,calendar:1,accounts:1,review:1};
+    const ok={addpeople:1,dashboard:1,trades:1,calendar:1,accounts:1,review:1,clients:1};
     if(!ok[v])v='addpeople';
     if(v==='addpeople'&&state.lookOnly){state.lookOnly=false;state.lookClient=null;state.trades=[];state.accounts=[];state.dayPnl=[];state.dayTrades=[];state.dayShots=[];document.body.classList.remove('coach-looking');}
     if(!state.lookOnly&&(v==='dashboard'||v==='trades'||v==='calendar'||v==='accounts')){
@@ -1084,7 +1094,7 @@ function go(v){
   const fn={dashboard:renderDash,trades:renderTrades,calendar:renderCalendar,playbook:renderPlaybook,playbook101:renderPlaybook101,accounts:renderAccounts,livecapital:renderLiveCapital,leaderboard:renderLeaderboard,clients:renderClients,packages:renderPackages,tcops:renderTradeCopierEdu,propfirms:renderPropFirms,contract:renderContract,guide:renderGuide,affiliates:renderAffiliates,terms:renderTerms,settings:renderSettings,support:renderSupport,addpeople:renderAddPeople,review:renderReview}[v];
   if(!fn)return;
   view=v;document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===v));
-  const sub=document.getElementById('subline');if(sub)sub.textContent=SUB[v]||'';
+  const sub=document.getElementById('subline');if(sub)sub.textContent=(session&&session.role==='coach'&&v==='clients')?'Your people on the trade copier':(SUB[v]||'');
   fn();
   document.querySelector('.main').scrollTo(0,0);}
 function toggleCoachList(){
@@ -1937,12 +1947,22 @@ function clientFunded(c){return clientAccts(c).filter(a=>a.status==='funded'||a.
 function managerFee(c){const g=clientNet(c);return g>0?g*((c.split||0)/100):0;}
 function pkgBadge(k){const p=pkg(k);return `<span class="badge" style="color:${p.accent};background:${p.accent}22;border:1px solid ${p.accent}55">${p.name}</span>`;}
 
-function renderClients(){
+async function renderClients(){
+  const coach=session&&session.role==='coach';
+  if(coach&&!state.coachCopierReady){
+    document.getElementById('content').innerHTML='<div class="hint" style="font-family:var(--ui)">Loading your people…</div>';
+    try{
+      const d=await api('GET','/api/coach/copier');
+      state.clients=d.clients||[];
+      state.coachCopierReady=true;
+    }catch(e){flash(e.message||'Could not load your people');state.clients=[];}
+  }
   const active=state.clients.filter(c=>c.status==='active');
   const totalAcc=state.clients.reduce((s,c)=>s+clientAccts(c).length,0);
   const mPnl=active.reduce((s,c)=>s+clientNet(c),0);
   const fees=active.reduce((s,c)=>s+managerFee(c),0);
-  let h=`<div class="stat-row" style="grid-template-columns:repeat(4,1fr)">
+  let h=coach?`<div class="card" style="margin-bottom:16px"><div class="card-t" style="margin-bottom:8px"><span class="tick"></span>Your people</div><p class="hint" style="font-family:var(--ui);color:var(--text-2)">These are only the people you added. You can put them on the trade copier. The main admin's other clients stay separate.</p></div>`:'';
+  h+=`<div class="stat-row" style="grid-template-columns:repeat(4,1fr)">
     ${stat('Active Clients',active.length,'',`${state.clients.length} total`)}
     ${stat('Managed Accounts',totalAcc,'','across all clients')}
     ${stat('Managed P&L',fmt$(mPnl,true),cls(mPnl),'across client accounts')}
@@ -1965,7 +1985,7 @@ function renderClients(){
     </div>`;}).join('');
   h+=`<div class="card" style="margin-bottom:16px;border:1px solid var(--accent)">
     <div class="card-h"><div class="card-t"><span class="tick"></span>Central Upload</div>
-      <span class="hint" style="font-family:var(--ui)">Set accounts per client, enter the day's P&L and share — copies to all at once. Clients upload their own broker CSV from their portal.</span></div>
+      <span class="hint" style="font-family:var(--ui)">${coach?'Enter the day P&L and share. This copies only to the people you added.':'Set accounts per client, enter the day P&L and share — copies to all at once. Clients upload their own broker CSV from their portal.'}</span></div>
     <div class="f3">
       <div class="field"><label>Trading date</label><input id="cu_date" type="date" value="${dayISO(0)}"></div>
       <div class="field"><label>P&L per account (USD)</label><input id="cu_amt" class="num" type="number" step="any" placeholder="e.g. 420 or -150" oninput="cuPreview()"></div>
@@ -2049,8 +2069,8 @@ function renderClients(){
     }else{h+=`<div class="hint" style="font-family:var(--ui);padding:4px 0 10px">No accounts assigned yet.</div>`;}
     const full=false;
     h+=`<div class="mini-btns">
-      <button class="btn sm" onclick="openAcct('${c.id}')">+ New Account</button>
-      <button class="btn sm" onclick="assignModal('${c.id}')">Assign Existing</button>
+      ${coach?'':`<button class="btn sm" onclick="openAcct('${c.id}')">+ New Account</button>
+      <button class="btn sm" onclick="assignModal('${c.id}')">Assign Existing</button>`}
       <button class="btn sm" onclick="copyShareLink('${c.id}')">Share Link</button>
       <button class="btn sm" onclick="openClient('${c.id}')">Edit</button>
       <button class="btn sm danger" onclick="delClient('${c.id}')">Remove</button>
@@ -2362,6 +2382,13 @@ function openClient(id){
   `,()=>{const name=val('cl_name').trim();if(!name){flash('Name required');return false;}
     const dailyEmail=!!document.getElementById('cl_daily_email').checked;
     const data={name,email:val('cl_email').trim(),package:val('cl_pkg'),split:+val('cl_split')||0,dailyEmail};
+    if(session&&session.role==='coach'&&!c){
+      return api('POST','/api/coach/clients',{name,email:data.email,package:data.package,split:data.split}).then(r=>{
+        state.coachCopierReady=false;
+        flash(r.emailed?'Client added. Access code emailed.':'Client added. Code: '+(r.client&&r.client.accessCode||''));
+        renderClients();
+      }).catch(e=>{flash(e.message||'Could not add');return false;});
+    }
     if(c){Object.assign(c,data);flash('Client updated');}
     else{state.clients.push({id:uid(),...data,status:'pending',accessCode:genCode(name),dailyPnl:[],joined:dayISO(0)});flash('Client added — send them the checkout link');}
     save('clients');renderClients();
@@ -2398,11 +2425,12 @@ function addDailyRow(cid){const c=state.clients.find(x=>x.id===cid);const amt=pa
   save('clients');flash('Day added');document.getElementById('dp_amt').value='';document.getElementById('dp_note').value='';}
 function delDaily(cid,id){const c=state.clients.find(x=>x.id===cid);c.dailyPnl=c.dailyPnl.filter(e=>e.id!==id);save('clients');renderClients();}
 function sendNow(cid){const c=state.clients.find(x=>x.id===cid);if(!c)return;
-  api('POST','/api/admin/clients/'+cid+'/send',{}).then(r=>{
+  const sendPath=(session&&session.role==='coach'?'/api/coach/clients/':'/api/admin/clients/')+cid+'/send';
+  api('POST',sendPath,{}).then(r=>{
     const rep=r&&r.report;flash(rep?('Report sent to '+(c.email||c.name)+' — today '+fmt$(rep.todayPnl,true)):'Report sent');
   }).catch(e=>flash(e.message||'Send failed'));}
 function delClient(id){if(!confirm('Remove this client? Their accounts will be unassigned (not deleted).'))return;
-  state.accounts.forEach(a=>{if(a.clientId===id)a.clientId=null;});save('accounts');
+  if(!(session&&session.role==='coach')){state.accounts.forEach(a=>{if(a.clientId===id)a.clientId=null;});save('accounts');}
   state.clients=state.clients.filter(c=>c.id!==id);save('clients');renderClients();flash('Client removed');}
 function unassign(aid){const a=state.accounts.find(x=>x.id===aid);if(a){a.clientId=null;save('accounts');renderClients();}}
 function assignModal(cid){const c=state.clients.find(x=>x.id===cid);const p=pkg(c.package);
@@ -2584,7 +2612,7 @@ function renderSettings(){
       <div class="field"><label>New Password <span style="text-transform:none;color:var(--text-3)">(leave blank to keep current)</span></label><input id="set_pass" type="password" placeholder="••••••••"></div>
       <button class="btn sm" onclick="updateCredentials()">Update Credentials</button>
       <div class="card-t" style="margin:22px 0 14px"><span class="tick"></span>Coach logins</div>
-      <div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:10px">A coach signs in on the same page with their username and password, and can only add clients. They do not get this admin screen.</div>
+      <div class="hint" style="font-family:var(--ui);color:var(--text-2);margin-bottom:10px">A coach signs in on the same page with their username and password. They can add their own people and put those people on the trade copier. They do not see your other clients or this admin screen.</div>
       <div id="coachStaff"></div>
       <div class="f3">
         <div class="field"><label>Coach name</label><input id="st_name" placeholder="Ashley Brown"></div>
